@@ -35,6 +35,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - JWT decoder with claims, expiry and header inspection.
 - Query string builder/parser is merged into the URL & query string helper.
 - cURL/fetch converter for common request shapes.
+- Status: JWT Decoder & Claims Inspector and URL & query string helper implemented; cURL/fetch converter remains planned.
 
 ## Phase 6: Power Platform
 

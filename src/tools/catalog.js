@@ -95,10 +95,11 @@ export const TOOL_CATALOGUE = [
   },
   {
     id: 'jwt-decoder',
-    title: 'JWT decoder',
+    title: 'JWT Decoder & Claims Inspector',
     category: 'Web/API',
-    status: 'planned',
-    summary: 'Decode JWT headers and payloads locally, with expiry and claims inspection.'
+    status: 'available',
+    summary: 'Decode JWT headers and payload claims locally with expiry insight and verification warnings.',
+    renderer: 'jwt-decoder'
   },
   {
     id: 'curl-fetch-converter',

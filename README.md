@@ -10,6 +10,7 @@ The current foundation includes:
 - JSON formatter/validator
 - JSON diff
 - PDF Template Field Explorer
+- JWT Decoder & Claims Inspector
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages
@@ -65,6 +66,8 @@ src/
     json-diff.ui.js
     json-formatter.js
     json-formatter.ui.js
+    jwt-decoder.js
+    jwt-decoder.ui.js
     pdf-template-fields.js
     pdf-template-fields.ui.js
     power-pages.js

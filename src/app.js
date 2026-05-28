@@ -8,6 +8,7 @@ import {
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
+import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
 import { renderPdfTemplateFieldExplorer } from './tools/pdf-template-fields.ui.js';
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
 import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-settings.ui.js';
@@ -20,6 +21,7 @@ const renderers = {
   'file-to-base64': renderFileToBase64,
   'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
+  'jwt-decoder': renderJwtDecoder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
   'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder,
   'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator,

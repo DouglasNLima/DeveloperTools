@@ -10,8 +10,10 @@ test('searches the sidebar and switches between available tools', async ({ page 
 
   await page.getByLabel('Search tools').fill('jwt');
   await expect(page.locator('[data-tool-id="jwt-decoder"]')).toBeVisible();
-  await expect(page.locator('[data-tool-id="jwt-decoder"]')).toBeDisabled();
-  await expect(page.locator('[data-tool-id="jwt-decoder"] .tool-item-status')).toHaveText('Planned');
+  await expect(page.locator('[data-tool-id="jwt-decoder"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="jwt-decoder"] .tool-item-status')).toHaveText('Available');
+  await page.locator('[data-tool-id="jwt-decoder"]').click();
+  await expect(page.getByRole('heading', { name: 'JWT Decoder & Claims Inspector' })).toBeVisible();
 
   await page.getByLabel('Search tools').fill('file');
   await page.locator('[data-tool-id="file-to-base64"]').click();
@@ -211,6 +213,51 @@ test('loads a fillable PDF template and exports field mappings', async ({ page }
   await expect(page.locator('#pdfSelectedFieldDetail')).toHaveText('newsletter_opt_in');
   await expect(page.locator('#copyPdfSelectedJsonButton')).toBeEnabled();
   await expect(page.locator('#exportPdfFieldsJsonButton')).toBeEnabled();
+});
+
+test('decodes JWT claims and reports local verification warnings', async ({ page }) => {
+  await page.goto('/#jwt-decoder');
+
+  const token = makeJwt({
+    iss: 'https://issuer.example',
+    sub: 'user-123',
+    aud: 'api://primary',
+    exp: 1893456000,
+    scp: 'read write',
+    roles: ['Admin']
+  });
+
+  await expect(page.getByRole('heading', { name: 'JWT Decoder & Claims Inspector' })).toBeVisible();
+  await page.getByLabel('JWT input').fill(token);
+  await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
+
+  await expect(page.locator('#jwtStatusDetail')).toHaveText('Valid by time claims');
+  await expect(page.locator('#jwtAlgorithmDetail')).toHaveText('HS256');
+  await expect(page.locator('#jwtSubjectDetail')).toHaveText('user-123');
+  await expect(page.locator('#jwtAudienceDetail')).toHaveText('api://primary');
+  await expect(page.locator('#jwtAccessDetail')).toHaveText('read, write / Admin');
+  await expect(page.locator('#jwtWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('#jwtPayloadOutput')).toHaveValue(/"sub": "user-123"/);
+  await expect(page.locator('#jwtWarningList')).toContainText('signature verification is not performed locally');
+  await expect(page.locator('#downloadJwtButton')).toHaveAttribute('download', 'decoded-jwt.json');
+  await expect(page.getByRole('status')).toContainText('JWT decoded successfully.');
+});
+
+test('reports JWT expiry and invalid token errors', async ({ page }) => {
+  await page.goto('/#jwt-decoder');
+
+  await page.getByLabel('JWT input').fill(makeJwt({ exp: 1704067200 }));
+  await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
+
+  await expect(page.locator('#jwtStatusDetail')).toHaveText('Expired');
+  await expect(page.locator('#jwtWarningsDetail')).toHaveText('2 warnings');
+  await expect(page.getByRole('status')).toContainText('The token is expired.');
+
+  await page.getByLabel('JWT input').fill(`${encodeJwtPart({ alg: 'HS256' })}.x.sig`);
+  await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
+
+  await expect(page.locator('#jwtStatusDetail')).toHaveText('-');
+  await expect(page.getByRole('status')).toContainText('JWT payload is not valid Base64URL.');
 });
 
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {
@@ -457,4 +504,13 @@ async function createFillablePdf() {
 
   form.updateFieldAppearances(font);
   return Buffer.from(await pdfDoc.save());
+}
+
+function makeJwt(payload, header = { alg: 'HS256', typ: 'JWT' }, signature = 'signature') {
+  return `${encodeJwtPart(header)}.${encodeJwtPart(payload)}.${encodeJwtPart(signature)}`;
+}
+
+function encodeJwtPart(value) {
+  const text = typeof value === 'string' ? value : JSON.stringify(value);
+  return Buffer.from(text, 'utf8').toString('base64url');
 }
