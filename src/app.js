@@ -8,6 +8,7 @@ import {
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
 import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-settings.ui.js';
+import { renderPowerPagesTablePermissionsChecklist } from './tools/power-pages-table-permissions.ui.js';
 import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-webapi.ui.js';
 
 const renderers = {
@@ -15,7 +16,8 @@ const renderers = {
   'file-to-base64': renderFileToBase64,
   'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder,
   'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator,
-  'power-pages-site-settings': renderPowerPagesSiteSettingsHelper
+  'power-pages-site-settings': renderPowerPagesSiteSettingsHelper,
+  'power-pages-table-permissions': renderPowerPagesTablePermissionsChecklist
 };
 
 const toolNav = document.getElementById('toolNav');

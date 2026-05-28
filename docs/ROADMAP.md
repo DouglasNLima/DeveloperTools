@@ -34,6 +34,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Power Pages Web API Snippet Generator.
 - Site Settings Helper for common Power Pages configuration keys.
 - Table Permissions Checklist for web roles, table access and scope review.
+- Status: initial Power Pages mini-roadmap implemented; future Power Platform work should build on feedback from these tools.
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) for the detailed mini-roadmap.
 

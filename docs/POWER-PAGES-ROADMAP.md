@@ -41,6 +41,7 @@ This mini-roadmap focuses on Power Pages work that can be supported locally in t
 - Highlight common exposure risks such as anonymous access and overly broad global scope.
 - Generate a local review summary for pull requests or deployment notes.
 - Avoid claiming to validate live Dataverse permissions.
+- Status: implemented as a local checklist generator with risk warnings and Web API reminders.
 
 ## Delivery Rules
 

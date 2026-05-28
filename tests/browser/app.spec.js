@@ -19,7 +19,7 @@ test('searches the sidebar and switches between available tools', async ({ page 
   await expect(page.locator('[data-tool-id="file-to-base64"]')).toHaveAttribute('aria-current', 'page');
 });
 
-test('finds Power Pages roadmap tools in the sidebar', async ({ page }) => {
+test('finds Power Pages tools in the sidebar', async ({ page }) => {
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('Power Pages');
@@ -27,7 +27,7 @@ test('finds Power Pages roadmap tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toBeVisible();
   await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-pages-site-settings"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeDisabled();
+  await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
 });
 
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {
@@ -130,6 +130,40 @@ test('reports Site Settings Helper validation errors', async ({ page }) => {
   await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
 
   await expect(page.getByRole('status')).toContainText('Enter the logical table name');
+});
+
+test('generates a Power Pages table permissions checklist', async ({ page }) => {
+  await page.goto('/#power-pages-table-permissions');
+
+  await expect(page.getByRole('heading', { name: 'Table Permissions Checklist' })).toBeVisible();
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByLabel('Write').check();
+  await page.getByLabel('Custom web roles').fill('Portal Managers');
+  await page.getByLabel('Review this permission for Web API use').check();
+  await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
+
+  await expect(page.locator('#tablePermissionRisk')).toHaveText('High');
+  await expect(page.locator('#tablePermissionOperations')).toHaveText('Read, Write');
+  await expect(page.locator('#tablePermissionScopeDetail')).toHaveText('Global');
+  await expect(page.locator('#tablePermissionWarnings')).toHaveText('4 warnings');
+  await expect(page.locator('#tablePermissionOutput')).toHaveValue(/Webapi\/account\/enabled/);
+  await expect(page.locator('#tablePermissionOutput')).toHaveValue(/Authenticated Users, Portal Managers/);
+  await expect(page.getByRole('status')).toContainText('Power Pages table permissions checklist generated successfully.');
+});
+
+test('reports table permissions validation and anonymous access warnings', async ({ page }) => {
+  await page.goto('/#power-pages-table-permissions');
+
+  await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Enter the logical table name');
+
+  await page.getByLabel('Logical table name').fill('contact');
+  await page.getByLabel('Include Anonymous Users web role').check();
+  await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
+
+  await expect(page.locator('#tablePermissionRisk')).toHaveText('Critical');
+  await expect(page.locator('#tablePermissionOutput')).toHaveValue(/Anonymous Users/);
+  await expect(page.locator('#tablePermissionOutput')).toHaveValue(/Global read/);
 });
 
 test('opens and closes the mobile tool menu', async ({ page }) => {

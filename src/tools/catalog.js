@@ -43,8 +43,9 @@ export const TOOL_CATALOGUE = [
     id: 'power-pages-table-permissions',
     title: 'Table Permissions Checklist',
     category: 'Power Platform',
-    status: 'planned',
-    summary: 'Review Power Pages table, operation, web role and scope choices before publishing a page.'
+    status: 'available',
+    summary: 'Review Power Pages table, privilege, web role and scope choices before publishing a page.',
+    renderer: 'power-pages-table-permissions'
   },
   {
     id: 'url-codec',
