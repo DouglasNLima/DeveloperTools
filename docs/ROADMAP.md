@@ -24,13 +24,19 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - CSV/TSV helper for inspecting, cleaning and converting delimited data.
 - Status: JSON formatter/validator and JSON diff implemented; CSV/TSV helper remains planned.
 
-## Phase 4: Web/API
+## Phase 4: Documents
+
+- PDF Template Field Explorer for local fillable PDF form inspection.
+- Future PDF helpers for field mapping review and template handover workflows.
+- Status: PDF Template Field Explorer implemented with vendored PDF.js assets.
+
+## Phase 5: Web/API
 
 - JWT decoder with claims, expiry and header inspection.
 - Query string builder/parser is merged into the URL & query string helper.
 - cURL/fetch converter for common request shapes.
 
-## Phase 5: Power Platform
+## Phase 6: Power Platform
 
 - FetchXML Formatter & Liquid Builder for Power Pages.
 - Power Pages Web API Snippet Generator.
@@ -40,7 +46,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) for the detailed mini-roadmap.
 
-## Phase 6: Text Utilities
+## Phase 7: Text Utilities
 
 - Regex tester with match group feedback.
 - Text diff with line-level changes.

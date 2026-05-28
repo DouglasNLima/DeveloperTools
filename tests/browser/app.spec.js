@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 test('searches the sidebar and switches between available tools', async ({ page }) => {
   await page.goto('/');
@@ -183,6 +184,33 @@ test('reports JSON diff validation errors by side', async ({ page }) => {
   await expect(page.locator('#jsonDiffStatusDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('Right JSON: JSON parse error');
   await expect(page.locator('#jsonDiffOutput')).toHaveValue(/\^/);
+});
+
+test('loads a fillable PDF template and exports field mappings', async ({ page }) => {
+  await page.goto('/#pdf-template-field-explorer');
+
+  await expect(page.getByRole('heading', { name: 'PDF Template Field Explorer' })).toBeVisible();
+  await page.setInputFiles('#pdfTemplateFileInput', {
+    name: 'template.pdf',
+    mimeType: 'application/pdf',
+    buffer: await createFillablePdf()
+  });
+
+  await expect(page.getByRole('status')).toContainText('PDF loaded successfully.');
+  await expect(page.locator('#pdfPageCount')).toHaveText('1');
+  await expect(page.locator('#pdfFieldCount')).toHaveText('2');
+  await expect(page.locator('#pdfFieldList').getByText('customer_name')).toBeVisible();
+  await expect(page.locator('#pdfFieldList').getByText('newsletter_opt_in')).toBeVisible();
+
+  await page.getByLabel('Search fields').fill('newsletter');
+  await expect(page.locator('#pdfFieldList').getByText('customer_name')).not.toBeVisible();
+  await expect(page.locator('#pdfFieldList').getByText('newsletter_opt_in')).toBeVisible();
+
+  await page.locator('#pdfFieldList').getByText('newsletter_opt_in').click();
+  await expect(page.locator('#pdfSelectedFieldTitle')).toHaveText('newsletter_opt_in');
+  await expect(page.locator('#pdfSelectedFieldDetail')).toHaveText('newsletter_opt_in');
+  await expect(page.locator('#copyPdfSelectedJsonButton')).toBeEnabled();
+  await expect(page.locator('#exportPdfFieldsJsonButton')).toBeEnabled();
 });
 
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {
@@ -410,3 +438,23 @@ test('formats FetchXML and builds a Power Pages Liquid block', async ({ page }) 
   await expect(page.locator('#powerPagesOutputType')).toHaveText('Liquid');
   await expect(page.locator('#downloadPowerPagesOutputButton')).toHaveAttribute('download', 'power-pages-fetchxml.liquid');
 });
+
+async function createFillablePdf() {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([420, 260]);
+  const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const form = pdfDoc.getForm();
+
+  page.drawText('Customer name', { x: 40, y: 206, size: 11, font });
+  const nameField = form.createTextField('customer_name');
+  nameField.setText('Contoso');
+  nameField.addToPage(page, { x: 40, y: 178, width: 220, height: 24 });
+
+  page.drawText('Newsletter opt in', { x: 40, y: 136, size: 11, font });
+  const checkBox = form.createCheckBox('newsletter_opt_in');
+  checkBox.check();
+  checkBox.addToPage(page, { x: 40, y: 108, width: 18, height: 18 });
+
+  form.updateFieldAppearances(font);
+  return Buffer.from(await pdfDoc.save());
+}

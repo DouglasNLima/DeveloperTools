@@ -79,6 +79,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'json-diff'
   },
   {
+    id: 'pdf-template-field-explorer',
+    title: 'PDF Template Field Explorer',
+    category: 'Documents',
+    status: 'available',
+    summary: 'Open local fillable PDFs, inspect form fields and export field mappings.',
+    renderer: 'pdf-template-field-explorer'
+  },
+  {
     id: 'csv-tsv-helper',
     title: 'CSV/TSV helper',
     category: 'JSON & data',

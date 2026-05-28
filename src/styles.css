@@ -48,7 +48,8 @@ textarea {
 }
 
 button,
-a.button {
+a.button,
+label.button {
   align-items: center;
   border: 0;
   border-radius: 8px;
@@ -399,14 +400,16 @@ textarea:focus,
 }
 
 .secondary,
-a.button.secondary {
+a.button.secondary,
+label.button.secondary {
   background: var(--surface-muted);
   border: 1px solid var(--border);
   color: var(--text);
 }
 
 .secondary:hover,
-a.button.secondary:hover {
+a.button.secondary:hover,
+label.button.secondary:hover {
   background: #e1eaee;
 }
 
@@ -486,6 +489,18 @@ a.button.secondary:hover {
   width: 1px;
 }
 
+.drop-zone-input {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
 .drop-zone-label {
   align-items: center;
   cursor: pointer;
@@ -510,6 +525,204 @@ a.button.secondary:hover {
   flex-wrap: wrap;
   gap: 12px;
   justify-content: space-between;
+}
+
+.pdf-template-tool {
+  gap: 18px;
+}
+
+.pdf-template-toolbar {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pdf-template-zoom {
+  min-width: 140px;
+}
+
+.pdf-template-layout {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(230px, 300px) minmax(0, 1fr) minmax(230px, 300px);
+  min-height: 620px;
+}
+
+.pdf-template-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  grid-template-rows: auto auto 1fr;
+  min-height: 0;
+  padding: 14px;
+}
+
+.pdf-template-panel:last-child {
+  grid-template-rows: auto 1fr auto;
+}
+
+.pdf-template-options {
+  grid-template-columns: 1fr;
+}
+
+.pdf-field-list,
+.pdf-field-details {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+}
+
+.pdf-field-item {
+  align-items: start;
+  background: var(--surface);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text);
+  display: grid;
+  gap: 4px;
+  justify-content: stretch;
+  min-height: 58px;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.pdf-field-item:hover,
+.pdf-field-item.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.pdf-field-name {
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-field-meta {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pdf-viewer-area {
+  background:
+    linear-gradient(45deg, rgba(23, 32, 38, 0.035) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(23, 32, 38, 0.035) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(23, 32, 38, 0.035) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(23, 32, 38, 0.035) 75%);
+  background-position: 0 0, 0 12px, 12px -12px, -12px 0;
+  background-size: 24px 24px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding: 18px;
+}
+
+.pdf-viewer,
+.pdf-pages {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 100%;
+}
+
+.pdf-template-empty {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  margin: auto;
+  max-width: 520px;
+  padding: 22px;
+  text-align: center;
+}
+
+.pdf-template-empty span {
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+
+.pdf-page-wrapper {
+  background: white;
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  position: relative;
+}
+
+.pdf-page-wrapper canvas {
+  display: block;
+}
+
+.pdf-page-badge {
+  background: rgba(23, 32, 38, 0.78);
+  border-radius: 999px;
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 800;
+  left: 8px;
+  padding: 4px 8px;
+  pointer-events: none;
+  position: absolute;
+  top: 8px;
+  z-index: 3;
+}
+
+.pdf-field-overlay {
+  background: rgba(15, 118, 110, 0.14);
+  border: 2px solid var(--accent);
+  border-radius: 4px;
+  cursor: pointer;
+  min-height: 0;
+  padding: 0;
+  position: absolute;
+  z-index: 4;
+}
+
+.pdf-field-overlay:hover,
+.pdf-field-overlay.selected {
+  background: rgba(2, 122, 72, 0.24);
+  box-shadow: 0 0 0 4px rgba(2, 122, 72, 0.18);
+  z-index: 6;
+}
+
+.pdf-field-label {
+  background: var(--surface-strong);
+  border-radius: 999px;
+  color: white;
+  display: none;
+  font-size: 0.72rem;
+  font-weight: 800;
+  left: 0;
+  max-width: 260px;
+  overflow: hidden;
+  padding: 5px 8px;
+  pointer-events: none;
+  position: absolute;
+  text-overflow: ellipsis;
+  top: -24px;
+  white-space: nowrap;
+}
+
+.pdf-show-labels .pdf-field-label,
+.pdf-field-overlay:hover .pdf-field-label,
+.pdf-field-overlay.selected .pdf-field-label {
+  display: block;
+}
+
+.pdf-hide-overlays .pdf-field-overlay {
+  display: none;
 }
 
 .icon-button {
@@ -614,7 +827,8 @@ a.button.secondary:hover {
   .form-grid--split,
   .form-grid--triple,
   .option-grid,
-  .detail-grid {
+  .detail-grid,
+  .pdf-template-layout {
     grid-template-columns: 1fr;
   }
 

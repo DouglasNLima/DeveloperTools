@@ -9,6 +9,8 @@
     "test:browser": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.53.0"
+    "@playwright/test": "^1.53.0",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.7.284"
   }
 }

@@ -9,6 +9,7 @@ The current foundation includes:
 - URL & query string helper
 - JSON formatter/validator
 - JSON diff
+- PDF Template Field Explorer
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages
@@ -64,8 +65,8 @@ src/
     json-diff.ui.js
     json-formatter.js
     json-formatter.ui.js
-    url-codec.js
-    url-codec.ui.js
+    pdf-template-fields.js
+    pdf-template-fields.ui.js
     power-pages.js
     power-pages-site-settings.js
     power-pages-site-settings.ui.js
@@ -74,6 +75,10 @@ src/
     power-pages.ui.js
     power-pages-webapi.js
     power-pages-webapi.ui.js
+    url-codec.js
+    url-codec.ui.js
+  vendor/
+    pdfjs/
 tests/
   browser/
   support/
