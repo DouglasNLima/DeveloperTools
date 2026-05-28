@@ -35,7 +35,7 @@ test('finds the JSON formatter and processes formatted and minified output', asy
 
   await page.getByLabel('Search tools').fill('JSON');
   await expect(page.locator('[data-tool-id="json-formatter"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="json-diff"]')).toBeDisabled();
+  await expect(page.locator('[data-tool-id="json-diff"]')).toBeEnabled();
   await page.locator('[data-tool-id="json-formatter"]').click();
 
   await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
@@ -83,6 +83,47 @@ test('reports JSON formatter validation errors with context', async ({ page }) =
   await expect(page.locator('#jsonStatusDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('JSON parse error at line');
   await expect(page.locator('#jsonOutput')).toHaveValue(/\^/);
+});
+
+test('generates JSON structural diff reports', async ({ page }) => {
+  await page.goto('/#json-diff');
+
+  await expect(page.getByRole('heading', { name: 'JSON diff' })).toBeVisible();
+  await page.getByLabel('Left JSON').fill('{"name":"Contoso","tags":["a"],"legacy":1}');
+  await page.getByLabel('Right JSON').fill('{"name":"Fabrikam","tags":["a","b"],"rating":5}');
+  await page.getByRole('button', { name: 'Compare JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonDiffStatusDetail')).toHaveText('Different');
+  await expect(page.locator('#jsonDiffChangesDetail')).toHaveText('4');
+  await expect(page.locator('#jsonDiffAddedRemovedDetail')).toHaveText('2 / 1');
+  await expect(page.locator('#jsonDiffChangedUnchangedDetail')).toHaveText('1 / 1');
+  await expect(page.locator('#jsonDiffOutput')).toHaveValue(/### Changed \$\.name/);
+  await expect(page.locator('#jsonDiffOutput')).toHaveValue(/### Added \$\.rating/);
+  await expect(page.locator('#downloadJsonDiffButton')).toHaveAttribute('download', 'json-diff.md');
+  await expect(page.getByRole('status')).toContainText('JSON diff report created successfully.');
+
+  await page.getByLabel('Output format').selectOption('json');
+  await page.getByRole('button', { name: 'Compare JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonDiffOutput')).toHaveValue(/"totalChanges": 4/);
+  await expect(page.locator('#downloadJsonDiffButton')).toHaveAttribute('download', 'json-diff.json');
+});
+
+test('reports JSON diff validation errors by side', async ({ page }) => {
+  await page.goto('/#json-diff');
+
+  await page.getByRole('button', { name: 'Compare JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonDiffStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Left JSON: Enter JSON input.');
+
+  await page.getByLabel('Left JSON').fill('{"ok":true}');
+  await page.getByLabel('Right JSON').fill('{"ok":true,}');
+  await page.getByRole('button', { name: 'Compare JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonDiffStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Right JSON: JSON parse error');
+  await expect(page.locator('#jsonDiffOutput')).toHaveValue(/\^/);
 });
 
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {

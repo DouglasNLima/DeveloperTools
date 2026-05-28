@@ -344,6 +344,11 @@ textarea:focus,
   grid-template-columns: minmax(0, 1fr) 220px auto;
 }
 
+.form-grid--split {
+  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .button-row {
   align-items: center;
   display: flex;
@@ -606,6 +611,7 @@ a.button.secondary:hover {
   }
 
   .form-grid--actions,
+  .form-grid--split,
   .form-grid--triple,
   .option-grid,
   .detail-grid {

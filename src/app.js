@@ -6,6 +6,7 @@ import {
   matchesToolSearch
 } from './tools/catalog.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
+import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
 import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-settings.ui.js';
@@ -15,6 +16,7 @@ import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-weba
 const renderers = {
   'base64-to-file': renderBase64ToFile,
   'file-to-base64': renderFileToBase64,
+  'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
   'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder,
   'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator,

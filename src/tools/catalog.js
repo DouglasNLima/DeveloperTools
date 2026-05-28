@@ -73,8 +73,9 @@ export const TOOL_CATALOGUE = [
     id: 'json-diff',
     title: 'JSON diff',
     category: 'JSON & data',
-    status: 'planned',
-    summary: 'Compare JSON documents with structure-aware differences.'
+    status: 'available',
+    summary: 'Compare JSON documents with structure-aware path differences.',
+    renderer: 'json-diff'
   },
   {
     id: 'csv-tsv-helper',
