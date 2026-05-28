@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Developer Tools</title>
+  <meta name="description" content="A local-first suite of developer utilities that runs entirely in the browser." />
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <button id="navToggle" class="icon-button" type="button" aria-label="Open tool menu" aria-controls="toolSidebar" aria-expanded="false">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+      <div>
+        <p class="app-kicker">Local suite</p>
+        <strong>Developer Tools</strong>
+      </div>
+    </header>
+
+    <aside id="toolSidebar" class="sidebar" aria-label="Tool menu">
+      <div class="brand">
+        <p class="app-kicker">Local suite</p>
+        <h1>Developer Tools</h1>
+        <p>Fast utilities for technical work, running entirely in your browser.</p>
+      </div>
+
+      <div class="search-field">
+        <label for="toolSearch">Search tools</label>
+        <input id="toolSearch" type="search" autocomplete="off" placeholder="Search by name or category" />
+      </div>
+
+      <nav id="toolNav" class="tool-nav" aria-label="Available and planned tools"></nav>
+    </aside>
+
+    <button id="navBackdrop" class="nav-backdrop" type="button" aria-label="Dismiss menu overlay"></button>
+
+    <main class="workspace">
+      <section class="workspace-header" aria-labelledby="activeToolTitle">
+        <div class="workspace-meta">
+          <p id="activeToolCategory" class="eyebrow">Encoding &amp; files</p>
+          <span id="activeToolStatus" class="status-pill">Available</span>
+        </div>
+        <h2 id="activeToolTitle">Base64 to file</h2>
+        <p id="activeToolSummary">Paste Base64 content and create a downloadable local file.</p>
+      </section>
+
+      <section id="toolMount" class="tool-mount" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
