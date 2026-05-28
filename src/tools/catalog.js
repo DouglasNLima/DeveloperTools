@@ -35,8 +35,9 @@ export const TOOL_CATALOGUE = [
     id: 'power-pages-site-settings',
     title: 'Site Settings Helper',
     category: 'Power Platform',
-    status: 'planned',
-    summary: 'Build checklists for common Power Pages site settings without connecting to a tenant.'
+    status: 'available',
+    summary: 'Build local checklists for common Power Pages site settings.',
+    renderer: 'power-pages-site-settings'
   },
   {
     id: 'power-pages-table-permissions',

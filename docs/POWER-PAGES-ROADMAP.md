@@ -29,10 +29,11 @@ This mini-roadmap focuses on Power Pages work that can be supported locally in t
 
 ## Phase 3: Site Settings Helper
 
-- Build checklists for Web API enablement, authentication, caching and content configuration.
+- Build checklists for Web API enablement, registration hardening, Liquid output safety and diagnostics.
 - Group settings by feature area and risk.
 - Provide copyable setting names and expected value shapes.
 - Keep values user-entered and local only.
+- Status: implemented for common site settings.
 
 ## Phase 4: Table Permissions Checklist
 

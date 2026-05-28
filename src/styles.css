@@ -355,6 +355,35 @@ textarea:focus,
   justify-content: flex-end;
 }
 
+.option-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.checkbox-row {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  gap: 10px;
+  line-height: 1.35;
+  min-height: 48px;
+  padding: 11px 12px;
+}
+
+.checkbox-row input {
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+  height: 18px;
+  width: 18px;
+}
+
+.checkbox-row span {
+  font-weight: 700;
+}
+
 .primary {
   background: var(--accent);
   color: white;
@@ -578,6 +607,7 @@ a.button.secondary:hover {
 
   .form-grid--actions,
   .form-grid--triple,
+  .option-grid,
   .detail-grid {
     grid-template-columns: 1fr;
   }

@@ -26,7 +26,7 @@ test('finds Power Pages roadmap tools in the sidebar', async ({ page }) => {
 
   await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toBeVisible();
   await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="power-pages-site-settings"]')).toBeDisabled();
+  await expect(page.locator('[data-tool-id="power-pages-site-settings"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeDisabled();
 });
 
@@ -87,6 +87,49 @@ test('reports Power Pages Web API validation errors', async ({ page }) => {
   await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
 
   await expect(page.getByRole('status')).toContainText('Payload must be valid JSON.');
+});
+
+test('generates Power Pages Web API site settings checklist', async ({ page }) => {
+  await page.goto('/#power-pages-site-settings');
+
+  await expect(page.getByRole('heading', { name: 'Site Settings Helper' })).toBeVisible();
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByLabel('Fields').fill('name, accountnumber');
+  await page.getByLabel('Include Web API inner error while debugging').check();
+  await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
+
+  await expect(page.locator('#siteSettingsFeatureDetail')).toHaveText('Web API table access');
+  await expect(page.locator('#siteSettingsCount')).toHaveText('3');
+  await expect(page.locator('#siteSettingsWarnings')).toHaveText('1 warning');
+  await expect(page.locator('#siteSettingsOutput')).toHaveValue(/Webapi\/account\/enabled = true/);
+  await expect(page.locator('#siteSettingsOutput')).toHaveValue(/Webapi\/account\/fields = name,accountnumber/);
+  await expect(page.getByRole('status')).toContainText('Power Pages site settings checklist generated successfully.');
+});
+
+test('generates registration and Liquid safety site settings', async ({ page }) => {
+  await page.goto('/#power-pages-site-settings');
+
+  await page.getByLabel('Feature area').selectOption('registration');
+  await page.getByLabel('Require invitations for registration').check();
+  await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
+
+  await expect(page.locator('#siteSettingsOutput')).toHaveValue(/Authentication\/Registration\/RequiresConfirmation = true/);
+  await expect(page.locator('#siteSettingsOutput')).toHaveValue(/Authentication\/Registration\/RequiresInvitation = true/);
+
+  await page.getByLabel('Feature area').selectOption('liquid-safety');
+  await page.getByLabel('Keep default HTML encoding enabled').uncheck();
+  await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
+
+  await expect(page.locator('#siteSettingsOutput')).toHaveValue(/Site\/EnableDefaultHtmlEncoding = false/);
+  await expect(page.locator('#siteSettingsWarnings')).toHaveText('1 warning');
+});
+
+test('reports Site Settings Helper validation errors', async ({ page }) => {
+  await page.goto('/#power-pages-site-settings');
+
+  await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Enter the logical table name');
 });
 
 test('opens and closes the mobile tool menu', async ({ page }) => {

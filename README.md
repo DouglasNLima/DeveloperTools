@@ -8,6 +8,7 @@ The current foundation includes:
 - File to Base64
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
+- Site Settings Helper for Power Pages
 - A scalable tool menu with roadmap previews
 - Unit and browser test scaffolding for future tools
 
@@ -56,6 +57,8 @@ src/
     base64.ui.js
     catalog.js
     power-pages.js
+    power-pages-site-settings.js
+    power-pages-site-settings.ui.js
     power-pages.ui.js
     power-pages-webapi.js
     power-pages-webapi.ui.js
