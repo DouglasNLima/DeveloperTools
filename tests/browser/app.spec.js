@@ -30,6 +30,61 @@ test('finds Power Pages tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
 });
 
+test('finds the JSON formatter and processes formatted and minified output', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('JSON');
+  await expect(page.locator('[data-tool-id="json-formatter"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="json-diff"]')).toBeDisabled();
+  await page.locator('[data-tool-id="json-formatter"]').click();
+
+  await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
+  await page.getByLabel('JSON input').fill('{"b":2,"a":{"d":4,"c":[1,true,null]}}');
+  await page.getByLabel('Sort object keys').check();
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonOutput')).toHaveValue([
+    '{',
+    '  "a": {',
+    '    "c": [',
+    '      1,',
+    '      true,',
+    '      null',
+    '    ],',
+    '    "d": 4',
+    '  },',
+    '  "b": 2',
+    '}'
+  ].join('\n'));
+  await expect(page.locator('#jsonStatusDetail')).toHaveText('Valid');
+  await expect(page.locator('#jsonDepthDetail')).toHaveText('4');
+  await expect(page.locator('#jsonStructureDetail')).toHaveText('2 / 1');
+  await expect(page.locator('#downloadJsonButton')).toHaveAttribute('download', 'formatted-json.json');
+  await expect(page.getByRole('status')).toContainText('Formatted JSON created successfully.');
+
+  await page.getByRole('button', { name: 'Minify JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonOutput')).toHaveValue('{"a":{"c":[1,true,null],"d":4},"b":2}');
+  await expect(page.locator('#downloadJsonButton')).toHaveAttribute('download', 'minified-json.json');
+  await expect(page.getByRole('status')).toContainText('Minified JSON created successfully.');
+});
+
+test('reports JSON formatter validation errors with context', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Enter JSON input.');
+
+  await page.getByLabel('JSON input').fill('{"ok": true,}');
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('JSON parse error at line');
+  await expect(page.locator('#jsonOutput')).toHaveValue(/\^/);
+});
+
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
 

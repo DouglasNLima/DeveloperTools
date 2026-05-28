@@ -65,8 +65,9 @@ export const TOOL_CATALOGUE = [
     id: 'json-formatter',
     title: 'JSON formatter/validator',
     category: 'JSON & data',
-    status: 'planned',
-    summary: 'Format, validate and minify JSON with clear parse errors.'
+    status: 'available',
+    summary: 'Format, validate, sort and minify JSON with clear parse errors.',
+    renderer: 'json-formatter'
   },
   {
     id: 'json-diff',
