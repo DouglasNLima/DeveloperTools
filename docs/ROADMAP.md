@@ -15,7 +15,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - URL encode/decode and query string parse/build helper.
 - Hashes/checksums for text and local files.
 - File type inspection improvements for common developer artefacts.
-- Status: URL & query string helper implemented; hashes/checksums remain planned.
+- Status: URL & query string helper and hashes/checksums implemented.
 
 ## Phase 3: JSON & Data
 

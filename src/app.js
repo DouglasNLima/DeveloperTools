@@ -6,6 +6,7 @@ import {
   matchesToolSearch
 } from './tools/catalog.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
+import { renderHashChecksums } from './tools/hash-checksums.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
@@ -19,6 +20,7 @@ import { renderUrlCodec } from './tools/url-codec.ui.js';
 const renderers = {
   'base64-to-file': renderBase64ToFile,
   'file-to-base64': renderFileToBase64,
+  'hash-checksums': renderHashChecksums,
   'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
   'jwt-decoder': renderJwtDecoder,

@@ -6,6 +6,7 @@ The current foundation includes:
 
 - Base64 to file
 - File to Base64
+- Hashes/checksums
 - URL & query string helper
 - JSON formatter/validator
 - JSON diff
@@ -62,6 +63,8 @@ src/
     base64.js
     base64.ui.js
     catalog.js
+    hash-checksums.js
+    hash-checksums.ui.js
     json-diff.js
     json-diff.ui.js
     json-formatter.js

@@ -53,6 +53,51 @@ test('encodes and decodes URL components', async ({ page }) => {
   await expect(page.locator('#urlModeDetail')).toHaveText('Decode component');
 });
 
+test('generates text hashes and compares expected digests', async ({ page }) => {
+  await page.goto('/#hash-checksums');
+
+  await expect(page.getByRole('heading', { name: 'Hashes/checksums' })).toBeVisible();
+  await page.getByLabel('Text input').fill('hello');
+  await page.getByLabel('Expected digest').fill('2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824');
+  await page.getByRole('button', { name: 'Generate hash', exact: true }).click();
+
+  await expect(page.locator('#hashAlgorithmDetail')).toHaveText('SHA-256');
+  await expect(page.locator('#hashInputDetail')).toHaveText('Text input');
+  await expect(page.locator('#hashSizeDetail')).toHaveText('5 bytes');
+  await expect(page.locator('#hashMatchDetail')).toHaveText('Match');
+  await expect(page.locator('#hashWarningsDetail')).toHaveText('None');
+  await expect(page.locator('#hashOutput')).toHaveValue(/2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824/);
+  await expect(page.locator('#hashOutput')).toHaveValue(/LPJNul\+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ=/);
+  await expect(page.locator('#downloadHashButton')).toHaveAttribute('download', 'Text input.sha.txt');
+  await expect(page.getByRole('status')).toContainText('Hash generated successfully.');
+});
+
+test('generates file hashes and reports warnings or validation errors', async ({ page }) => {
+  await page.goto('/#hash-checksums');
+
+  await page.getByLabel('Input type').selectOption('file');
+  await page.setInputFiles('#hashFileInput', {
+    name: 'hello.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('hello')
+  });
+  await page.getByLabel('Algorithm').selectOption('SHA-1');
+  await page.getByLabel('Expected digest').fill('definitely-not-the-same');
+  await page.getByRole('button', { name: 'Generate hash', exact: true }).click();
+
+  await expect(page.locator('#hashAlgorithmDetail')).toHaveText('SHA-1');
+  await expect(page.locator('#hashInputDetail')).toHaveText('hello.txt');
+  await expect(page.locator('#hashMatchDetail')).toHaveText('Mismatch');
+  await expect(page.locator('#hashWarningsDetail')).toHaveText('2 warnings');
+  await expect(page.locator('#hashOutput')).toHaveValue(/aaf4c61ddcc5e8a2dabede0f3b482cd9aea9434d/);
+  await expect(page.getByRole('status')).toContainText('SHA-1 is included for compatibility checks only');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Generate hash', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Enter text before generating a hash.');
+});
+
 test('parses and builds query strings', async ({ page }) => {
   await page.goto('/#url-codec');
 

@@ -59,8 +59,9 @@ export const TOOL_CATALOGUE = [
     id: 'hash-checksums',
     title: 'Hashes/checksums',
     category: 'Encoding & files',
-    status: 'planned',
-    summary: 'Generate local SHA and checksum values for text and files.'
+    status: 'available',
+    summary: 'Generate and compare local SHA hash values for text and files.',
+    renderer: 'hash-checksums'
   },
   {
     id: 'json-formatter',
