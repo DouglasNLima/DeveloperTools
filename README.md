@@ -31,6 +31,8 @@ npm run test:browser
 
 This project is compatible with GitHub Pages as a static site. Publish the repository root, and GitHub Pages will use `index.html` as the entry point.
 
+The included GitHub Actions workflow runs tests on every push to `main`. Deployment is enabled when the repository is public, or when the GitHub account plan supports Pages for private repositories.
+
 Runtime requirements:
 
 - No backend server.
