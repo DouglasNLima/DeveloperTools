@@ -7,11 +7,13 @@ import {
 } from './tools/catalog.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
+import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-webapi.ui.js';
 
 const renderers = {
   'base64-to-file': renderBase64ToFile,
   'file-to-base64': renderFileToBase64,
-  'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder
+  'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder,
+  'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator
 };
 
 const toolNav = document.getElementById('toolNav');

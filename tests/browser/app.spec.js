@@ -25,9 +25,68 @@ test('finds Power Pages roadmap tools in the sidebar', async ({ page }) => {
   await page.getByLabel('Search tools').fill('Power Pages');
 
   await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toBeVisible();
-  await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeDisabled();
+  await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-pages-site-settings"]')).toBeDisabled();
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeDisabled();
+});
+
+test('generates a Power Pages Web API GET snippet', async ({ page }) => {
+  await page.goto('/#power-pages-web-api-snippets');
+
+  await expect(page.getByRole('heading', { name: 'Power Pages Web API Snippet Generator' })).toBeVisible();
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByLabel('Columns / Web API fields').fill('name, accountnumber');
+  await page.getByLabel('$filter').fill('statecode eq 0');
+  await page.getByLabel('$top').fill('5');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+
+  await expect(page.locator('#webApiMethod')).toHaveText('GET');
+  await expect(page.locator('#webApiEndpoint')).toHaveText('/_api/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
+  await expect(page.locator('#webApiSiteSettingsCount')).toHaveText('3');
+  await expect(page.locator('#webApiSnippetOutput')).toHaveValue(/webapi\.safeAjax/);
+  await expect(page.locator('#webApiSnippetOutput')).toHaveValue(/Webapi\/account\/enabled = true/);
+  await expect(page.getByRole('status')).toContainText('Power Pages Web API snippet generated successfully.');
+});
+
+test('generates Power Pages Web API POST and PATCH payload snippets', async ({ page }) => {
+  await page.goto('/#power-pages-web-api-snippets');
+
+  await page.getByLabel('Operation').selectOption('create');
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByLabel('Payload JSON').fill('{"name":"Contoso"}');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+
+  await expect(page.locator('#webApiMethod')).toHaveText('POST');
+  await expect(page.locator('#webApiSnippetOutput')).toHaveValue(/contentType: "application\/json"/);
+  await expect(page.locator('#webApiSnippetOutput')).toHaveValue(/"name": "Contoso"/);
+
+  await page.getByLabel('Operation').selectOption('update');
+  await page.getByLabel('Record ID').fill('00000000-0000-0000-0000-000000000001');
+  await page.getByLabel('Payload JSON').fill('{"name":"Updated"}');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+
+  await expect(page.locator('#webApiMethod')).toHaveText('PATCH');
+  await expect(page.locator('#webApiEndpoint')).toHaveText('/_api/accounts(00000000-0000-0000-0000-000000000001)');
+  await expect(page.locator('#webApiSnippetOutput')).toHaveValue(/"name": "Updated"/);
+});
+
+test('reports Power Pages Web API validation errors', async ({ page }) => {
+  await page.goto('/#power-pages-web-api-snippets');
+
+  await page.getByLabel('Operation').selectOption('retrieve');
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Enter a record ID');
+
+  await page.getByLabel('Operation').selectOption('create');
+  await page.getByLabel('Payload JSON').fill('{bad json}');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Payload must be valid JSON.');
 });
 
 test('opens and closes the mobile tool menu', async ({ page }) => {

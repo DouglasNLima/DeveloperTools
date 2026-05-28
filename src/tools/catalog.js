@@ -27,8 +27,9 @@ export const TOOL_CATALOGUE = [
     id: 'power-pages-web-api-snippets',
     title: 'Power Pages Web API Snippet Generator',
     category: 'Power Platform',
-    status: 'planned',
-    summary: 'Generate local Power Pages Web API request snippets and required site setting reminders.'
+    status: 'available',
+    summary: 'Generate local Power Pages Web API safeAjax snippets and required site setting reminders.',
+    renderer: 'power-pages-web-api-snippets'
   },
   {
     id: 'power-pages-site-settings',

@@ -20,10 +20,12 @@ This mini-roadmap focuses on Power Pages work that can be supported locally in t
 
 ## Phase 2: Power Pages Web API Snippet Generator
 
-- Generate local JavaScript request snippets for common `/_api/...` operations.
-- Include reminders for table-specific site settings and field allow-lists.
+- Generate local `webapi.safeAjax` request snippets for common `/_api/...` operations.
+- Use EntitySetName in URLs and logical table names in site settings.
+- Include reminders for table-specific site settings, field allow-lists, table permissions and web roles.
 - Provide safe placeholders for table names, columns, IDs and payloads.
 - Avoid live calls, token handling or environment-specific requests.
+- Status: implemented for basic CRUD operations.
 
 ## Phase 3: Site Settings Helper
 
