@@ -6,6 +6,7 @@ The current foundation includes:
 
 - Base64 to file
 - File to Base64
+- FetchXML Formatter & Liquid Builder for Power Pages
 - A scalable tool menu with roadmap previews
 - Unit and browser test scaffolding for future tools
 
@@ -53,6 +54,8 @@ src/
     base64.js
     base64.ui.js
     catalog.js
+    power-pages.js
+    power-pages.ui.js
 tests/
   browser/
   support/
@@ -69,4 +72,4 @@ AGENTS.md
 - Add unit coverage for reusable logic and browser coverage for user flows.
 - Keep planned tools in the catalogue as roadmap previews until they are implemented and tested.
 
-See [docs/ROADMAP.md](./docs/ROADMAP.md) for the initial roadmap.
+See [docs/ROADMAP.md](./docs/ROADMAP.md) and [docs/POWER-PAGES-ROADMAP.md](./docs/POWER-PAGES-ROADMAP.md) for the current roadmap.

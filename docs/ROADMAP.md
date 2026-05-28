@@ -28,7 +28,16 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Query string builder/parser.
 - cURL/fetch converter for common request shapes.
 
-## Phase 5: Text Utilities
+## Phase 5: Power Platform
+
+- FetchXML Formatter & Liquid Builder for Power Pages.
+- Power Pages Web API Snippet Generator.
+- Site Settings Helper for common Power Pages configuration keys.
+- Table Permissions Checklist for web roles, table access and scope review.
+
+See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) for the detailed mini-roadmap.
+
+## Phase 6: Text Utilities
 
 - Regex tester with match group feedback.
 - Text diff with line-level changes.

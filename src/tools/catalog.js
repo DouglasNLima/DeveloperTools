@@ -16,6 +16,35 @@ export const TOOL_CATALOGUE = [
     renderer: 'file-to-base64'
   },
   {
+    id: 'fetchxml-liquid-builder',
+    title: 'FetchXML Formatter & Liquid Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Format FetchXML and wrap it in a Power Pages Liquid fetchxml block.',
+    renderer: 'fetchxml-liquid-builder'
+  },
+  {
+    id: 'power-pages-web-api-snippets',
+    title: 'Power Pages Web API Snippet Generator',
+    category: 'Power Platform',
+    status: 'planned',
+    summary: 'Generate local Power Pages Web API request snippets and required site setting reminders.'
+  },
+  {
+    id: 'power-pages-site-settings',
+    title: 'Site Settings Helper',
+    category: 'Power Platform',
+    status: 'planned',
+    summary: 'Build checklists for common Power Pages site settings without connecting to a tenant.'
+  },
+  {
+    id: 'power-pages-table-permissions',
+    title: 'Table Permissions Checklist',
+    category: 'Power Platform',
+    status: 'planned',
+    summary: 'Review Power Pages table, operation, web role and scope choices before publishing a page.'
+  },
+  {
     id: 'url-codec',
     title: 'URL encode/decode',
     category: 'Encoding & files',
