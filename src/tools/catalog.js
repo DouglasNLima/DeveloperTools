@@ -49,10 +49,11 @@ export const TOOL_CATALOGUE = [
   },
   {
     id: 'url-codec',
-    title: 'URL encode/decode',
+    title: 'URL & query string helper',
     category: 'Encoding & files',
-    status: 'planned',
-    summary: 'Encode, decode and inspect URL components without leaving the browser.'
+    status: 'available',
+    summary: 'Encode, decode, parse and build URLs and query strings locally.',
+    renderer: 'url-codec'
   },
   {
     id: 'hash-checksums',
@@ -90,13 +91,6 @@ export const TOOL_CATALOGUE = [
     category: 'Web/API',
     status: 'planned',
     summary: 'Decode JWT headers and payloads locally, with expiry and claims inspection.'
-  },
-  {
-    id: 'query-string-builder',
-    title: 'Query string builder',
-    category: 'Web/API',
-    status: 'planned',
-    summary: 'Build, parse and sort query strings for API work.'
   },
   {
     id: 'curl-fetch-converter',

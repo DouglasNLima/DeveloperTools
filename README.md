@@ -6,6 +6,7 @@ The current foundation includes:
 
 - Base64 to file
 - File to Base64
+- URL & query string helper
 - JSON formatter/validator
 - JSON diff
 - FetchXML Formatter & Liquid Builder for Power Pages
@@ -63,6 +64,8 @@ src/
     json-diff.ui.js
     json-formatter.js
     json-formatter.ui.js
+    url-codec.js
+    url-codec.ui.js
     power-pages.js
     power-pages-site-settings.js
     power-pages-site-settings.ui.js

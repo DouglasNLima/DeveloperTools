@@ -12,9 +12,10 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Phase 2: Encoding & Files
 
-- URL encode/decode.
+- URL encode/decode and query string parse/build helper.
 - Hashes/checksums for text and local files.
 - File type inspection improvements for common developer artefacts.
+- Status: URL & query string helper implemented; hashes/checksums remain planned.
 
 ## Phase 3: JSON & Data
 
@@ -26,7 +27,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 ## Phase 4: Web/API
 
 - JWT decoder with claims, expiry and header inspection.
-- Query string builder/parser.
+- Query string builder/parser is merged into the URL & query string helper.
 - cURL/fetch converter for common request shapes.
 
 ## Phase 5: Power Platform

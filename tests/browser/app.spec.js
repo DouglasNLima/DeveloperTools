@@ -30,6 +30,65 @@ test('finds Power Pages tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
 });
 
+test('encodes and decodes URL components', async ({ page }) => {
+  await page.goto('/#url-codec');
+
+  await expect(page.getByRole('heading', { name: 'URL & query string helper' })).toBeVisible();
+  await page.getByLabel('Input').fill('hello world&x=1');
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+
+  await expect(page.locator('#urlOutput')).toHaveValue('hello%20world%26x%3D1');
+  await expect(page.locator('#urlModeDetail')).toHaveText('Encode component');
+  await expect(page.locator('#urlWarnings')).toHaveText('None');
+  await expect(page.getByRole('status')).toContainText('Encoded component created successfully.');
+
+  await page.getByLabel('Mode').selectOption('decode-component');
+  await page.getByLabel('Input').fill('hello%20world%26x%3D1');
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+
+  await expect(page.locator('#urlOutput')).toHaveValue('hello world&x=1');
+  await expect(page.locator('#urlModeDetail')).toHaveText('Decode component');
+});
+
+test('parses and builds query strings', async ({ page }) => {
+  await page.goto('/#url-codec');
+
+  await page.getByLabel('Mode').selectOption('parse-query');
+  await page.getByLabel('Input').fill('https://example.test/search?q=hello+world&tag=alpha&tag=beta&empty=');
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+
+  await expect(page.locator('#urlItemCount')).toHaveText('4');
+  await expect(page.locator('#urlWarnings')).toHaveText('2 warnings');
+  await expect(page.locator('#urlOutput')).toHaveValue(/"hello world"/);
+  await expect(page.locator('#urlOutput')).toHaveValue(/"empty"/);
+
+  await page.getByLabel('Mode').selectOption('build-query');
+  await page.getByLabel('Input').fill('z=last\nq=hello world\ntag=alpha');
+  await page.getByLabel('Sort keys when building a query string').check();
+  await page.getByLabel('Prefix built query strings with ?').check();
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+
+  await expect(page.locator('#urlOutput')).toHaveValue('?q=hello%20world&tag=alpha&z=last');
+  await expect(page.locator('#urlModeDetail')).toHaveText('Build query string');
+  await expect(page.locator('#downloadUrlButton')).toHaveAttribute('download', 'url-query-output.txt');
+});
+
+test('reports URL helper validation errors', async ({ page }) => {
+  await page.goto('/#url-codec');
+
+  await page.getByLabel('Mode').selectOption('decode-component');
+  await page.getByLabel('Input').fill('hello%ZZ');
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Invalid percent-encoding');
+
+  await page.getByLabel('Mode').selectOption('build-query');
+  await page.getByLabel('Input').fill('not a row');
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('must use key=value format');
+});
+
 test('finds the JSON formatter and processes formatted and minified output', async ({ page }) => {
   await page.goto('/');
 
