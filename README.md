@@ -22,6 +22,10 @@ The current foundation includes:
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages
 - Table Permissions Checklist for Power Pages
+- Dataverse OData Query Builder
+- Power Platform CLI Command Builder
+- Power Automate Expression Formatter
+- Power Fx Snippet Formatter
 - A scalable tool menu with roadmap previews
 - Unit and browser test scaffolding for future tools
 
@@ -81,6 +85,14 @@ src/
     jwt-decoder.ui.js
     pdf-template-fields.js
     pdf-template-fields.ui.js
+    dataverse-odata.js
+    dataverse-odata.ui.js
+    power-automate-expression.js
+    power-automate-expression.ui.js
+    power-fx-formatter.js
+    power-fx-formatter.ui.js
+    power-platform-cli.js
+    power-platform-cli.ui.js
     power-pages.js
     power-pages-site-settings.js
     power-pages-site-settings.ui.js
@@ -119,4 +131,4 @@ AGENTS.md
 - Add unit coverage for reusable logic and browser coverage for user flows.
 - Keep planned tools in the catalogue as roadmap previews until they are implemented and tested.
 
-See [docs/ROADMAP.md](./docs/ROADMAP.md) and [docs/POWER-PAGES-ROADMAP.md](./docs/POWER-PAGES-ROADMAP.md) for the current roadmap.
+See [docs/ROADMAP.md](./docs/ROADMAP.md), [docs/POWER-PAGES-ROADMAP.md](./docs/POWER-PAGES-ROADMAP.md) and [docs/POWER-PLATFORM-ROADMAP.md](./docs/POWER-PLATFORM-ROADMAP.md) for the current roadmap.

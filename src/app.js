@@ -14,6 +14,10 @@ import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
 import { renderPdfTemplateFieldExplorer } from './tools/pdf-template-fields.ui.js';
+import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js';
+import { renderPowerAutomateExpressionFormatter } from './tools/power-automate-expression.ui.js';
+import { renderPowerFxSnippetFormatter } from './tools/power-fx-formatter.ui.js';
+import { renderPowerPlatformCliCommandBuilder } from './tools/power-platform-cli.ui.js';
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
 import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-settings.ui.js';
 import { renderPowerPagesTablePermissionsChecklist } from './tools/power-pages-table-permissions.ui.js';
@@ -28,13 +32,17 @@ const renderers = {
   'case-converter': renderCaseConverter,
   'curl-fetch-converter': renderCurlFetchConverter,
   'csv-tsv-helper': renderCsvTsvHelper,
+  'dataverse-odata-query-builder': renderDataverseODataQueryBuilder,
   'file-to-base64': renderFileToBase64,
   'hash-checksums': renderHashChecksums,
   'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
   'jwt-decoder': renderJwtDecoder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
+  'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
+  'power-fx-snippet-formatter': renderPowerFxSnippetFormatter,
   'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder,
+  'power-platform-cli-command-builder': renderPowerPlatformCliCommandBuilder,
   'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator,
   'power-pages-site-settings': renderPowerPagesSiteSettingsHelper,
   'power-pages-table-permissions': renderPowerPagesTablePermissionsChecklist,

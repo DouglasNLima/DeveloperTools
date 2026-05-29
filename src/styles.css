@@ -691,6 +691,7 @@ label.button.secondary:hover {
   overflow-wrap: anywhere;
 }
 
+.builder-preview,
 .curl-fetch-preview {
   background: #fbfdfe;
   border: 1px solid var(--border);
@@ -703,6 +704,7 @@ label.button.secondary:hover {
   padding: 12px;
 }
 
+.builder-card,
 .curl-fetch-card {
   background: var(--surface-muted);
   border: 1px solid var(--border);
@@ -712,12 +714,14 @@ label.button.secondary:hover {
   padding: 12px;
 }
 
+.builder-card span,
 .curl-fetch-card span {
   color: var(--text-soft);
   font-size: 0.84rem;
   font-weight: 800;
 }
 
+.builder-card code,
 .curl-fetch-card code {
   font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
   overflow-wrap: anywhere;

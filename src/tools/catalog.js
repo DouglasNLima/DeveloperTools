@@ -48,6 +48,38 @@ export const TOOL_CATALOGUE = [
     renderer: 'power-pages-table-permissions'
   },
   {
+    id: 'dataverse-odata-query-builder',
+    title: 'Dataverse OData Query Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Build Dataverse and Power Pages OData endpoints with headers, warnings and fetch snippets.',
+    renderer: 'dataverse-odata-query-builder'
+  },
+  {
+    id: 'power-platform-cli-command-builder',
+    title: 'Power Platform CLI Command Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Compose common pac auth, pac solution and pac pages commands with local checklists.',
+    renderer: 'power-platform-cli-command-builder'
+  },
+  {
+    id: 'power-automate-expression-formatter',
+    title: 'Power Automate Expression Formatter',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Format Workflow Definition Language expressions and inspect functions locally.',
+    renderer: 'power-automate-expression-formatter'
+  },
+  {
+    id: 'power-fx-snippet-formatter',
+    title: 'Power Fx Snippet Formatter',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Format Power Fx formulas and highlight practical sharing warnings.',
+    renderer: 'power-fx-snippet-formatter'
+  },
+  {
     id: 'url-codec',
     title: 'URL & query string helper',
     category: 'Encoding & files',

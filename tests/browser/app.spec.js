@@ -22,15 +22,19 @@ test('searches the sidebar and switches between available tools', async ({ page 
   await expect(page.locator('[data-tool-id="file-to-base64"]')).toHaveAttribute('aria-current', 'page');
 });
 
-test('finds Power Pages tools in the sidebar', async ({ page }) => {
+test('finds Power Platform tools in the sidebar', async ({ page }) => {
   await page.goto('/');
 
-  await page.getByLabel('Search tools').fill('Power Pages');
+  await page.getByLabel('Search tools').fill('Power Platform');
 
   await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toBeVisible();
   await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-pages-site-settings"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="dataverse-odata-query-builder"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-platform-cli-command-builder"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-fx-snippet-formatter"]')).toBeEnabled();
 });
 
 test('encodes and decodes URL components', async ({ page }) => {
@@ -727,6 +731,93 @@ test('reports table permissions validation and anonymous access warnings', async
   await expect(page.locator('#tablePermissionRisk')).toHaveText('Critical');
   await expect(page.locator('#tablePermissionOutput')).toHaveValue(/Anonymous Users/);
   await expect(page.locator('#tablePermissionOutput')).toHaveValue(/Global read/);
+});
+
+test('builds Dataverse OData queries and reports validation errors', async ({ page }) => {
+  await page.goto('/#dataverse-odata-query-builder');
+
+  await expect(page.getByRole('heading', { name: 'Dataverse OData Query Builder' })).toBeVisible();
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Columns / $select').fill('name, accountnumber');
+  await page.getByLabel('$filter').fill('statecode eq 0');
+  await page.getByLabel('$top').fill('5');
+  await page.getByLabel('Include formatted values').check();
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+
+  await expect(page.locator('#odataModeDetail')).toHaveText('Dataverse Web API');
+  await expect(page.locator('#odataEndpointDetail')).toHaveText('/api/data/v9.2/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
+  await expect(page.locator('#odataHeadersDetail')).toHaveText('4');
+  await expect(page.locator('#odataWarningsDetail')).toHaveText('None');
+  await expect(page.locator('#odataOutput')).toHaveValue(/await fetch/);
+  await expect(page.getByRole('status')).toContainText('Dataverse OData query built successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+  await expect(page.locator('#odataModeDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Enter the Dataverse EntitySetName.');
+});
+
+test('builds Power Platform CLI commands and reports validation errors', async ({ page }) => {
+  await page.goto('/#power-platform-cli-command-builder');
+
+  await expect(page.getByRole('heading', { name: 'Power Platform CLI Command Builder' })).toBeVisible();
+  await page.getByLabel('Command', { exact: true }).selectOption('solution-export');
+  await page.getByLabel('Solution name').fill('Core Solution');
+  await page.getByLabel('Zip or file path').fill('dist/core solution.zip');
+  await page.getByLabel('Export as managed').check();
+  await page.getByRole('button', { name: 'Build command', exact: true }).click();
+
+  await expect(page.locator('#pacGroupDetail')).toHaveText('Solutions');
+  await expect(page.locator('#pacCommandDetail')).toHaveText('Export solution');
+  await expect(page.locator('#pacWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('#pacOutput')).toHaveValue(/pac solution export --name "Core Solution" --path "dist\/core solution\.zip" --managed true/);
+  await expect(page.getByRole('status')).toContainText('Power Platform CLI command built successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Build command', exact: true }).click();
+  await expect(page.locator('#pacCommandDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Enter an environment URL');
+});
+
+test('formats Power Automate expressions and reports syntax errors', async ({ page }) => {
+  await page.goto('/#power-automate-expression-formatter');
+
+  await expect(page.getByRole('heading', { name: 'Power Automate Expression Formatter' })).toBeVisible();
+  await page.getByLabel('Expression input').fill("@{concat(triggerOutputs()?['body/name'], ' - ', variables('suffix'))}");
+  await page.getByRole('button', { name: 'Format expression', exact: true }).click();
+
+  await expect(page.locator('#flowExpressionWrapperDetail')).toHaveText('@{ } interpolation');
+  await expect(page.locator('#flowExpressionFunctionsDetail')).toHaveText('3');
+  await expect(page.locator('#flowExpressionReferencesDetail')).toHaveText('1');
+  await expect(page.locator('#flowExpressionWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('#flowExpressionOutput')).toHaveValue(/concat\(\n  triggerOutputs\(\)\?\['body\/name'\],\n  ' - ',\n  variables\('suffix'\)\n\)/);
+  await expect(page.getByRole('status')).toContainText('Power Automate expression formatted successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByLabel('Expression input').fill("concat('a'");
+  await page.getByRole('button', { name: 'Format expression', exact: true }).click();
+  await expect(page.locator('#flowExpressionWrapperDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Expression has an unclosed');
+});
+
+test('formats Power Fx snippets and reports syntax errors', async ({ page }) => {
+  await page.goto('/#power-fx-snippet-formatter');
+
+  await expect(page.getByRole('heading', { name: 'Power Fx Snippet Formatter' })).toBeVisible();
+  await page.getByLabel('Formula input').fill('If(IsBlank(TextInput1.Text), Notify("Missing"), Patch(Accounts, Defaults(Accounts), { Name: TextInput1.Text }))');
+  await page.getByRole('button', { name: 'Format formula', exact: true }).click();
+
+  await expect(page.locator('#powerFxFunctionsDetail')).toHaveText('5');
+  await expect(page.locator('#powerFxUnknownDetail')).toHaveText('0');
+  await expect(page.locator('#powerFxWarningsDetail')).toHaveText('None');
+  await expect(page.locator('#powerFxOutput')).toHaveValue(/Patch\(\n    Accounts,\n    Defaults/);
+  await expect(page.getByRole('status')).toContainText('Power Fx formula formatted successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByLabel('Formula input').fill('If(IsBlank(TextInput1.Text)');
+  await page.getByRole('button', { name: 'Format formula', exact: true }).click();
+  await expect(page.locator('#powerFxOutputTypeDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Formula has an unclosed');
 });
 
 test('opens and closes the mobile tool menu', async ({ page }) => {

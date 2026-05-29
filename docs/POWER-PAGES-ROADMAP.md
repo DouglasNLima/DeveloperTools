@@ -2,6 +2,8 @@
 
 This mini-roadmap focuses on Power Pages work that can be supported locally in the browser. The app must not connect to a Power Platform tenant, Dataverse environment or authenticated Microsoft service.
 
+For broader Power Platform utilities, see [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md).
+
 ## References
 
 - [Power Pages Liquid template tags](https://learn.microsoft.com/en-us/power-pages/configure/liquid/template-tags)

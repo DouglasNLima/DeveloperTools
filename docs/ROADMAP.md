@@ -43,9 +43,13 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Power Pages Web API Snippet Generator.
 - Site Settings Helper for common Power Pages configuration keys.
 - Table Permissions Checklist for web roles, table access and scope review.
-- Status: initial Power Pages mini-roadmap implemented; future Power Platform work should build on feedback from these tools.
+- Dataverse OData Query Builder for `$select`, `$filter`, `$expand`, `$orderby`, `$top`, `$count`, headers and local fetch snippets.
+- Power Platform CLI Command Builder for common `pac auth`, `pac solution` and `pac pages` commands.
+- Power Automate Expression Formatter for Workflow Definition Language expressions.
+- Power Fx Snippet Formatter for readable formula snippets and sharing warnings.
+- Status: initial Power Pages mini-roadmap and first wider Power Platform utility set implemented.
 
-See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) for the detailed mini-roadmap.
+See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 
 ## Phase 7: Text Utilities
 
