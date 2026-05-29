@@ -1,4 +1,4 @@
-import { processJson } from './json-formatter.js';
+import { generateJsonShape, JSON_SCHEMA_OUTPUT_FORMATS, processJson } from './json-formatter.js';
 
 export function renderJsonFormatter(container) {
   container.innerHTML = `
@@ -12,17 +12,25 @@ export function renderJsonFormatter(container) {
           </select>
         </div>
 
-        <label class="checkbox-row" for="jsonSortKeys">
-          <input id="jsonSortKeys" type="checkbox" />
-          <span>Sort object keys</span>
-        </label>
+        <div class="field-stack">
+          <label for="jsonSchemaOutputFormat">Shape/schema output</label>
+          <select id="jsonSchemaOutputFormat">
+            ${JSON_SCHEMA_OUTPUT_FORMATS.map(format => `<option value="${format.value}">${format.label}</option>`).join('')}
+          </select>
+        </div>
 
         <div class="button-row button-row--end">
           <button id="formatJsonButton" class="primary" type="button">Format JSON</button>
           <button id="minifyJsonButton" class="secondary" type="button">Minify JSON</button>
+          <button id="shapeJsonButton" class="secondary" type="button">Generate shape/schema</button>
           <button id="clearJsonButton" class="secondary" type="button">Clear</button>
         </div>
       </div>
+
+      <label class="checkbox-row" for="jsonSortKeys">
+        <input id="jsonSortKeys" type="checkbox" />
+        <span>Sort object keys</span>
+      </label>
 
       <div class="field-stack">
         <label for="jsonInput">JSON input</label>
@@ -65,8 +73,10 @@ export function renderJsonFormatter(container) {
   const input = container.querySelector('#jsonInput');
   const indent = container.querySelector('#jsonIndent');
   const sortKeys = container.querySelector('#jsonSortKeys');
+  const schemaOutputFormat = container.querySelector('#jsonSchemaOutputFormat');
   const formatButton = container.querySelector('#formatJsonButton');
   const minifyButton = container.querySelector('#minifyJsonButton');
+  const shapeButton = container.querySelector('#shapeJsonButton');
   const clearButton = container.querySelector('#clearJsonButton');
   const copyButton = container.querySelector('#copyJsonButton');
   const downloadButton = container.querySelector('#downloadJsonButton');
@@ -103,9 +113,10 @@ export function renderJsonFormatter(container) {
 
   function setValidDetails(result) {
     statusDetail.textContent = 'Valid';
-    sizeDetail.textContent = result.stats.outputSizeLabel;
-    depthDetail.textContent = result.stats.depth.toLocaleString('en-GB');
-    structureDetail.textContent = `${result.stats.objectCount.toLocaleString('en-GB')} / ${result.stats.arrayCount.toLocaleString('en-GB')}`;
+    sizeDetail.textContent = result.outputSizeLabel || result.stats.outputSizeLabel;
+    const summary = result.shape?.summary || result.stats;
+    depthDetail.textContent = summary.depth.toLocaleString('en-GB');
+    structureDetail.textContent = `${summary.objectCount.toLocaleString('en-GB')} / ${summary.arrayCount.toLocaleString('en-GB')}`;
   }
 
   function setInvalidDetails() {
@@ -121,10 +132,11 @@ export function renderJsonFormatter(container) {
     setValidDetails(result);
     revokeObjectUrl();
 
-    const blob = new Blob([result.output], { type: 'application/json;charset=utf-8' });
+    const download = resolveJsonDownload(result);
+    const blob = new Blob([result.output], { type: download.mimeType });
     currentObjectUrl = URL.createObjectURL(blob);
     downloadButton.href = currentObjectUrl;
-    downloadButton.download = result.mode === 'minify' ? 'minified-json.json' : 'formatted-json.json';
+    downloadButton.download = download.fileName;
     downloadButton.textContent = `Download ${downloadButton.download}`;
     downloadButton.hidden = false;
   }
@@ -148,6 +160,23 @@ export function renderJsonFormatter(container) {
     }
   }
 
+  function handleGenerateShape() {
+    try {
+      const result = generateJsonShape(input.value, {
+        outputFormat: schemaOutputFormat.value
+      });
+
+      setOutput(result);
+      setStatus(`${result.outputType} generated successfully.`, 'success');
+    } catch (error) {
+      output.value = error.details?.snippet || '';
+      copyButton.disabled = true;
+      revokeObjectUrl();
+      setInvalidDetails();
+      setStatus(error.message || 'Unable to generate this JSON shape.', 'error');
+    }
+  }
+
   async function copyOutput() {
     if (!output.value || copyButton.disabled) {
       setStatus('There is no output to copy.', 'error');
@@ -167,12 +196,14 @@ export function renderJsonFormatter(container) {
 
   formatButton.addEventListener('click', () => handleProcess('format'));
   minifyButton.addEventListener('click', () => handleProcess('minify'));
+  shapeButton.addEventListener('click', handleGenerateShape);
   copyButton.addEventListener('click', copyOutput);
 
   clearButton.addEventListener('click', () => {
     input.value = '';
     output.value = '';
     indent.value = '2';
+    schemaOutputFormat.value = 'markdown';
     sortKeys.checked = false;
     copyButton.disabled = true;
     revokeObjectUrl();
@@ -182,4 +213,25 @@ export function renderJsonFormatter(container) {
   });
 
   return () => revokeObjectUrl();
+}
+
+function resolveJsonDownload(result) {
+  if (result.outputType === 'JSON Schema') {
+    return {
+      fileName: 'json-schema.json',
+      mimeType: 'application/json;charset=utf-8'
+    };
+  }
+
+  if (result.outputType === 'Markdown contract') {
+    return {
+      fileName: 'json-shape-contract.md',
+      mimeType: 'text/markdown;charset=utf-8'
+    };
+  }
+
+  return {
+    fileName: result.mode === 'minify' ? 'minified-json.json' : 'formatted-json.json',
+    mimeType: 'application/json;charset=utf-8'
+  };
 }

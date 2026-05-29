@@ -1,6 +1,13 @@
 const DEFAULT_INDENT = 2;
 const FORMAT_MODE = 'format';
 const MINIFY_MODE = 'minify';
+const MARKDOWN_SCHEMA_OUTPUT = 'markdown';
+const JSON_SCHEMA_OUTPUT = 'schema';
+
+export const JSON_SCHEMA_OUTPUT_FORMATS = [
+  { value: MARKDOWN_SCHEMA_OUTPUT, label: 'Markdown contract' },
+  { value: JSON_SCHEMA_OUTPUT, label: 'JSON Schema only' }
+];
 
 export function processJson(input, options = {}) {
   const rawInput = String(input ?? '');
@@ -89,6 +96,125 @@ export function analyseJsonValue(value) {
   return stats;
 }
 
+export function generateJsonShape(input, options = {}) {
+  const parsed = parseJsonInput(input);
+  const shape = analyseJsonShape(parsed);
+  const schema = buildJsonSchema(parsed, {
+    title: options.title
+  });
+  const outputFormat = normaliseSchemaOutputFormat(options.outputFormat);
+  const schemaJson = JSON.stringify(schema, null, 2);
+  const output = outputFormat === JSON_SCHEMA_OUTPUT
+    ? schemaJson
+    : formatJsonShapeMarkdown(shape, schemaJson);
+  const outputBytes = countUtf8Bytes(output);
+
+  return {
+    output,
+    outputFormat,
+    outputType: outputFormat === JSON_SCHEMA_OUTPUT ? 'JSON Schema' : 'Markdown contract',
+    outputBytes,
+    outputSizeLabel: formatByteSize(outputBytes),
+    shape,
+    schema
+  };
+}
+
+export function analyseJsonShape(value) {
+  const paths = new Map();
+  const objectStats = new Map();
+
+  visitShapeValue(value, '$', paths, objectStats);
+
+  const pathSummaries = [...paths.values()]
+    .map(path => ({
+      path: path.path,
+      types: [...path.types].sort(compareShapeTypes),
+      examples: path.examples
+    }))
+    .sort(comparePathSummaries);
+  const fieldPresence = [...objectStats.values()]
+    .map(object => {
+      const required = [];
+      const probablyOptional = [];
+
+      object.keys.forEach((count, key) => {
+        if (count === object.count) {
+          required.push(key);
+        } else {
+          probablyOptional.push(key);
+        }
+      });
+
+      return {
+        path: object.path,
+        objectCount: object.count,
+        required: required.sort((left, right) => left.localeCompare(right, 'en-GB')),
+        probablyOptional: probablyOptional.sort((left, right) => left.localeCompare(right, 'en-GB'))
+      };
+    })
+    .sort(comparePathSummaries);
+  const stats = analyseJsonValue(value);
+
+  return {
+    summary: {
+      ...stats,
+      pathCount: pathSummaries.length,
+      objectPathCount: fieldPresence.length
+    },
+    paths: pathSummaries,
+    fieldPresence
+  };
+}
+
+export function buildJsonSchema(value, options = {}) {
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    title: String(options.title ?? '').trim() || 'Generated JSON shape',
+    ...buildJsonSchemaForValues([value])
+  };
+}
+
+export function formatJsonShapeMarkdown(shape, schemaJson) {
+  const fieldRows = shape.fieldPresence.length === 0
+    ? ['| - | - | - |']
+    : shape.fieldPresence.map(field => [
+      escapeMarkdownCell(field.path),
+      escapeMarkdownCell(formatFieldList(field.required)),
+      escapeMarkdownCell(formatFieldList(field.probablyOptional))
+    ]);
+  const pathRows = shape.paths.map(path => [
+    escapeMarkdownCell(path.path),
+    escapeMarkdownCell(path.types.join(', ')),
+    escapeMarkdownCell(path.examples.join(', ') || '-')
+  ]);
+
+  return [
+    '## JSON Shape Contract',
+    '',
+    '### Shape Summary',
+    `- Root type: ${shape.summary.rootType}`,
+    `- Maximum depth: ${shape.summary.depth.toLocaleString('en-GB')}`,
+    `- Paths analysed: ${shape.summary.pathCount.toLocaleString('en-GB')}`,
+    `- Object paths analysed: ${shape.summary.objectPathCount.toLocaleString('en-GB')}`,
+    '',
+    '### Field Presence',
+    '| Object path | Required fields | Probably optional fields |',
+    '| --- | --- | --- |',
+    ...fieldRows.map(row => Array.isArray(row) ? `| ${row.join(' | ')} |` : row),
+    '',
+    '### Path Types',
+    '| Path | Types | Examples |',
+    '| --- | --- | --- |',
+    ...pathRows.map(row => `| ${row.join(' | ')} |`),
+    '',
+    '### JSON Schema',
+    '```json',
+    schemaJson,
+    '```'
+  ].join('\n');
+}
+
 export function getJsonParseErrorDetails(input, error) {
   const originalMessage = error?.message || 'Unable to parse JSON.';
   const position = extractPosition(originalMessage);
@@ -148,6 +274,215 @@ function visitJsonValue(value, depth, stats) {
   }
 
   stats.primitiveCount += 1;
+}
+
+function visitShapeValue(value, path, paths, objectStats) {
+  addShapePath(paths, path, getShapeType(value), value);
+
+  if (Array.isArray(value)) {
+    value.forEach(item => visitShapeValue(item, `${path}[]`, paths, objectStats));
+    return;
+  }
+
+  if (value && typeof value === 'object') {
+    addObjectShapeStats(objectStats, path, Object.keys(value));
+    Object.entries(value).forEach(([key, child]) => {
+      visitShapeValue(child, joinJsonPath(path, key), paths, objectStats);
+    });
+  }
+}
+
+function addShapePath(paths, path, type, value) {
+  if (!paths.has(path)) {
+    paths.set(path, {
+      path,
+      types: new Set(),
+      examples: []
+    });
+  }
+
+  const pathSummary = paths.get(path);
+  const example = formatShapeExample(value);
+
+  pathSummary.types.add(type);
+
+  if (example && !pathSummary.examples.includes(example) && pathSummary.examples.length < 3) {
+    pathSummary.examples.push(example);
+  }
+}
+
+function addObjectShapeStats(objectStats, path, keys) {
+  if (!objectStats.has(path)) {
+    objectStats.set(path, {
+      path,
+      count: 0,
+      keys: new Map()
+    });
+  }
+
+  const stats = objectStats.get(path);
+  stats.count += 1;
+
+  keys.forEach(key => {
+    stats.keys.set(key, (stats.keys.get(key) || 0) + 1);
+  });
+}
+
+function buildJsonSchemaForValues(values) {
+  const types = values.map(value => getSchemaType(value));
+  const type = formatSchemaType(types);
+  const nonNullTypes = [...new Set(types.filter(item => item !== 'null'))];
+
+  if (nonNullTypes.length === 1 && nonNullTypes[0] === 'object') {
+    return buildObjectSchema(values, type);
+  }
+
+  if (nonNullTypes.length === 1 && nonNullTypes[0] === 'array') {
+    return buildArraySchema(values, type);
+  }
+
+  return {
+    type
+  };
+}
+
+function buildObjectSchema(values, type) {
+  const objectValues = values.filter(value => value && typeof value === 'object' && !Array.isArray(value));
+  const keySet = new Set();
+  const keyCounts = new Map();
+
+  objectValues.forEach(value => {
+    Object.keys(value).forEach(key => {
+      keySet.add(key);
+      keyCounts.set(key, (keyCounts.get(key) || 0) + 1);
+    });
+  });
+
+  const properties = {};
+  [...keySet].sort((left, right) => left.localeCompare(right, 'en-GB')).forEach(key => {
+    properties[key] = buildJsonSchemaForValues(objectValues.filter(value => Object.hasOwn(value, key)).map(value => value[key]));
+  });
+
+  const required = [...keyCounts.entries()]
+    .filter(([, count]) => count === objectValues.length)
+    .map(([key]) => key)
+    .sort((left, right) => left.localeCompare(right, 'en-GB'));
+  const schema = {
+    type,
+    properties,
+    additionalProperties: true
+  };
+
+  if (required.length > 0) {
+    schema.required = required;
+  }
+
+  return schema;
+}
+
+function buildArraySchema(values, type) {
+  const itemValues = values
+    .filter(Array.isArray)
+    .flatMap(value => value);
+
+  return {
+    type,
+    items: itemValues.length > 0 ? buildJsonSchemaForValues(itemValues) : {}
+  };
+}
+
+function getShapeType(value) {
+  if (Array.isArray(value)) {
+    return 'array';
+  }
+
+  if (value === null) {
+    return 'null';
+  }
+
+  if (typeof value === 'number' && Number.isInteger(value)) {
+    return 'integer';
+  }
+
+  return typeof value;
+}
+
+function getSchemaType(value) {
+  if (Array.isArray(value)) {
+    return 'array';
+  }
+
+  if (value === null) {
+    return 'null';
+  }
+
+  if (typeof value === 'number') {
+    return Number.isInteger(value) ? 'integer' : 'number';
+  }
+
+  return typeof value;
+}
+
+function formatSchemaType(types) {
+  const uniqueTypes = new Set(types);
+
+  if (uniqueTypes.has('number') && uniqueTypes.has('integer')) {
+    uniqueTypes.delete('integer');
+  }
+
+  const orderedTypes = [...uniqueTypes].sort(compareShapeTypes);
+  return orderedTypes.length === 1 ? orderedTypes[0] : orderedTypes;
+}
+
+function formatShapeExample(value) {
+  if (Array.isArray(value)) {
+    return value.length === 0 ? '[]' : '[...]';
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.keys(value).length === 0 ? '{}' : '{...}';
+  }
+
+  return JSON.stringify(value);
+}
+
+function joinJsonPath(path, key) {
+  if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)) {
+    return `${path}.${key}`;
+  }
+
+  return `${path}[${JSON.stringify(key)}]`;
+}
+
+function comparePathSummaries(left, right) {
+  if (left.path === '$') {
+    return -1;
+  }
+
+  if (right.path === '$') {
+    return 1;
+  }
+
+  return left.path.localeCompare(right.path, 'en-GB');
+}
+
+function compareShapeTypes(left, right) {
+  const order = ['object', 'array', 'string', 'integer', 'number', 'boolean', 'null'];
+  return order.indexOf(left) - order.indexOf(right) || left.localeCompare(right, 'en-GB');
+}
+
+function formatFieldList(fields) {
+  return fields.length === 0 ? '-' : fields.join(', ');
+}
+
+function normaliseSchemaOutputFormat(value) {
+  return value === JSON_SCHEMA_OUTPUT ? JSON_SCHEMA_OUTPUT : MARKDOWN_SCHEMA_OUTPUT;
+}
+
+function escapeMarkdownCell(value) {
+  return String(value)
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>');
 }
 
 function getJsonType(value) {

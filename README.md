@@ -9,13 +9,16 @@ The current foundation includes:
 - Hashes/checksums
 - URL & query string helper
 - JSON formatter/validator
+- JSON shape/schema generation
 - JSON diff
 - JSON/XML data explorer
 - CSV/TSV helper
 - PDF Template Field Explorer
 - JWT Decoder & Claims Inspector
+- Cron / RRULE Builder
 - cURL/fetch converter
 - Regex Tester
+- Support Pack Sanitiser
 - Text diff
 - HTML cleaner/converter
 - Case converter
@@ -83,6 +86,8 @@ src/
     base64.js
     base64.ui.js
     catalog.js
+    cron-rrule-builder.js
+    cron-rrule-builder.ui.js
     csv-tsv-helper.js
     csv-tsv-helper.ui.js
     hash-checksums.js
@@ -113,6 +118,8 @@ src/
     power-pages-webapi.ui.js
     regex-tester.js
     regex-tester.ui.js
+    support-pack-sanitiser.js
+    support-pack-sanitiser.ui.js
     text-diff.js
     text-diff.ui.js
     html-cleaner.js

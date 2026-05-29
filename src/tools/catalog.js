@@ -144,6 +144,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'jwt-decoder'
   },
   {
+    id: 'cron-rrule-builder',
+    title: 'Cron / RRULE Builder',
+    category: 'Web/API',
+    status: 'available',
+    summary: 'Build guided cron expressions, RRULE snippets and timezone warnings for recurring jobs.',
+    renderer: 'cron-rrule-builder'
+  },
+  {
     id: 'curl-fetch-converter',
     title: 'cURL/fetch converter',
     category: 'Web/API',
@@ -158,6 +166,14 @@ export const TOOL_CATALOGUE = [
     status: 'available',
     summary: 'Test regular expressions locally with matches, groups and highlighted text.',
     renderer: 'regex-tester'
+  },
+  {
+    id: 'support-pack-sanitiser',
+    title: 'Support Pack Sanitiser',
+    category: 'Text utilities',
+    status: 'available',
+    summary: 'Mask sensitive values in logs, payloads, config snippets and stack traces before sharing.',
+    renderer: 'support-pack-sanitiser'
   },
   {
     id: 'text-diff',

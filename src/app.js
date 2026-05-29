@@ -8,6 +8,7 @@ import {
 import { registerAppServiceWorker } from './pwa.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderCaseConverter } from './tools/case-converter.ui.js';
+import { renderCronRruleBuilder } from './tools/cron-rrule-builder.ui.js';
 import { renderCurlFetchConverter } from './tools/curl-fetch-converter.ui.js';
 import { renderCsvTsvHelper } from './tools/csv-tsv-helper.ui.js';
 import { renderDataExplorer } from './tools/data-explorer.ui.js';
@@ -26,6 +27,7 @@ import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-set
 import { renderPowerPagesTablePermissionsChecklist } from './tools/power-pages-table-permissions.ui.js';
 import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-webapi.ui.js';
 import { renderRegexTester } from './tools/regex-tester.ui.js';
+import { renderSupportPackSanitiser } from './tools/support-pack-sanitiser.ui.js';
 import { renderTextDiff } from './tools/text-diff.ui.js';
 import { renderUrlCodec } from './tools/url-codec.ui.js';
 import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
@@ -33,6 +35,7 @@ import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
 const renderers = {
   'base64-to-file': renderBase64ToFile,
   'case-converter': renderCaseConverter,
+  'cron-rrule-builder': renderCronRruleBuilder,
   'curl-fetch-converter': renderCurlFetchConverter,
   'csv-tsv-helper': renderCsvTsvHelper,
   'data-explorer': renderDataExplorer,
@@ -52,6 +55,7 @@ const renderers = {
   'power-pages-site-settings': renderPowerPagesSiteSettingsHelper,
   'power-pages-table-permissions': renderPowerPagesTablePermissionsChecklist,
   'regex-tester': renderRegexTester,
+  'support-pack-sanitiser': renderSupportPackSanitiser,
   'text-diff': renderTextDiff,
   'url-codec': renderUrlCodec,
   'uuid-generator': renderUuidGenerator

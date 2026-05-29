@@ -45,7 +45,7 @@ This roadmap expands the current suite before adding many new standalone tools. 
 - Add a schema-light shape summary for objects, arrays, keys and primitive types.
 - Add path search for keys and values.
 - Add downloadable formatted, minified and summary outputs.
-- Status: planned.
+- Status: shape summary, contract Markdown and JSON Schema output implemented; path search remains planned.
 
 ## Phase 6: CSV/TSV Helper
 

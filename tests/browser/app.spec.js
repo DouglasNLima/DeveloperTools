@@ -63,6 +63,18 @@ test('searches the sidebar and switches between available tools', async ({ page 
   await expect(page.locator('[data-tool-id="file-to-base64"]')).toHaveAttribute('aria-current', 'page');
 });
 
+test('finds the support sanitiser and schedule builder from search', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('support');
+  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
+
+  await page.getByLabel('Search tools').fill('rrule');
+  await expect(page.locator('[data-tool-id="cron-rrule-builder"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="cron-rrule-builder"]')).toBeEnabled();
+});
+
 test('returns to home from the menu and keeps search available', async ({ page }) => {
   await page.goto('/#jwt-decoder');
 
@@ -392,6 +404,31 @@ test('finds the JSON formatter and processes formatted and minified output', asy
   await expect(page.getByRole('status')).toContainText('Minified JSON created successfully.');
 });
 
+test('generates JSON shape and schema output from the JSON formatter', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await page.getByLabel('JSON input').fill(JSON.stringify({
+    items: [
+      { id: 1, name: 'Alpha', active: true },
+      { id: 2, name: 'Beta', tags: ['new'] }
+    ]
+  }));
+  await page.getByRole('button', { name: 'Generate shape/schema', exact: true }).click();
+
+  await expect(page.locator('#jsonOutput')).toHaveValue(/## JSON Shape Contract/);
+  await expect(page.locator('#jsonOutput')).toHaveValue(/\$\.items\[\]\.id/);
+  await expect(page.locator('#jsonOutput')).toHaveValue(/active, tags/);
+  await expect(page.locator('#downloadJsonButton')).toHaveAttribute('download', 'json-shape-contract.md');
+  await expect(page.getByRole('status')).toContainText('Markdown contract generated successfully.');
+
+  await page.getByLabel('Shape/schema output').selectOption('schema');
+  await page.getByRole('button', { name: 'Generate shape/schema', exact: true }).click();
+
+  await expect(page.locator('#jsonOutput')).toHaveValue(/"\$schema": "https:\/\/json-schema.org\/draft\/2020-12\/schema"/);
+  await expect(page.locator('#jsonOutput')).toHaveValue(/"required": \[/);
+  await expect(page.locator('#downloadJsonButton')).toHaveAttribute('download', 'json-schema.json');
+});
+
 test('reports JSON formatter validation errors with context', async ({ page }) => {
   await page.goto('/#json-formatter');
 
@@ -634,6 +671,34 @@ test('reports regex warnings and invalid patterns', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Invalid regular expression');
 });
 
+test('sanitises support packs and reports validation errors', async ({ page }) => {
+  await page.goto('/#support-pack-sanitiser');
+
+  await expect(page.getByRole('heading', { name: 'Support Pack Sanitiser' })).toBeVisible();
+  await page.getByLabel('Support pack input').fill([
+    'User admin@example.com called https://api.internal.local/private',
+    'token=secretToken12345',
+    'Path C:\\Users\\dougl\\trace.log'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Sanitise support pack', exact: true }).click();
+
+  await expect(page.locator('#supportPackStatusDetail')).toHaveText('Sanitised');
+  await expect(page.locator('#supportPackSensitiveDetail')).toHaveText('4');
+  await expect(page.locator('#supportPackOutput')).toHaveValue(/## Sanitised Support Pack/);
+  await expect(page.locator('#supportPackOutput')).toHaveValue(/\[EMAIL_1\]/);
+  await expect(page.locator('#supportPackOutput')).toHaveValue(/\[INTERNAL_URL_1\]/);
+  await expect(page.locator('#supportPackOutput')).toHaveValue(/\[TOKEN_1\]/);
+  await expect(page.locator('#supportPackOutput')).not.toHaveValue(/admin@example\.com/);
+  await expect(page.locator('#copySupportPackButton')).toBeEnabled();
+  await expect(page.locator('#downloadSupportPackButton')).toHaveAttribute('download', 'sanitised-support-pack.md');
+  await expect(page.getByRole('status')).toContainText('Support pack sanitised successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Sanitise support pack', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Enter support pack content to sanitise.');
+});
+
 test('generates line-level text diffs', async ({ page }) => {
   await page.goto('/#text-diff');
 
@@ -664,6 +729,7 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('[data-tool-id="html-cleaner-converter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
   await page.locator('[data-tool-id="text-diff"]').click();
 
   await page.getByLabel('Output format').selectOption('json');
@@ -927,6 +993,39 @@ test('reports JWT expiry and invalid token errors', async ({ page }) => {
 
   await expect(page.locator('#jwtStatusDetail')).toHaveText('-');
   await expect(page.getByRole('status')).toContainText('JWT payload is not valid Base64URL.');
+});
+
+test('builds cron and RRULE schedules with warnings and validation', async ({ page }) => {
+  await page.goto('/#cron-rrule-builder');
+
+  await expect(page.getByRole('heading', { name: 'Cron / RRULE Builder' })).toBeVisible();
+  await page.getByLabel('Schedule type').selectOption('weekly');
+  await page.getByLabel('Interval').fill('1');
+  await page.getByLabel('Hour').fill('9');
+  await page.getByLabel('Minute').fill('30');
+  await page.getByLabel('Timezone').fill('Europe/Dublin');
+  await page.getByLabel('Start date').fill('2026-05-29');
+  await page.locator('#scheduleWeekdayWE').check();
+  await page.getByRole('button', { name: 'Build schedule', exact: true }).click();
+
+  await expect(page.locator('#scheduleFrequencyDetail')).toHaveText('Weekly');
+  await expect(page.locator('#scheduleCronDetail')).toHaveText('30 9 * * 1,3');
+  await expect(page.locator('#scheduleWarningsDetail')).toHaveText('2 warnings');
+  await expect(page.locator('#scheduleOutput')).toHaveValue(/DTSTART;TZID=Europe\/Dublin:20260529T093000/);
+  await expect(page.locator('#scheduleOutput')).toHaveValue(/RRULE:FREQ=WEEKLY;INTERVAL=1;BYMINUTE=30;BYHOUR=9;BYDAY=MO,WE/);
+  await expect(page.locator('#downloadScheduleButton')).toHaveAttribute('download', 'cron-rrule-schedule.md');
+  await expect(page.getByRole('status')).toContainText('Cron and RRULE schedule built successfully.');
+
+  await page.getByLabel('Schedule type').selectOption('monthly');
+  await page.getByLabel('Month day').fill('31');
+  await page.getByRole('button', { name: 'Build schedule', exact: true }).click();
+
+  await expect(page.locator('#scheduleCronDetail')).toHaveText('30 9 31 * *');
+  await expect(page.locator('#scheduleOutput')).toHaveValue(/does not exist in every month/);
+
+  await page.getByLabel('Minute').fill('60');
+  await page.getByRole('button', { name: 'Build schedule', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Minute must be a whole number');
 });
 
 test('converts cURL requests to fetch snippets', async ({ page }) => {

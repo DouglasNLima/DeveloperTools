@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   analyseJsonValue,
+  buildJsonSchema,
   formatByteSize,
+  generateJsonShape,
   getJsonParseErrorDetails,
   parseJsonInput,
   processJson,
@@ -99,4 +101,64 @@ test('builds deterministic parse error details from parser messages', () => {
 test('formats byte sizes with British numeric expectations', () => {
   assert.equal(formatByteSize(12), '12 B');
   assert.equal(formatByteSize(1536), '1.5 KB');
+});
+
+test('generates JSON shape Markdown with required and optional fields', () => {
+  const result = generateJsonShape(JSON.stringify({
+    items: [
+      {
+        id: 1,
+        name: 'Alpha',
+        active: true,
+        nickname: null
+      },
+      {
+        id: 2,
+        name: 'Beta',
+        tags: ['new'],
+        nickname: 'B'
+      }
+    ],
+    meta: {
+      count: 2
+    }
+  }));
+  const itemPresence = result.shape.fieldPresence.find(field => field.path === '$.items[]');
+
+  assert.equal(result.outputType, 'Markdown contract');
+  assert.match(result.output, /## JSON Shape Contract/);
+  assert.match(result.output, /\$\.items\[\]\.id/);
+  assert.deepEqual(itemPresence.required, ['id', 'name', 'nickname']);
+  assert.deepEqual(itemPresence.probablyOptional, ['active', 'tags']);
+  assert.deepEqual(result.schema.properties.items.items.required, ['id', 'name', 'nickname']);
+  assert.deepEqual(result.schema.properties.items.items.properties.nickname.type, ['string', 'null']);
+  assert.equal(result.schema.properties.items.items.additionalProperties, true);
+});
+
+test('generates schema-only output and validates input', () => {
+  const result = generateJsonShape('{"id":1,"name":"Contoso"}', {
+    outputFormat: 'schema'
+  });
+  const schema = JSON.parse(result.output);
+
+  assert.equal(result.outputType, 'JSON Schema');
+  assert.equal(schema.$schema, 'https://json-schema.org/draft/2020-12/schema');
+  assert.deepEqual(schema.required, ['id', 'name']);
+  assert.doesNotMatch(result.output, /JSON Shape Contract/);
+  assert.throws(() => generateJsonShape('{bad json}'), /JSON parse error/);
+});
+
+test('builds permissive JSON schema without inferred enums or constants', () => {
+  const schema = buildJsonSchema({
+    status: 'Active',
+    child: {
+      id: 1
+    }
+  });
+
+  assert.equal(schema.additionalProperties, true);
+  assert.equal(schema.properties.child.additionalProperties, true);
+  assert.equal(schema.properties.status.enum, undefined);
+  assert.equal(schema.properties.status.const, undefined);
+  assert.deepEqual(schema.required, ['child', 'status']);
 });

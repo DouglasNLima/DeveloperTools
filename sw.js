@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v1';
+const CACHE_NAME = 'developer-tools-static-v2';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -16,6 +16,8 @@ const PRECACHE_URLS = [
   './src/tools/case-converter.js',
   './src/tools/case-converter.ui.js',
   './src/tools/catalog.js',
+  './src/tools/cron-rrule-builder.js',
+  './src/tools/cron-rrule-builder.ui.js',
   './src/tools/csv-tsv-helper.js',
   './src/tools/csv-tsv-helper.ui.js',
   './src/tools/curl-fetch-converter.js',
@@ -52,6 +54,8 @@ const PRECACHE_URLS = [
   './src/tools/power-platform-cli.ui.js',
   './src/tools/regex-tester.js',
   './src/tools/regex-tester.ui.js',
+  './src/tools/support-pack-sanitiser.js',
+  './src/tools/support-pack-sanitiser.ui.js',
   './src/tools/text-diff.js',
   './src/tools/text-diff.ui.js',
   './src/tools/url-codec.js',

@@ -24,7 +24,8 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - JSON diff for comparing payloads.
 - CSV/TSV helper for inspecting, cleaning and converting delimited data.
 - JSON/XML data explorer for guided JSON queries and local grid review of JSON or XML records.
-- Status: JSON formatter/validator, JSON diff, CSV/TSV helper and JSON/XML data explorer implemented.
+- JSON shape/schema generation for payload contracts and draft 2020-12 schema output.
+- Status: JSON formatter/validator, JSON shape/schema generation, JSON diff, CSV/TSV helper and JSON/XML data explorer implemented.
 
 ## Phase 4: Documents
 
@@ -37,7 +38,8 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - JWT decoder with claims, expiry and header inspection.
 - Query string builder/parser is merged into the URL & query string helper.
 - cURL/fetch converter for common request shapes.
-- Status: JWT Decoder & Claims Inspector, URL & query string helper and cURL/fetch converter implemented.
+- Cron / RRULE Builder for recurring jobs, reminders and timezone-aware handover snippets.
+- Status: JWT Decoder & Claims Inspector, URL & query string helper, Cron / RRULE Builder and cURL/fetch converter implemented.
 
 ## Phase 6: Power Platform
 
@@ -62,11 +64,12 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 ## Phase 7: Text Utilities
 
 - Regex tester with match group feedback.
+- Support Pack Sanitiser for masking sensitive values in shared logs and payloads.
 - Text diff with line-level changes.
 - HTML cleaner/converter for readable plain text and Markdown output from pasted HTML.
 - Case converter for common code naming styles.
 - UUID generator, hyphen restorer and validator.
-- Status: Regex Tester, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
+- Status: Regex Tester, Support Pack Sanitiser, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
 
 ## Test Expectations
 
