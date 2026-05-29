@@ -71,6 +71,17 @@ test('returns to home from the menu and keeps search available', async ({ page }
   await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
 });
 
+test('returns to home from the Developer Tools title link', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
+  await page.locator('.sidebar .brand-home-link').click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
+  await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
+});
+
 test('collapses the desktop tool menu and persists compact navigation', async ({ page }) => {
   await page.goto('/#json-formatter');
 

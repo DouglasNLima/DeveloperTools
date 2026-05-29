@@ -66,6 +66,7 @@ const activeToolStatus = document.getElementById('activeToolStatus');
 const activeToolTitle = document.getElementById('activeToolTitle');
 const activeToolSummary = document.getElementById('activeToolSummary');
 const toolMount = document.getElementById('toolMount');
+const brandHomeLinks = document.querySelectorAll('.brand-home-link');
 
 const HOME_VIEW = 'home';
 const THEME_STORAGE_KEY = 'developer-tools-theme';
@@ -424,6 +425,12 @@ navToggle.addEventListener('click', toggleNavigation);
 navBackdrop.addEventListener('click', closeNavigation);
 themeToggle.addEventListener('click', toggleTheme);
 sidebarCollapse.addEventListener('click', toggleSidebarCollapsed);
+brandHomeLinks.forEach(link => {
+  link.addEventListener('click', event => {
+    event.preventDefault();
+    selectHome();
+  });
+});
 
 window.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
