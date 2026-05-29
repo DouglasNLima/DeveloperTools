@@ -17,6 +17,7 @@ The current foundation includes:
 - cURL/fetch converter
 - Regex Tester
 - Text diff
+- HTML cleaner/converter
 - Case converter
 - UUID generator, restorer and validator
 - FetchXML Formatter & Liquid Builder for Power Pages
@@ -114,6 +115,8 @@ src/
     regex-tester.ui.js
     text-diff.js
     text-diff.ui.js
+    html-cleaner.js
+    html-cleaner.ui.js
     case-converter.js
     case-converter.ui.js
     curl-fetch-converter.js

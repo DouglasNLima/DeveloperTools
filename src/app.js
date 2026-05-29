@@ -12,6 +12,7 @@ import { renderCurlFetchConverter } from './tools/curl-fetch-converter.ui.js';
 import { renderCsvTsvHelper } from './tools/csv-tsv-helper.ui.js';
 import { renderDataExplorer } from './tools/data-explorer.ui.js';
 import { renderHashChecksums } from './tools/hash-checksums.ui.js';
+import { renderHtmlCleaner } from './tools/html-cleaner.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
@@ -38,6 +39,7 @@ const renderers = {
   'dataverse-odata-query-builder': renderDataverseODataQueryBuilder,
   'file-to-base64': renderFileToBase64,
   'hash-checksums': renderHashChecksums,
+  'html-cleaner-converter': renderHtmlCleaner,
   'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
   'jwt-decoder': renderJwtDecoder,

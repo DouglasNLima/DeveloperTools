@@ -661,6 +661,7 @@ test('finds text diff and honours comparison options', async ({ page }) => {
 
   await page.getByLabel('Search tools').fill('Text utilities');
   await expect(page.locator('[data-tool-id="text-diff"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="html-cleaner-converter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
   await page.locator('[data-tool-id="text-diff"]').click();
@@ -680,6 +681,57 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('#textDiffOutput')).toHaveValue(/"equal": true/);
   await expect(page.locator('#downloadTextDiffButton')).toHaveAttribute('download', 'text-diff.json');
   await expect(page.getByRole('status')).toContainText('Whitespace differences were ignored.');
+});
+
+test('converts HTML to readable text and Markdown', async ({ page }) => {
+  await page.goto('/#html-cleaner-converter');
+
+  const html = [
+    '<article>',
+    '<h1>Release notes</h1>',
+    '<p>Read the <a href="https://example.test/guide">guide</a>.</p>',
+    '<ul><li>Alpha</li><li>Beta</li></ul>',
+    '<table><tr><th>Name</th><th>Status</th></tr><tr><td>Ada</td><td>Ready</td></tr></table>',
+    '</article>'
+  ].join('');
+
+  await expect(page.getByRole('heading', { name: 'HTML cleaner/converter' })).toBeVisible();
+  await page.getByLabel('HTML input').fill(html);
+  await page.getByRole('button', { name: 'Convert HTML', exact: true }).click();
+
+  await expect(page.locator('#htmlOutputTypeDetail')).toHaveText('Plain text');
+  await expect(page.locator('#htmlElementCountDetail')).toHaveText('14');
+  await expect(page.locator('#htmlReferenceCountDetail')).toHaveText('1');
+  await expect(page.locator('#htmlWarningsDetail')).toHaveText('None');
+  await expect(page.locator('#htmlCleanerOutput')).toHaveValue(/Release notes/);
+  await expect(page.locator('#htmlCleanerOutput')).toHaveValue(/Read the guide\./);
+  await expect(page.locator('#htmlCleanerOutput')).toHaveValue(/- Alpha/);
+  await expect(page.locator('#htmlCleanerOutput')).toHaveValue(/Name\tStatus/);
+  await expect(page.locator('#copyHtmlButton')).toBeEnabled();
+  await expect(page.locator('#downloadHtmlButton')).toHaveAttribute('download', 'html-cleaner.txt');
+  await expect(page.getByRole('status')).toContainText('Plain text created successfully.');
+
+  await page.getByLabel('Output format').selectOption('markdown');
+  await page.getByRole('button', { name: 'Convert HTML', exact: true }).click();
+
+  await expect(page.locator('#htmlOutputTypeDetail')).toHaveText('Markdown');
+  await expect(page.locator('#htmlCleanerOutput')).toHaveValue(/^# Release notes/);
+  await expect(page.locator('#htmlCleanerOutput')).toHaveValue(/\[guide\]\(https:\/\/example.test\/guide\)/);
+  await expect(page.locator('#htmlCleanerOutput')).toHaveValue(/\| Name \| Status \|/);
+  await expect(page.locator('#downloadHtmlButton')).toHaveAttribute('download', 'html-cleaner.md');
+  await expect(page.getByRole('status')).toContainText('Markdown created successfully.');
+});
+
+test('finds the HTML cleaner from sidebar search', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('HTML');
+  await expect(page.locator('[data-tool-id="html-cleaner-converter"]')).toBeEnabled();
+  await page.locator('[data-tool-id="html-cleaner-converter"]').click();
+
+  await expect(page).toHaveURL(/#html-cleaner-converter$/);
+  await expect(page.getByRole('heading', { name: 'HTML cleaner/converter' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="html-cleaner-converter"]')).toHaveAttribute('aria-current', 'page');
 });
 
 test('converts text into common code casing styles', async ({ page }) => {

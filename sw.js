@@ -26,6 +26,8 @@ const PRECACHE_URLS = [
   './src/tools/dataverse-odata.ui.js',
   './src/tools/hash-checksums.js',
   './src/tools/hash-checksums.ui.js',
+  './src/tools/html-cleaner.js',
+  './src/tools/html-cleaner.ui.js',
   './src/tools/json-diff.js',
   './src/tools/json-diff.ui.js',
   './src/tools/json-formatter.js',

@@ -63,9 +63,10 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 
 - Regex tester with match group feedback.
 - Text diff with line-level changes.
+- HTML cleaner/converter for readable plain text and Markdown output from pasted HTML.
 - Case converter for common code naming styles.
 - UUID generator, hyphen restorer and validator.
-- Status: Regex Tester, Text diff, Case converter and UUID generator/restorer implemented.
+- Status: Regex Tester, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
 
 ## Test Expectations
 

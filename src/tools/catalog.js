@@ -168,6 +168,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'text-diff'
   },
   {
+    id: 'html-cleaner-converter',
+    title: 'HTML cleaner/converter',
+    category: 'Text utilities',
+    status: 'available',
+    summary: 'Remove HTML tags or convert common HTML into Markdown locally.',
+    renderer: 'html-cleaner-converter'
+  },
+  {
     id: 'case-converter',
     title: 'Case converter',
     category: 'Text utilities',
