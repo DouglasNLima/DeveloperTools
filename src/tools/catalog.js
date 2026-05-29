@@ -122,8 +122,9 @@ export const TOOL_CATALOGUE = [
     id: 'text-diff',
     title: 'Text diff',
     category: 'Text utilities',
-    status: 'planned',
-    summary: 'Compare plain text snippets locally with line-level changes.'
+    status: 'available',
+    summary: 'Compare plain text snippets locally with line-level changes.',
+    renderer: 'text-diff'
   },
   {
     id: 'case-converter',

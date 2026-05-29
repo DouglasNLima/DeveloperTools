@@ -540,6 +540,77 @@ label.button.secondary:hover {
   overflow-wrap: anywhere;
 }
 
+.text-diff-preview {
+  background: #fbfdfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  max-height: 440px;
+  min-height: 160px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.text-diff-row {
+  align-items: start;
+  border-left: 3px solid transparent;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 48px 48px 24px minmax(0, 1fr);
+  min-height: 30px;
+  padding: 5px 8px;
+}
+
+.text-diff-row code {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.text-diff-row.added {
+  background: var(--success-soft);
+  border-left-color: var(--success);
+}
+
+.text-diff-row.removed {
+  background: var(--danger-soft);
+  border-left-color: var(--danger);
+}
+
+.text-diff-row.changed {
+  background: var(--amber-soft);
+  border-left-color: var(--amber);
+}
+
+.text-diff-line-number,
+.text-diff-marker {
+  color: var(--text-soft);
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.text-diff-marker {
+  font-weight: 800;
+  text-align: center;
+}
+
+.text-diff-row del,
+.text-diff-row ins {
+  border-radius: 4px;
+  padding: 1px 3px;
+  text-decoration: none;
+}
+
+.text-diff-row del {
+  background: rgba(180, 35, 24, 0.12);
+}
+
+.text-diff-row ins {
+  background: rgba(2, 122, 72, 0.12);
+}
+
 .drop-zone {
   background: #fbfdfe;
   border: 1px dashed var(--border-strong);

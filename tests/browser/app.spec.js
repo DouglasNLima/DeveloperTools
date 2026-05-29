@@ -321,6 +321,53 @@ test('reports regex warnings and invalid patterns', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Invalid regular expression');
 });
 
+test('generates line-level text diffs', async ({ page }) => {
+  await page.goto('/#text-diff');
+
+  await expect(page.getByRole('heading', { name: 'Text diff' })).toBeVisible();
+  await page.getByLabel('Left text').fill('one\ntwo\nthree');
+  await page.getByLabel('Right text').fill('one\nTWO\nthree\nfour');
+  await page.getByRole('button', { name: 'Compare text', exact: true }).click();
+
+  await expect(page.locator('#textDiffStatusDetail')).toHaveText('Different');
+  await expect(page.locator('#textDiffChangesDetail')).toHaveText('2');
+  await expect(page.locator('#textDiffAddedRemovedDetail')).toHaveText('1 / 0');
+  await expect(page.locator('#textDiffChangedUnchangedDetail')).toHaveText('1 / 2');
+  await expect(page.locator('#textDiffLinesDetail')).toHaveText('3 / 4');
+  await expect(page.locator('#textDiffWarningsDetail')).toHaveText('None');
+  await expect(page.locator('.text-diff-row.changed')).toHaveCount(1);
+  await expect(page.locator('.text-diff-row.added')).toHaveCount(1);
+  await expect(page.locator('#textDiffOutput')).toHaveValue(/-two/);
+  await expect(page.locator('#textDiffOutput')).toHaveValue(/\+TWO/);
+  await expect(page.locator('#downloadTextDiffButton')).toHaveAttribute('download', 'text-diff.diff');
+  await expect(page.getByRole('status')).toContainText('Text diff report created successfully.');
+});
+
+test('finds text diff and honours comparison options', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('Text utilities');
+  await expect(page.locator('[data-tool-id="text-diff"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="case-converter"]')).toHaveAttribute('aria-disabled', 'true');
+  await page.locator('[data-tool-id="text-diff"]').click();
+
+  await page.getByLabel('Output format').selectOption('json');
+  await page.getByLabel('Ignore whitespace changes').check();
+  await page.getByLabel('Ignore case').check();
+  await page.getByLabel('Left text').fill('Hello   WORLD');
+  await page.getByLabel('Right text').fill('hello world');
+  await page.getByRole('button', { name: 'Compare text', exact: true }).click();
+
+  await expect(page.locator('#textDiffStatusDetail')).toHaveText('Identical');
+  await expect(page.locator('#textDiffChangesDetail')).toHaveText('0');
+  await expect(page.locator('#textDiffOptionsDetail')).toHaveText('Ignoring Whitespace + Case');
+  await expect(page.locator('#textDiffWarningsDetail')).toHaveText('2 warnings');
+  await expect(page.locator('#textDiffOutputTypeDetail')).toHaveText('JSON report');
+  await expect(page.locator('#textDiffOutput')).toHaveValue(/"equal": true/);
+  await expect(page.locator('#downloadTextDiffButton')).toHaveAttribute('download', 'text-diff.json');
+  await expect(page.getByRole('status')).toContainText('Whitespace differences were ignored.');
+});
+
 test('loads a fillable PDF template and exports field mappings', async ({ page }) => {
   await page.goto('/#pdf-template-field-explorer');
 

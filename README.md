@@ -14,6 +14,7 @@ The current foundation includes:
 - PDF Template Field Explorer
 - JWT Decoder & Claims Inspector
 - Regex Tester
+- Text diff
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages
@@ -87,6 +88,8 @@ src/
     power-pages-webapi.ui.js
     regex-tester.js
     regex-tester.ui.js
+    text-diff.js
+    text-diff.ui.js
     url-codec.js
     url-codec.ui.js
   vendor/
