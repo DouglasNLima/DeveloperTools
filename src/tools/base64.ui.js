@@ -5,6 +5,7 @@ import {
   normaliseFileName,
   normaliseTextFileName
 } from './base64.js';
+import { bindFileDropZone } from './file-drop-zone.js';
 
 export function renderBase64ToFile(container) {
   container.innerHTML = `
@@ -137,7 +138,7 @@ export function renderFileToBase64(container) {
     <form class="tool-board">
       <div id="dropZone" class="drop-zone">
         <label for="fileInput" class="drop-zone-label">
-          <span>Drop a file here or click to select</span>
+          <span>Drop a file here or browse</span>
           <small>Any file type is accepted. Very large files may take longer to encode in the browser.</small>
         </label>
         <input id="fileInput" type="file" />
@@ -211,6 +212,7 @@ export function renderFileToBase64(container) {
 
   let currentBase64TextUrl = null;
   let currentFileResult = null;
+  let unbindDropZone = null;
 
   function revokeBase64TextUrl() {
     if (currentBase64TextUrl) {
@@ -354,28 +356,8 @@ export function renderFileToBase64(container) {
     handleSelectedFile(event.target.files && event.target.files[0]);
   });
 
-  dropZone.addEventListener('dragenter', event => {
-    event.preventDefault();
-    dropZone.classList.add('drag-over');
-  });
-
-  dropZone.addEventListener('dragover', event => {
-    event.preventDefault();
-    dropZone.classList.add('drag-over');
-  });
-
-  dropZone.addEventListener('dragleave', event => {
-    if (!dropZone.contains(event.relatedTarget)) {
-      dropZone.classList.remove('drag-over');
-    }
-  });
-
-  dropZone.addEventListener('drop', event => {
-    event.preventDefault();
-    dropZone.classList.remove('drag-over');
-
-    const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0];
-    handleSelectedFile(file);
+  unbindDropZone = bindFileDropZone(dropZone, {
+    onFile: handleSelectedFile
   });
 
   base64OutputMode.addEventListener('change', updateBase64Output);
@@ -394,5 +376,8 @@ export function renderFileToBase64(container) {
     setStatus('Ready.', null);
   });
 
-  return () => revokeBase64TextUrl();
+  return () => {
+    unbindDropZone?.();
+    revokeBase64TextUrl();
+  };
 }

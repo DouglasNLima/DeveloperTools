@@ -4,6 +4,9 @@ import {
   buildDelimitedOutputFileName,
   processDelimitedData
 } from './csv-tsv-helper.js';
+import { bindFileDropZone } from './file-drop-zone.js';
+
+const CSV_FILE_ACCEPT = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
 
 export function renderCsvTsvHelper(container) {
   container.innerHTML = `
@@ -34,9 +37,12 @@ export function renderCsvTsvHelper(container) {
           <input id="csvFirstRowHeaders" type="checkbox" checked />
           <span>First row contains headers</span>
         </label>
-        <div class="field-stack">
-          <label for="csvFileInput">Local file</label>
-          <input id="csvFileInput" type="file" accept=".csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain" />
+        <div id="csvFileDropZone" class="drop-zone">
+          <label for="csvFileInput" class="drop-zone-label">
+            <span>Drop a CSV, TSV or text file here or browse</span>
+            <small>The selected file is read locally into the input area.</small>
+          </label>
+          <input id="csvFileInput" type="file" accept="${CSV_FILE_ACCEPT}" />
         </div>
       </div>
 
@@ -118,6 +124,7 @@ export function renderCsvTsvHelper(container) {
 
   let currentObjectUrl = null;
   let currentSourceName = '';
+  let unbindDropZone = null;
 
   function revokeObjectUrl() {
     if (currentObjectUrl) {
@@ -243,6 +250,11 @@ export function renderCsvTsvHelper(container) {
   processButton.addEventListener('click', handleProcess);
   copyButton.addEventListener('click', copyOutput);
   fileInput.addEventListener('change', event => readSelectedFile(event.target.files && event.target.files[0]));
+  unbindDropZone = bindFileDropZone(container.querySelector('#csvFileDropZone'), {
+    accept: CSV_FILE_ACCEPT,
+    onFile: readSelectedFile,
+    onReject: () => setStatus('Choose a CSV, TSV or text file.', 'error')
+  });
 
   clearButton.addEventListener('click', () => {
     delimiter.value = 'auto';
@@ -259,7 +271,10 @@ export function renderCsvTsvHelper(container) {
     input.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    unbindDropZone?.();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(message, result) {

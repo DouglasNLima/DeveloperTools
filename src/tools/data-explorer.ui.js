@@ -3,6 +3,9 @@ import {
   DATA_EXPLORER_INPUT_FORMATS,
   processDataExplorer
 } from './data-explorer.js';
+import { bindFileDropZone } from './file-drop-zone.js';
+
+const DATA_EXPLORER_FILE_ACCEPT = '.json,.xml,.txt,application/json,text/xml,application/xml,text/plain';
 
 export function renderDataExplorer(container) {
   container.innerHTML = `
@@ -20,9 +23,12 @@ export function renderDataExplorer(container) {
           <input id="dataExplorerRecordPath" type="text" spellcheck="false" placeholder="items or data.records" />
         </div>
 
-        <div class="field-stack">
-          <label for="dataExplorerFileInput">Local file</label>
-          <input id="dataExplorerFileInput" type="file" accept=".json,.xml,application/json,text/xml,application/xml,text/plain" />
+        <div id="dataExplorerFileDropZone" class="drop-zone">
+          <label for="dataExplorerFileInput" class="drop-zone-label">
+            <span>Drop a JSON, XML or text file here or browse</span>
+            <small>The selected file is read locally into the input area.</small>
+          </label>
+          <input id="dataExplorerFileInput" type="file" accept="${DATA_EXPLORER_FILE_ACCEPT}" />
         </div>
       </div>
 
@@ -155,6 +161,7 @@ export function renderDataExplorer(container) {
 
   let currentObjectUrl = null;
   let currentSourceName = '';
+  let unbindDropZone = null;
 
   function revokeObjectUrl() {
     if (currentObjectUrl) {
@@ -394,6 +401,11 @@ export function renderDataExplorer(container) {
   exploreButton.addEventListener('click', handleExplore);
   copyButton.addEventListener('click', copyOutput);
   fileInput.addEventListener('change', event => readSelectedFile(event.target.files && event.target.files[0]));
+  unbindDropZone = bindFileDropZone(container.querySelector('#dataExplorerFileDropZone'), {
+    accept: DATA_EXPLORER_FILE_ACCEPT,
+    onFile: readSelectedFile,
+    onReject: () => setStatus('Choose a JSON, XML or text file.', 'error')
+  });
   inputFormat.addEventListener('change', syncQueryControls);
 
   clearButton.addEventListener('click', () => {
@@ -419,7 +431,10 @@ export function renderDataExplorer(container) {
 
   addFilterRow();
 
-  return () => revokeObjectUrl();
+  return () => {
+    unbindDropZone?.();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(result) {

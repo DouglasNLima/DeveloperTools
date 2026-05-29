@@ -7,20 +7,27 @@ import {
   filterPdfFields,
   isPdfFieldAnnotation
 } from './pdf-template-fields.js';
+import { bindFileDropZone } from './file-drop-zone.js';
 
 const PDFJS_MODULE_URL = new URL('../vendor/pdfjs/pdf.min.mjs', import.meta.url).href;
 const PDFJS_WORKER_URL = new URL('../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
 const ZOOM_STEPS = [0.75, 1, 1.25, 1.5, 2, 2.5];
+const PDF_FILE_ACCEPT = '.pdf,application/pdf';
 
 let pdfJsPromise = null;
 
 export function renderPdfTemplateFieldExplorer(container) {
   container.innerHTML = `
     <form class="tool-board pdf-template-tool" data-tool-form>
-      <div class="pdf-template-toolbar">
-        <input id="pdfTemplateFileInput" class="drop-zone-input" type="file" accept="application/pdf" />
-        <label class="button primary" for="pdfTemplateFileInput">Open PDF</label>
+      <div id="pdfTemplateDropZone" class="drop-zone pdf-template-drop-zone">
+        <label for="pdfTemplateFileInput" class="drop-zone-label">
+          <span>Drop a PDF here or browse</span>
+          <small>Only local PDF files are read. Fillable fields are detected in this browser.</small>
+        </label>
+        <input id="pdfTemplateFileInput" type="file" accept="${PDF_FILE_ACCEPT}" />
+      </div>
 
+      <div class="pdf-template-toolbar">
         <div class="field-stack pdf-template-zoom">
           <label for="pdfTemplateZoom">Zoom</label>
           <select id="pdfTemplateZoom" disabled>
@@ -120,6 +127,7 @@ export function renderPdfTemplateFieldExplorer(container) {
   `;
 
   const fileInput = container.querySelector('#pdfTemplateFileInput');
+  const dropZone = container.querySelector('#pdfTemplateDropZone');
   const zoom = container.querySelector('#pdfTemplateZoom');
   const copyNamesButton = container.querySelector('#copyPdfFieldNamesButton');
   const exportJsonButton = container.querySelector('#exportPdfFieldsJsonButton');
@@ -150,6 +158,7 @@ export function renderPdfTemplateFieldExplorer(container) {
     renderVersion: 0,
     objectUrls: []
   };
+  let unbindDropZone = null;
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -287,7 +296,7 @@ export function renderPdfTemplateFieldExplorer(container) {
       return;
     }
 
-    if (file.type && file.type !== 'application/pdf') {
+    if (!isPdfFile(file)) {
       setStatus('Choose a PDF file.', 'error');
       return;
     }
@@ -433,6 +442,11 @@ export function renderPdfTemplateFieldExplorer(container) {
   }
 
   fileInput.addEventListener('change', () => handleFile(fileInput.files?.[0]));
+  unbindDropZone = bindFileDropZone(dropZone, {
+    accept: PDF_FILE_ACCEPT,
+    onFile: handleFile,
+    onReject: () => setStatus('Choose a PDF file.', 'error')
+  });
   zoom.addEventListener('change', () => {
     if (state.pdf) {
       renderPdf().then(() => {
@@ -492,9 +506,17 @@ export function renderPdfTemplateFieldExplorer(container) {
   });
 
   return () => {
+    unbindDropZone?.();
     state.renderVersion += 1;
     state.objectUrls.forEach(url => URL.revokeObjectURL(url));
   };
+}
+
+function isPdfFile(file) {
+  const fileName = String(file?.name ?? '').toLocaleLowerCase('en-GB');
+  const fileType = String(file?.type ?? '').toLocaleLowerCase('en-GB');
+
+  return fileType === 'application/pdf' || fileName.endsWith('.pdf');
 }
 
 async function loadPdfJs() {

@@ -326,6 +326,61 @@ test('generates file hashes and reports warnings or validation errors', async ({
   await expect(page.getByRole('status')).toContainText('Enter text before generating a hash.');
 });
 
+test('accepts dropped files in every file-capable tool', async ({ page }) => {
+  await page.goto('/#file-to-base64');
+  await dropFile(page, '#dropZone', {
+    name: 'hello.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('hello')
+  });
+
+  await expect(page.locator('#sourceFileName')).toHaveText('hello.txt');
+  await expect(page.locator('#base64Output')).toHaveValue('aGVsbG8=');
+
+  await page.goto('/#hash-checksums');
+  await page.getByLabel('Input type').selectOption('file');
+  await dropFile(page, '#hashFilePanel', {
+    name: 'hello.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('hello')
+  });
+  await page.getByRole('button', { name: 'Generate hash', exact: true }).click();
+
+  await expect(page.locator('#hashInputDetail')).toHaveText('hello.txt');
+  await expect(page.locator('#hashOutput')).toHaveValue(/2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824/);
+
+  await page.goto('/#csv-tsv-helper');
+  await dropFile(page, '#csvFileDropZone', {
+    name: 'contacts.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('name,email\nAda,ada@example.test')
+  });
+
+  await expect(page.getByRole('status')).toContainText('Loaded contacts.csv.');
+  await expect(page.getByLabel('CSV/TSV input')).toHaveValue(/Ada,ada@example.test/);
+
+  await page.goto('/#data-explorer');
+  await dropFile(page, '#dataExplorerFileDropZone', {
+    name: 'records.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"items":[{"name":"Ada"}]}')
+  });
+
+  await expect(page.getByRole('status')).toContainText('Loaded records.json.');
+  await expect(page.getByLabel('Input format')).toHaveValue('json');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"name":"Ada"/);
+
+  await page.goto('/#pdf-template-field-explorer');
+  await dropFile(page, '#pdfTemplateDropZone', {
+    name: 'template.pdf',
+    mimeType: 'application/pdf',
+    buffer: await createFillablePdf()
+  });
+
+  await expect(page.getByRole('status')).toContainText('PDF loaded successfully.');
+  await expect(page.locator('#pdfFieldCount')).toHaveText('2');
+});
+
 test('parses and builds query strings', async ({ page }) => {
   await page.goto('/#url-codec');
 
@@ -1446,6 +1501,24 @@ async function createFillablePdf() {
 
   form.updateFieldAppearances(font);
   return Buffer.from(await pdfDoc.save());
+}
+
+async function dropFile(page, selector, file) {
+  const dataTransfer = await page.evaluateHandle(({ name, mimeType, bytes }) => {
+    const transfer = new DataTransfer();
+    const droppedFile = new File([new Uint8Array(bytes)], name, { type: mimeType });
+    transfer.items.add(droppedFile);
+    return transfer;
+  }, {
+    name: file.name,
+    mimeType: file.mimeType,
+    bytes: [...file.buffer]
+  });
+
+  await page.dispatchEvent(selector, 'dragenter', { dataTransfer });
+  await page.dispatchEvent(selector, 'dragover', { dataTransfer });
+  await page.dispatchEvent(selector, 'drop', { dataTransfer });
+  await dataTransfer.dispose();
 }
 
 function makeJwt(payload, header = { alg: 'HS256', typ: 'JWT' }, signature = 'signature') {

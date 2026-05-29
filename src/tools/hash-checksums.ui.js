@@ -3,6 +3,7 @@ import {
   buildHashChecksum,
   buildHashOutputFileName
 } from './hash-checksums.js';
+import { bindFileDropZone } from './file-drop-zone.js';
 
 export function renderHashChecksums(container) {
   container.innerHTML = `
@@ -41,7 +42,7 @@ export function renderHashChecksums(container) {
 
       <div id="hashFilePanel" class="drop-zone" hidden>
         <label for="hashFileInput" class="drop-zone-label">
-          <span>Drop a file here or click to select</span>
+          <span>Drop a file here or browse</span>
           <small>The selected file is read locally in your browser.</small>
         </label>
         <input id="hashFileInput" type="file" />
@@ -120,6 +121,7 @@ export function renderHashChecksums(container) {
 
   let selectedFile = null;
   let currentObjectUrl = null;
+  let unbindDropZone = null;
 
   function revokeObjectUrl() {
     if (currentObjectUrl) {
@@ -251,26 +253,8 @@ export function renderHashChecksums(container) {
     setSelectedFile(event.target.files && event.target.files[0]);
   });
 
-  filePanel.addEventListener('dragenter', event => {
-    event.preventDefault();
-    filePanel.classList.add('drag-over');
-  });
-
-  filePanel.addEventListener('dragover', event => {
-    event.preventDefault();
-    filePanel.classList.add('drag-over');
-  });
-
-  filePanel.addEventListener('dragleave', event => {
-    if (!filePanel.contains(event.relatedTarget)) {
-      filePanel.classList.remove('drag-over');
-    }
-  });
-
-  filePanel.addEventListener('drop', event => {
-    event.preventDefault();
-    filePanel.classList.remove('drag-over');
-    setSelectedFile(event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]);
+  unbindDropZone = bindFileDropZone(filePanel, {
+    onFile: setSelectedFile
   });
 
   generateButton.addEventListener('click', handleGenerate);
@@ -291,7 +275,10 @@ export function renderHashChecksums(container) {
 
   updateInputMode();
 
-  return () => revokeObjectUrl();
+  return () => {
+    unbindDropZone?.();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(message, result) {

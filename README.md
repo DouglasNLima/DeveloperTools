@@ -130,6 +130,7 @@ src/
     curl-fetch-converter.ui.js
     data-explorer.js
     data-explorer.ui.js
+    file-drop-zone.js
     uuid-generator.js
     uuid-generator.ui.js
     url-codec.js
