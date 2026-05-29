@@ -348,7 +348,8 @@ test('finds text diff and honours comparison options', async ({ page }) => {
 
   await page.getByLabel('Search tools').fill('Text utilities');
   await expect(page.locator('[data-tool-id="text-diff"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="case-converter"]')).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toHaveAttribute('aria-disabled', 'true');
   await page.locator('[data-tool-id="text-diff"]').click();
 
   await page.getByLabel('Output format').selectOption('json');
@@ -366,6 +367,53 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('#textDiffOutput')).toHaveValue(/"equal": true/);
   await expect(page.locator('#downloadTextDiffButton')).toHaveAttribute('download', 'text-diff.json');
   await expect(page.getByRole('status')).toContainText('Whitespace differences were ignored.');
+});
+
+test('converts text into common code casing styles', async ({ page }) => {
+  await page.goto('/#case-converter');
+
+  await expect(page.getByRole('heading', { name: 'Case converter' })).toBeVisible();
+  await page.getByLabel('Text input').fill('customer account ID');
+  await page.getByRole('button', { name: 'Convert case', exact: true }).click();
+
+  await expect(page.locator('#caseStatusDetail')).toHaveText('Converted');
+  await expect(page.locator('#caseModeDetail')).toHaveText('Whole input');
+  await expect(page.locator('#caseLinesDetail')).toHaveText('1');
+  await expect(page.locator('#caseWordsDetail')).toHaveText('3');
+  await expect(page.locator('#caseOutputTypeDetail')).toHaveText('All common cases');
+  await expect(page.locator('#caseWarningsDetail')).toHaveText('None');
+  await expect(page.locator('.case-result-card')).toHaveCount(9);
+  await expect(page.locator('#casePreview')).toContainText('customerAccountId');
+  await expect(page.locator('#casePreview')).toContainText('CUSTOMER_ACCOUNT_ID');
+  await expect(page.locator('#caseOutput')).toHaveValue(/camelCase: `customerAccountId`/);
+  await expect(page.locator('#downloadCaseButton')).toHaveAttribute('download', 'case-converter.md');
+  await expect(page.getByRole('status')).toContainText('Case conversion completed successfully.');
+});
+
+test('finds case converter and converts each line separately', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('Text utilities');
+  await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toHaveAttribute('aria-disabled', 'true');
+  await page.locator('[data-tool-id="case-converter"]').click();
+
+  await page.getByLabel('Output format').selectOption('kebab');
+  await page.getByLabel('Convert each line separately').check();
+  await page.getByLabel('Text input').fill('First name\n\nLast name');
+  await page.getByRole('button', { name: 'Convert case', exact: true }).click();
+
+  await expect(page.locator('#caseModeDetail')).toHaveText('Each line');
+  await expect(page.locator('#caseOutputTypeDetail')).toHaveText('kebab-case');
+  await expect(page.locator('#caseWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('#caseOutput')).toHaveValue('first-name\n\nlast-name');
+  await expect(page.locator('#downloadCaseButton')).toHaveAttribute('download', 'case-converter.txt');
+  await expect(page.getByRole('status')).toContainText('Empty lines were preserved.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Convert case', exact: true }).click();
+  await expect(page.locator('#caseStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Enter text to convert.');
 });
 
 test('loads a fillable PDF template and exports field mappings', async ({ page }) => {

@@ -611,6 +611,39 @@ label.button.secondary:hover {
   background: rgba(2, 122, 72, 0.12);
 }
 
+.case-preview {
+  background: #fbfdfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  min-height: 150px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.case-result-card {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.case-result-card span {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.case-result-card code {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .drop-zone {
   background: #fbfdfe;
   border: 1px dashed var(--border-strong);

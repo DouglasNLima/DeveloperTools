@@ -6,6 +6,7 @@ import {
   matchesToolSearch
 } from './tools/catalog.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
+import { renderCaseConverter } from './tools/case-converter.ui.js';
 import { renderCsvTsvHelper } from './tools/csv-tsv-helper.ui.js';
 import { renderHashChecksums } from './tools/hash-checksums.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
@@ -22,6 +23,7 @@ import { renderUrlCodec } from './tools/url-codec.ui.js';
 
 const renderers = {
   'base64-to-file': renderBase64ToFile,
+  'case-converter': renderCaseConverter,
   'csv-tsv-helper': renderCsvTsvHelper,
   'file-to-base64': renderFileToBase64,
   'hash-checksums': renderHashChecksums,

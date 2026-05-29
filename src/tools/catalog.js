@@ -130,8 +130,9 @@ export const TOOL_CATALOGUE = [
     id: 'case-converter',
     title: 'Case converter',
     category: 'Text utilities',
-    status: 'planned',
-    summary: 'Convert text between common casing styles used in code.'
+    status: 'available',
+    summary: 'Convert text between common casing styles used in code.',
+    renderer: 'case-converter'
   },
   {
     id: 'uuid-generator',

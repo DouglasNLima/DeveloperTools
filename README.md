@@ -15,6 +15,7 @@ The current foundation includes:
 - JWT Decoder & Claims Inspector
 - Regex Tester
 - Text diff
+- Case converter
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages
@@ -90,6 +91,8 @@ src/
     regex-tester.ui.js
     text-diff.js
     text-diff.ui.js
+    case-converter.js
+    case-converter.ui.js
     url-codec.js
     url-codec.ui.js
   vendor/
