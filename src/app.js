@@ -110,9 +110,14 @@ function applyTheme(theme, source = selectedTheme ? 'manual' : 'system') {
 function updateThemeToggle(theme) {
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
   const label = `Use ${nextTheme} theme`;
+  const text = themeToggle.querySelector('.sidebar-action-text');
 
   themeToggle.setAttribute('aria-label', label);
-  themeToggle.querySelector('.sidebar-action-text').textContent = `${capitalise(nextTheme)} theme`;
+  themeToggle.title = label;
+
+  if (text) {
+    text.textContent = `${capitalise(nextTheme)} theme`;
+  }
 }
 
 function toggleTheme() {
@@ -134,10 +139,22 @@ function applyInitialSidebarState() {
 }
 
 function setSidebarCollapsed(collapsed, persist = true) {
+  const label = collapsed ? 'Expand tool menu' : 'Collapse tool menu';
+  const text = sidebarCollapse.querySelector('.sidebar-action-text');
+  const icon = sidebarCollapse.querySelector('.sidebar-action-icon');
+
   document.documentElement.classList.toggle('nav-collapsed', collapsed);
   sidebarCollapse.setAttribute('aria-pressed', String(collapsed));
-  sidebarCollapse.setAttribute('aria-label', collapsed ? 'Expand tool menu' : 'Collapse tool menu');
-  sidebarCollapse.querySelector('.sidebar-action-text').textContent = collapsed ? 'Expand' : 'Collapse';
+  sidebarCollapse.setAttribute('aria-label', label);
+  sidebarCollapse.title = label;
+
+  if (text) {
+    text.textContent = collapsed ? 'Expand' : 'Collapse';
+  }
+
+  if (icon) {
+    icon.textContent = collapsed ? '>' : '<';
+  }
 
   if (persist) {
     writeStorage(SIDEBAR_STORAGE_KEY, String(collapsed));

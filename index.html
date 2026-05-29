@@ -29,13 +29,9 @@
       </a>
 
       <div class="topbar-actions" aria-label="Display options">
-        <button id="themeToggle" class="sidebar-action topbar-action" type="button" aria-label="Use dark theme">
-          <span class="sidebar-action-icon" aria-hidden="true">Aa</span>
-          <span class="sidebar-action-text">Dark theme</span>
-        </button>
-        <button id="sidebarCollapse" class="sidebar-action topbar-action sidebar-collapse-button" type="button" aria-label="Collapse tool menu" aria-pressed="false">
-          <span class="sidebar-action-icon" aria-hidden="true">&lt;</span>
-          <span class="sidebar-action-text">Collapse</span>
+        <button id="themeToggle" class="icon-button topbar-action theme-toggle-button" type="button" aria-label="Use dark theme" title="Use dark theme">
+          <span class="theme-toggle-icon" aria-hidden="true">Aa</span>
+          <span class="sidebar-action-text visually-hidden">Dark theme</span>
         </button>
       </div>
     </header>
@@ -44,13 +40,19 @@
       <aside id="toolSidebar" class="sidebar" aria-label="Tool menu">
         <div class="sidebar-top">
           <div class="brand">
-            <a class="sidebar-brand-link brand-home-link" href="./">
-              <span class="brand-mark" aria-hidden="true">DT</span>
-              <span>
-                <span class="app-kicker">Local suite</span>
-                <strong>Developer Tools</strong>
-              </span>
-            </a>
+            <div class="sidebar-title-row">
+              <a class="sidebar-brand-link brand-home-link" href="./">
+                <span class="brand-mark" aria-hidden="true">DT</span>
+                <span>
+                  <span class="app-kicker">Local suite</span>
+                  <strong>Developer Tools</strong>
+                </span>
+              </a>
+              <button id="sidebarCollapse" class="sidebar-action sidebar-collapse-button" type="button" aria-label="Collapse tool menu" aria-pressed="false" title="Collapse tool menu">
+                <span class="sidebar-action-icon" aria-hidden="true">&lt;</span>
+                <span class="sidebar-action-text visually-hidden">Collapse</span>
+              </button>
+            </div>
             <p>Fast utilities for technical work, running entirely in your browser.</p>
           </div>
         </div>

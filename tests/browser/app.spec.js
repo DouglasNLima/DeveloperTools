@@ -19,6 +19,10 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('[data-home-tool-id="json-formatter"]')).toBeVisible();
+  expect(await page.locator('#activeToolStatus').evaluate(element => getComputedStyle(element).color))
+    .toMatch(/rgb\((2, 122, 72|101, 217, 159)\)/);
+  expect(await page.locator('[data-home-tool-id="json-formatter"] .home-tool-status').evaluate(element => getComputedStyle(element).color))
+    .toMatch(/rgb\((2, 122, 72|101, 217, 159)\)/);
 
   await page.locator('[data-home-tool-id="json-formatter"]').click();
 
@@ -88,11 +92,26 @@ test('returns to home from the Developer Tools title link', async ({ page }) => 
 test('collapses the desktop tool menu and persists compact navigation', async ({ page }) => {
   await page.goto('/#json-formatter');
 
+  const sidebar = page.locator('#toolSidebar');
+  const collapseButton = sidebar.getByRole('button', { name: 'Collapse tool menu' });
+
   await expect(page.locator('html')).not.toHaveClass(/nav-collapsed/);
-  await page.getByRole('button', { name: 'Collapse tool menu' }).click();
+  await expect(collapseButton).toBeVisible();
+  await expect(collapseButton).toHaveAttribute('title', 'Collapse tool menu');
+  await expect(page.locator('.topbar-actions').getByRole('button', { name: /tool menu/i })).toHaveCount(0);
+  await collapseButton.click();
 
   await expect(page.locator('html')).toHaveClass(/nav-collapsed/);
-  await expect(page.getByRole('button', { name: 'Expand tool menu' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sidebar.getByRole('button', { name: 'Expand tool menu' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sidebar.getByRole('button', { name: 'Expand tool menu' })).toHaveAttribute('title', 'Expand tool menu');
+  await expect(page.locator('#toolSidebar .search-field')).toBeHidden();
+  await expect(page.locator('[data-tool-id="json-formatter"] .tool-item-title')).toBeHidden();
+  await expect(page.locator('[data-tool-id="json-formatter"] .tool-item-summary')).toBeHidden();
+  await expect(page.locator('[data-tool-id="json-formatter"] .tool-item-status')).toBeHidden();
+
+  const compactItemBox = await page.locator('[data-tool-id="json-formatter"]').boundingBox();
+  expect(compactItemBox).not.toBeNull();
+  expect(Math.abs(compactItemBox.width - compactItemBox.height)).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => window.localStorage.getItem('developer-tools-sidebar-collapsed'))).toBe('true');
 
   await page.reload();
@@ -111,6 +130,18 @@ test('uses the system theme until the theme toggle stores a manual choice', asyn
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await expect(page.locator('html')).toHaveAttribute('data-theme-source', 'system');
 
+  const themeButton = page.locator('#themeToggle');
+  await expect(themeButton).toHaveAttribute('aria-label', 'Use light theme');
+  await expect(themeButton).toHaveAttribute('title', 'Use light theme');
+  await expect(themeButton).toHaveClass(/theme-toggle-button/);
+  await expect(themeButton.locator('.theme-toggle-icon')).toBeVisible();
+  await expect(themeButton.locator('.sidebar-action-text')).toHaveClass(/visually-hidden/);
+
+  const themeButtonBox = await themeButton.boundingBox();
+  expect(themeButtonBox).not.toBeNull();
+  expect(themeButtonBox.width).toBeLessThanOrEqual(48);
+  expect(themeButtonBox.height).toBeLessThanOrEqual(48);
+
   await page.getByRole('button', { name: 'Use light theme' }).click();
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -121,6 +152,7 @@ test('uses the system theme until the theme toggle stores a manual choice', asyn
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Use dark theme' })).toBeVisible();
+  await expect(page.locator('#themeToggle')).toHaveAttribute('title', 'Use dark theme');
 });
 
 test('exposes installable web app manifest metadata and local icons', async ({ page, request }) => {

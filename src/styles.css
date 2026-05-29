@@ -23,8 +23,10 @@
   --amber-soft: #fff7ed;
   --danger: #dc2626;
   --danger-soft: #fef2f2;
-  --success: #16a34a;
+  --success: #027a48;
   --success-soft: #ecfdf3;
+  --success-border: rgba(2, 122, 72, 0.24);
+  --success-highlight: rgba(2, 122, 72, 0.14);
   --focus: 0 0 0 3px rgba(255, 136, 62, 0.18);
   --shadow: 0 8px 24px rgba(22, 28, 39, 0.1);
   --panel-shadow: 0 8px 24px rgba(22, 28, 39, 0.1);
@@ -78,8 +80,10 @@
   --amber-soft: rgba(251, 191, 36, 0.12);
   --danger: #f87171;
   --danger-soft: rgba(248, 113, 113, 0.12);
-  --success: #4ade80;
-  --success-soft: rgba(74, 222, 128, 0.12);
+  --success: #65d99f;
+  --success-soft: #103522;
+  --success-border: rgba(101, 217, 159, 0.28);
+  --success-highlight: rgba(101, 217, 159, 0.16);
   --focus: 0 0 0 3px rgba(255, 136, 62, 0.2);
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
   --panel-shadow: 0 10px 30px rgba(0, 0, 0, 0.24);
@@ -176,6 +180,18 @@ a.button[hidden],
   display: none !important;
 }
 
+.visually-hidden {
+  border: 0 !important;
+  clip: rect(0, 0, 0, 0) !important;
+  height: 1px !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  padding: 0 !important;
+  position: absolute !important;
+  white-space: nowrap !important;
+  width: 1px !important;
+}
+
 .app-shell {
   background: var(--page);
   color: var(--text);
@@ -266,6 +282,22 @@ a.button[hidden],
   gap: 0.35rem;
 }
 
+.theme-toggle-button {
+  color: var(--text);
+  flex: 0 0 2.2rem;
+  height: 2.2rem;
+  min-height: 2.2rem;
+  min-width: 2.2rem;
+  width: 2.2rem;
+}
+
+.theme-toggle-icon {
+  color: var(--text-strong-soft);
+  font-size: 0.76rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .workbench-shell {
   display: grid;
   gap: 0.5rem;
@@ -338,6 +370,18 @@ a.button[hidden],
   min-width: 0;
 }
 
+.sidebar-title-row {
+  align-items: center;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.sidebar-title-row .sidebar-brand-link {
+  flex: 1 1 auto;
+}
+
 .brand p {
   color: var(--sidebar-text-soft);
   font-size: 0.82rem;
@@ -380,6 +424,16 @@ a.button[hidden],
   justify-content: flex-start;
   min-height: 2rem;
   padding: 0.38rem 0.55rem;
+}
+
+.sidebar-collapse-button {
+  flex: 0 0 2rem;
+  height: 2rem;
+  justify-content: center;
+  min-height: 2rem;
+  min-width: 2rem;
+  padding: 0;
+  width: 2rem;
 }
 
 .sidebar-action:hover,
@@ -535,10 +589,10 @@ textarea::selection {
 }
 
 .tool-item-status {
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-border);
+  background: var(--success-soft);
+  border: 1px solid var(--success-border);
   border-radius: var(--radius-pill);
-  color: var(--accent);
+  color: var(--success);
   font-size: 0.68rem;
   font-weight: 800;
   justify-self: start;
@@ -558,13 +612,38 @@ textarea::selection {
 }
 
 .nav-collapsed .sidebar {
-  gap: 0.55rem;
+  align-items: center;
+  gap: 0.62rem;
   overflow-x: hidden;
+  scrollbar-width: none;
   padding: 0.5rem;
 }
 
-.nav-collapsed .sidebar .brand {
+.nav-collapsed .sidebar::-webkit-scrollbar {
+  height: 0;
+  width: 0;
+}
+
+.nav-collapsed .sidebar .sidebar-top,
+.nav-collapsed .sidebar .brand,
+.nav-collapsed .sidebar .tool-nav,
+.nav-collapsed .sidebar .tool-group,
+.nav-collapsed .sidebar .tool-list {
+  width: 100%;
+}
+
+.nav-collapsed .sidebar .brand,
+.nav-collapsed .sidebar .sidebar-title-row {
   justify-items: center;
+}
+
+.nav-collapsed .sidebar .sidebar-title-row {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.nav-collapsed .sidebar .sidebar-brand-link {
+  justify-content: center;
 }
 
 .nav-collapsed .sidebar .brand p,
@@ -583,9 +662,21 @@ textarea::selection {
   width: 2rem;
 }
 
+.nav-collapsed .sidebar .sidebar-collapse-button,
 .nav-collapsed .sidebar .tool-nav,
 .nav-collapsed .sidebar .tool-list {
   justify-items: center;
+}
+
+.nav-collapsed .sidebar .sidebar-collapse-button {
+  display: inline-grid;
+  flex-basis: 2rem;
+  place-items: center;
+}
+
+.nav-collapsed .sidebar .tool-nav,
+.nav-collapsed .sidebar .tool-list {
+  gap: 0.34rem;
 }
 
 .nav-collapsed .sidebar .tool-item {
@@ -596,6 +687,12 @@ textarea::selection {
   min-height: 2rem;
   padding: 0;
   width: 2rem;
+}
+
+.nav-collapsed .sidebar .tool-item.available:hover,
+.nav-collapsed .sidebar .tool-item[aria-current="page"] {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
 }
 
 .nav-collapsed .sidebar .tool-item::before {
@@ -634,7 +731,7 @@ textarea::selection {
 
 .status-pill {
   background: var(--success-soft);
-  border: 1px solid rgba(22, 163, 74, 0.24);
+  border: 1px solid var(--success-border);
   border-radius: var(--radius-pill);
   color: var(--success);
   font-size: 0.72rem;
@@ -756,7 +853,7 @@ textarea::selection {
 .home-tool-status {
   align-self: end;
   background: var(--success-soft);
-  border: 1px solid rgba(22, 163, 74, 0.24);
+  border: 1px solid var(--success-border);
   border-radius: var(--radius-pill);
   color: var(--success);
   font-size: 0.7rem;
@@ -911,7 +1008,7 @@ label.button.secondary:hover {
 
 .status-message.success {
   background: var(--success-soft);
-  border-color: rgba(22, 163, 74, 0.28);
+  border-color: var(--success-border);
   color: var(--success);
 }
 
@@ -1134,7 +1231,7 @@ label.button.secondary:hover {
 }
 
 .text-diff-row ins {
-  background: rgba(22, 163, 74, 0.14);
+  background: var(--success-highlight);
 }
 
 .case-preview,
@@ -1438,7 +1535,7 @@ label.button.secondary:hover {
   width: 2rem;
 }
 
-.icon-button span {
+.nav-toggle-button span {
   background: var(--text);
   border-radius: var(--radius-pill);
   display: block;
@@ -1506,13 +1603,29 @@ label.button.secondary:hover {
   }
 
   .nav-collapsed .sidebar {
+    align-items: stretch;
     gap: 0.7rem;
     overflow-y: auto;
     padding: 0.7rem;
+    scrollbar-width: auto;
+  }
+
+  .nav-collapsed .sidebar::-webkit-scrollbar {
+    height: initial;
+    width: initial;
   }
 
   .nav-collapsed .sidebar .brand {
     justify-items: stretch;
+  }
+
+  .nav-collapsed .sidebar .sidebar-title-row {
+    display: flex;
+    justify-items: stretch;
+  }
+
+  .nav-collapsed .sidebar .sidebar-brand-link {
+    justify-content: flex-start;
   }
 
   .nav-collapsed .sidebar .brand p,
