@@ -107,8 +107,9 @@ export const TOOL_CATALOGUE = [
     id: 'curl-fetch-converter',
     title: 'cURL/fetch converter',
     category: 'Web/API',
-    status: 'planned',
-    summary: 'Convert common cURL commands into fetch snippets and back.'
+    status: 'available',
+    summary: 'Convert common cURL commands into fetch snippets and back.',
+    renderer: 'curl-fetch-converter'
   },
   {
     id: 'regex-tester',

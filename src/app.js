@@ -7,6 +7,7 @@ import {
 } from './tools/catalog.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderCaseConverter } from './tools/case-converter.ui.js';
+import { renderCurlFetchConverter } from './tools/curl-fetch-converter.ui.js';
 import { renderCsvTsvHelper } from './tools/csv-tsv-helper.ui.js';
 import { renderHashChecksums } from './tools/hash-checksums.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
@@ -25,6 +26,7 @@ import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
 const renderers = {
   'base64-to-file': renderBase64ToFile,
   'case-converter': renderCaseConverter,
+  'curl-fetch-converter': renderCurlFetchConverter,
   'csv-tsv-helper': renderCsvTsvHelper,
   'file-to-base64': renderFileToBase64,
   'hash-checksums': renderHashChecksums,

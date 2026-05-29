@@ -541,6 +541,58 @@ test('reports JWT expiry and invalid token errors', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('JWT payload is not valid Base64URL.');
 });
 
+test('converts cURL requests to fetch snippets', async ({ page }) => {
+  await page.goto('/#curl-fetch-converter');
+
+  await expect(page.getByRole('heading', { name: 'cURL/fetch converter' })).toBeVisible();
+  await page.getByLabel('Request input').fill("curl -X POST https://api.example.test/items -H 'Content-Type: application/json' --data-raw '{\"name\":\"Contoso\"}'");
+  await page.getByRole('button', { name: 'Convert request', exact: true }).click();
+
+  await expect(page.locator('#curlFetchModeDetail')).toHaveText('cURL to fetch');
+  await expect(page.locator('#curlFetchMethodDetail')).toHaveText('POST');
+  await expect(page.locator('#curlFetchUrlDetail')).toHaveText('https://api.example.test/items');
+  await expect(page.locator('#curlFetchHeadersDetail')).toHaveText('1');
+  await expect(page.locator('#curlFetchBodyDetail')).toHaveText('Present');
+  await expect(page.locator('#curlFetchWarningsDetail')).toHaveText('None');
+  await expect(page.locator('#curlFetchOutputTypeDetail')).toHaveText('JavaScript fetch snippet');
+  await expect(page.locator('#curlFetchPreview')).toContainText('Content-Type: application/json');
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/await fetch/);
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/JSON\.stringify/);
+  await expect(page.locator('#downloadCurlFetchButton')).toHaveAttribute('download', 'request.fetch.js');
+  await expect(page.getByRole('status')).toContainText('Request converted successfully.');
+});
+
+test('converts fetch snippets to cURL and reports converter errors', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('curl');
+  await expect(page.locator('[data-tool-id="curl-fetch-converter"]')).toBeEnabled();
+  await page.locator('[data-tool-id="curl-fetch-converter"]').click();
+
+  await page.getByLabel('Conversion mode').selectOption('fetch-to-curl');
+  await page.getByLabel('Request input').fill([
+    'fetch("https://api.example.test/items", {',
+    '  method: "PATCH",',
+    '  headers: { "Content-Type": "application/json" },',
+    '  body: JSON.stringify({"name":"Updated"})',
+    '});'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Convert request', exact: true }).click();
+
+  await expect(page.locator('#curlFetchModeDetail')).toHaveText('fetch to cURL');
+  await expect(page.locator('#curlFetchMethodDetail')).toHaveText('PATCH');
+  await expect(page.locator('#curlFetchHeadersDetail')).toHaveText('1');
+  await expect(page.locator('#curlFetchOutputTypeDetail')).toHaveText('cURL command');
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/curl/);
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/-X 'PATCH'/);
+  await expect(page.locator('#downloadCurlFetchButton')).toHaveAttribute('download', 'request.curl.sh');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Convert request', exact: true }).click();
+  await expect(page.locator('#curlFetchModeDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Enter cURL or fetch input to convert.');
+});
+
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
 

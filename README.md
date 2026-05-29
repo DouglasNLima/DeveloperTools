@@ -13,6 +13,7 @@ The current foundation includes:
 - CSV/TSV helper
 - PDF Template Field Explorer
 - JWT Decoder & Claims Inspector
+- cURL/fetch converter
 - Regex Tester
 - Text diff
 - Case converter
@@ -94,6 +95,8 @@ src/
     text-diff.ui.js
     case-converter.js
     case-converter.ui.js
+    curl-fetch-converter.js
+    curl-fetch-converter.ui.js
     uuid-generator.js
     uuid-generator.ui.js
     url-codec.js

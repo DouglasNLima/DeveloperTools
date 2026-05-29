@@ -691,6 +691,39 @@ label.button.secondary:hover {
   overflow-wrap: anywhere;
 }
 
+.curl-fetch-preview {
+  background: #fbfdfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  min-height: 150px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.curl-fetch-card {
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.curl-fetch-card span {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.curl-fetch-card code {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 .drop-zone {
   background: #fbfdfe;
   border: 1px dashed var(--border-strong);
