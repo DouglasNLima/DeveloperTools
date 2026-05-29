@@ -275,6 +275,52 @@ test('loads a delimited file and reports header and row issues', async ({ page }
   await expect(page.locator('#downloadCsvButton')).toHaveAttribute('download', 'contacts.tsv');
 });
 
+test('runs regex matches with numbered and named groups', async ({ page }) => {
+  await page.goto('/#regex-tester');
+
+  await expect(page.getByRole('heading', { name: 'Regex Tester' })).toBeVisible();
+  await page.getByLabel('Pattern').fill('(?<name>[A-Z][a-z]+)\\s+(?<email>[^\\s]+@[^\\s]+)');
+  await page.getByLabel('Flags').fill('g');
+  await page.getByLabel('Test text').fill('Ada ada@example.test\nGrace grace@example.test');
+  await page.getByRole('button', { name: 'Run test', exact: true }).click();
+
+  await expect(page.locator('#regexStatusDetail')).toHaveText('Valid');
+  await expect(page.locator('#regexFlagsDetail')).toHaveText('g');
+  await expect(page.locator('#regexMatchCountDetail')).toHaveText('2');
+  await expect(page.locator('#regexGroupCountDetail')).toHaveText('4');
+  await expect(page.locator('#regexNamedGroupCountDetail')).toHaveText('4');
+  await expect(page.locator('#regexWarningsDetail')).toHaveText('None');
+  await expect(page.locator('.regex-highlight')).toHaveCount(2);
+  await expect(page.locator('#regexMatchList')).toContainText('Named: name: Ada');
+  await expect(page.locator('#regexOutput')).toHaveValue(/"matchCount": 2/);
+  await expect(page.locator('#regexOutput')).toHaveValue(/"name": "Ada"/);
+  await expect(page.locator('#downloadRegexButton')).toHaveAttribute('download', 'regex-report.json');
+  await expect(page.getByRole('status')).toContainText('Regex test completed successfully.');
+});
+
+test('reports regex warnings and invalid patterns', async ({ page }) => {
+  await page.goto('/#regex-tester');
+
+  await page.getByLabel('Pattern').fill('z+');
+  await page.getByLabel('Flags').fill('ggi');
+  await page.getByLabel('Output format').selectOption('markdown');
+  await page.getByLabel('Test text').fill('abc');
+  await page.getByRole('button', { name: 'Run test', exact: true }).click();
+
+  await expect(page.locator('#regexMatchCountDetail')).toHaveText('0');
+  await expect(page.locator('#regexWarningsDetail')).toHaveText('2 warnings');
+  await expect(page.locator('#regexOutputTypeDetail')).toHaveText('Markdown report');
+  await expect(page.locator('#regexOutput')).toHaveValue(/No matches found/);
+  await expect(page.locator('#downloadRegexButton')).toHaveAttribute('download', 'regex-report.md');
+  await expect(page.getByRole('status')).toContainText('Duplicate flags removed');
+
+  await page.getByLabel('Pattern').fill('(');
+  await page.getByRole('button', { name: 'Run test', exact: true }).click();
+
+  await expect(page.locator('#regexStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Invalid regular expression');
+});
+
 test('loads a fillable PDF template and exports field mappings', async ({ page }) => {
   await page.goto('/#pdf-template-field-explorer');
 

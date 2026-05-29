@@ -16,6 +16,7 @@ import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
 import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-settings.ui.js';
 import { renderPowerPagesTablePermissionsChecklist } from './tools/power-pages-table-permissions.ui.js';
 import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-webapi.ui.js';
+import { renderRegexTester } from './tools/regex-tester.ui.js';
 import { renderUrlCodec } from './tools/url-codec.ui.js';
 
 const renderers = {
@@ -31,6 +32,7 @@ const renderers = {
   'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator,
   'power-pages-site-settings': renderPowerPagesSiteSettingsHelper,
   'power-pages-table-permissions': renderPowerPagesTablePermissionsChecklist,
+  'regex-tester': renderRegexTester,
   'url-codec': renderUrlCodec
 };
 

@@ -13,6 +13,7 @@ The current foundation includes:
 - CSV/TSV helper
 - PDF Template Field Explorer
 - JWT Decoder & Claims Inspector
+- Regex Tester
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages
@@ -84,6 +85,8 @@ src/
     power-pages.ui.js
     power-pages-webapi.js
     power-pages-webapi.ui.js
+    regex-tester.js
+    regex-tester.ui.js
     url-codec.js
     url-codec.ui.js
   vendor/

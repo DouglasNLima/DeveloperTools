@@ -112,10 +112,11 @@ export const TOOL_CATALOGUE = [
   },
   {
     id: 'regex-tester',
-    title: 'Regex tester',
+    title: 'Regex Tester',
     category: 'Text utilities',
-    status: 'planned',
-    summary: 'Test expressions against sample text with match group feedback.'
+    status: 'available',
+    summary: 'Test regular expressions locally with matches, groups and highlighted text.',
+    renderer: 'regex-tester'
   },
   {
     id: 'text-diff',

@@ -53,6 +53,7 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) for the detailed mini-roa
 - Text diff with line-level changes.
 - Case converter for common code naming styles.
 - UUID generator and validator.
+- Status: Regex Tester implemented; text diff, case converter and UUID generator remain planned.
 
 ## Test Expectations
 
