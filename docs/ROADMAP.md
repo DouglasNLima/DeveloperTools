@@ -51,6 +51,12 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 
+## Expansion Track
+
+- Existing tools will be expanded with advanced modes, presets, review helpers and additional export options before many new standalone tools are added.
+- Expansion work is tracked in [EXPANSION-ROADMAP.md](./EXPANSION-ROADMAP.md).
+- Status: Dataverse OData Query Builder advanced query mode implemented.
+
 ## Phase 7: Text Utilities
 
 - Regex tester with match group feedback.

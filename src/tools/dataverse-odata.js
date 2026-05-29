@@ -5,17 +5,94 @@ export const DATAVERSE_ENDPOINT_MODES = [
   { value: 'power-pages', label: 'Power Pages Web API' }
 ];
 
+export const DATAVERSE_ENDPOINT_PRESETS = [
+  {
+    value: 'custom',
+    label: 'Custom endpoint',
+    endpointMode: 'dataverse',
+    entitySetName: '',
+    selectColumns: '',
+    filter: '',
+    orderBy: '',
+    expand: '',
+    top: '',
+    maxPageSize: '',
+    includeCount: false,
+    includeFormattedValues: false
+  },
+  {
+    value: 'dataverse-active-accounts',
+    label: 'Dataverse Web API: active accounts',
+    endpointMode: 'dataverse',
+    entitySetName: 'accounts',
+    selectColumns: 'name, accountnumber, primarycontactid',
+    filter: 'statecode eq 0',
+    orderBy: 'name asc',
+    expand: 'primarycontactid($select=fullname,emailaddress1)',
+    top: '50',
+    maxPageSize: '100',
+    includeCount: false,
+    includeFormattedValues: true
+  },
+  {
+    value: 'dataverse-recent-contacts',
+    label: 'Dataverse Web API: recent contacts',
+    endpointMode: 'dataverse',
+    entitySetName: 'contacts',
+    selectColumns: 'fullname, emailaddress1, parentcustomerid',
+    filter: 'statecode eq 0',
+    orderBy: 'modifiedon desc',
+    expand: 'parentcustomerid_account($select=name,accountnumber)',
+    top: '50',
+    maxPageSize: '100',
+    includeCount: false,
+    includeFormattedValues: true
+  },
+  {
+    value: 'power-pages-active-accounts',
+    label: 'Power Pages Web API: active accounts',
+    endpointMode: 'power-pages',
+    entitySetName: 'accounts',
+    selectColumns: 'name, accountnumber',
+    filter: 'statecode eq 0',
+    orderBy: 'name asc',
+    expand: '',
+    top: '50',
+    maxPageSize: '',
+    includeCount: false,
+    includeFormattedValues: false
+  },
+  {
+    value: 'power-pages-active-contacts',
+    label: 'Power Pages Web API: active contacts',
+    endpointMode: 'power-pages',
+    entitySetName: 'contacts',
+    selectColumns: 'fullname, emailaddress1',
+    filter: 'statecode eq 0',
+    orderBy: 'fullname asc',
+    expand: '',
+    top: '50',
+    maxPageSize: '',
+    includeCount: false,
+    includeFormattedValues: false
+  }
+];
+
 export function buildDataverseODataQuery(options = {}) {
-  const entitySetName = normaliseEntitySetName(options.entitySetName);
-  const endpointMode = normaliseEndpointMode(options.endpointMode);
-  const select = normaliseCsvList(options.selectColumns);
-  const orderBy = normaliseCsvList(options.orderBy);
-  const expand = normaliseCsvList(options.expand);
-  const filter = String(options.filter ?? '').trim();
-  const top = normaliseTop(options.top);
-  const includeCount = Boolean(options.includeCount);
-  const includeFormattedValues = Boolean(options.includeFormattedValues);
-  const maxPageSize = normaliseMaxPageSize(options.maxPageSize);
+  const context = mergeEndpointPreset(options);
+  const entitySetName = normaliseEntitySetName(context.entitySetName);
+  const endpointMode = normaliseEndpointMode(context.endpointMode);
+  const select = normaliseCsvList(context.selectColumns);
+  const orderBy = normaliseOrderByList(context.orderBy);
+  const expand = [
+    ...normaliseExpandList(context.expand),
+    ...normaliseGuidedExpands(context.guidedExpands)
+  ];
+  const filter = normaliseQueryExpression(context.filter, '$filter');
+  const top = normaliseTop(context.top);
+  const includeCount = Boolean(context.includeCount);
+  const includeFormattedValues = Boolean(context.includeFormattedValues);
+  const maxPageSize = normaliseMaxPageSize(context.maxPageSize);
   const queryOptions = buildQueryOptions({
     select,
     filter,
@@ -38,6 +115,7 @@ export function buildDataverseODataQuery(options = {}) {
   });
   const fetchSnippet = buildDataverseFetchSnippet(endpoint, headers);
   const output = formatDataverseQueryReport({
+    endpointPresetLabel: context.endpointPresetLabel,
     endpointMode,
     entitySetName,
     endpoint,
@@ -49,6 +127,8 @@ export function buildDataverseODataQuery(options = {}) {
   const outputBytes = new TextEncoder().encode(output).length;
 
   return {
+    endpointPreset: context.endpointPreset,
+    endpointPresetLabel: context.endpointPresetLabel,
     endpointMode,
     endpointModeLabel: DATAVERSE_ENDPOINT_MODES.find(mode => mode.value === endpointMode).label,
     entitySetName,
@@ -65,9 +145,40 @@ export function buildDataverseODataQuery(options = {}) {
       queryOptionCount: queryOptions.length,
       headerCount: headers.length,
       selectCount: select.length,
-      expandCount: expand.length
+      expandCount: expand.length,
+      guidedExpandCount: normaliseGuidedExpands(context.guidedExpands).length
     }
   };
+}
+
+export function getEndpointPreset(value) {
+  return DATAVERSE_ENDPOINT_PRESETS.find(preset => preset.value === value) || DATAVERSE_ENDPOINT_PRESETS[0];
+}
+
+export function buildGuidedExpand(options = {}) {
+  const relationshipName = normaliseNavigationPropertyName(options.relationshipName);
+  const select = normaliseCsvList(options.selectColumns);
+  const filter = normaliseQueryExpression(options.filter, '$filter');
+  const orderBy = normaliseOrderByList(options.orderBy);
+  const nestedOptions = [];
+
+  if (select.length > 0) {
+    nestedOptions.push(`$select=${select.join(',')}`);
+  }
+
+  if (filter) {
+    nestedOptions.push(`$filter=${filter}`);
+  }
+
+  if (orderBy.length > 0) {
+    nestedOptions.push(`$orderby=${orderBy.join(',')}`);
+  }
+
+  if (nestedOptions.length === 0) {
+    throw new Error('Add at least one nested $select, $filter or $orderby value for the guided $expand.');
+  }
+
+  return `${relationshipName}(${nestedOptions.join(';')})`;
 }
 
 export function buildEndpoint(entitySetName, endpointMode = 'dataverse', queryOptions = []) {
@@ -143,6 +254,20 @@ export function normaliseCsvList(value) {
     .filter(Boolean);
 }
 
+export function normaliseOrderByList(value) {
+  return normaliseCsvList(value)
+    .map(item => item.replace(/^\$orderby=/i, '').trim())
+    .filter(Boolean);
+}
+
+export function normaliseExpandList(value) {
+  return splitTopLevelList(String(value ?? ''))
+    .map(item => item.trim())
+    .filter(Boolean)
+    .map(item => item.replace(/^\$expand=/i, '').trim())
+    .filter(Boolean);
+}
+
 function splitTopLevelList(value) {
   const items = [];
   let start = 0;
@@ -198,6 +323,20 @@ export function normaliseEntitySetName(value) {
   return entitySetName;
 }
 
+export function normaliseNavigationPropertyName(value) {
+  const relationshipName = String(value ?? '').trim();
+
+  if (!relationshipName) {
+    throw new Error('Enter the relationship name for the guided $expand.');
+  }
+
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(relationshipName)) {
+    throw new Error('Relationship name must start with a letter or underscore and contain only letters, numbers and underscores.');
+  }
+
+  return relationshipName;
+}
+
 export function encodeQueryValue(value) {
   return encodeURIComponent(String(value ?? ''))
     .replace(/%2C/g, ',')
@@ -212,6 +351,59 @@ export function encodeQueryValue(value) {
 
 function normaliseEndpointMode(value) {
   return DATAVERSE_ENDPOINT_MODES.some(mode => mode.value === value) ? value : 'dataverse';
+}
+
+function mergeEndpointPreset(options) {
+  const preset = getEndpointPreset(options.endpointPreset);
+  const merged = { ...preset };
+
+  [
+    'endpointMode',
+    'entitySetName',
+    'selectColumns',
+    'filter',
+    'orderBy',
+    'expand',
+    'top',
+    'maxPageSize',
+    'guidedExpands'
+  ].forEach(field => {
+    if (options[field] !== undefined && options[field] !== null) {
+      merged[field] = options[field];
+    }
+  });
+
+  ['includeCount', 'includeFormattedValues'].forEach(field => {
+    if (typeof options[field] === 'boolean') {
+      merged[field] = options[field];
+    }
+  });
+
+  return {
+    ...merged,
+    endpointPreset: preset.value,
+    endpointPresetLabel: preset.label
+  };
+}
+
+function normaliseGuidedExpands(value) {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(item => String(item ?? '').trim()).filter(Boolean);
+  }
+
+  return normaliseExpandList(value);
+}
+
+function normaliseQueryExpression(value, optionName) {
+  return String(value ?? '')
+    .trim()
+    .replace(/^\?/, '')
+    .replace(new RegExp(`^\\${optionName}=`, 'i'), '')
+    .trim();
 }
 
 function normaliseTop(value) {
@@ -269,16 +461,24 @@ function buildWarnings(options) {
     warnings.push('$select=* is not recommended for Dataverse Web API queries.');
   }
 
-  if (options.filter.startsWith('?') || options.filter.startsWith('$filter=')) {
-    warnings.push('Enter only the $filter expression, not the full query option name.');
-  }
-
   if (options.expand.some(item => !item.includes('('))) {
     warnings.push('Use nested $select inside $expand where possible to keep related records small.');
   }
 
+  if (options.expand.some(item => item.includes('(') && /\$select=/i.test(item) === false)) {
+    warnings.push('Add nested $select inside every $expand item to avoid retrieving broad related records.');
+  }
+
+  if (options.expand.length > 2) {
+    warnings.push('Review broad $expand usage; each relationship can increase payload size and query cost.');
+  }
+
+  if (options.includeCount && !options.filter) {
+    warnings.push('$count without a focused $filter can be expensive on large Dataverse tables.');
+  }
+
   if (options.includeCount && !options.top && !options.maxPageSize) {
-    warnings.push('$count can be expensive on large tables; pair it with focused filters where possible.');
+    warnings.push('$count can be expensive on large tables; pair it with $top or a max page size where possible.');
   }
 
   if (options.orderBy.some(item => /\s+(asc|desc)$/i.test(item) === false)) {
@@ -315,6 +515,7 @@ function formatDataverseQueryReport(report) {
   return [
     '# Dataverse OData query',
     '',
+    `Preset: ${report.endpointPresetLabel}`,
     `Mode: ${DATAVERSE_ENDPOINT_MODES.find(mode => mode.value === report.endpointMode).label}`,
     `EntitySetName: ${report.entitySetName}`,
     `Endpoint: ${report.endpoint}`,

@@ -1,4 +1,10 @@
-import { DATAVERSE_ENDPOINT_MODES, buildDataverseODataQuery } from './dataverse-odata.js';
+import {
+  DATAVERSE_ENDPOINT_MODES,
+  DATAVERSE_ENDPOINT_PRESETS,
+  buildDataverseODataQuery,
+  buildGuidedExpand,
+  getEndpointPreset
+} from './dataverse-odata.js';
 
 export function renderDataverseODataQueryBuilder(container) {
   container.innerHTML = `
@@ -12,13 +18,47 @@ export function renderDataverseODataQueryBuilder(container) {
         </div>
 
         <div class="field-stack">
+          <label for="odataEndpointPreset">Endpoint preset</label>
+          <select id="odataEndpointPreset">
+            ${DATAVERSE_ENDPOINT_PRESETS.map(preset => `<option value="${preset.value}">${preset.label}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field-stack">
           <label for="odataEntitySetName">EntitySetName</label>
           <input id="odataEntitySetName" type="text" spellcheck="false" placeholder="accounts" />
         </div>
+      </div>
 
+      <div class="button-row button-row--end">
+        <button id="buildOdataButton" class="primary" type="button">Build query</button>
+        <button id="clearOdataButton" class="secondary" type="button">Clear</button>
+      </div>
+
+      <div class="form-grid form-grid--triple">
+        <div class="field-stack">
+          <label for="odataExpandRelationship">Guided $expand relationship</label>
+          <input id="odataExpandRelationship" type="text" spellcheck="false" placeholder="primarycontactid" />
+        </div>
+
+        <div class="field-stack">
+          <label for="odataExpandNestedSelect">Nested $select</label>
+          <input id="odataExpandNestedSelect" type="text" spellcheck="false" placeholder="fullname, emailaddress1" />
+        </div>
+
+        <div class="field-stack">
+          <label for="odataExpandNestedOrderBy">Nested $orderby</label>
+          <input id="odataExpandNestedOrderBy" type="text" spellcheck="false" placeholder="fullname asc" />
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--split">
+        <div class="field-stack">
+          <label for="odataExpandNestedFilter">Nested $filter</label>
+          <input id="odataExpandNestedFilter" type="text" spellcheck="false" placeholder="statecode eq 0" />
+        </div>
         <div class="button-row button-row--end">
-          <button id="buildOdataButton" class="primary" type="button">Build query</button>
-          <button id="clearOdataButton" class="secondary" type="button">Clear</button>
+          <button id="addGuidedExpandButton" class="secondary" type="button">Add guided $expand</button>
         </div>
       </div>
 
@@ -124,10 +164,15 @@ export function renderDataverseODataQueryBuilder(container) {
   `;
 
   const fields = {
+    endpointPreset: container.querySelector('#odataEndpointPreset'),
     endpointMode: container.querySelector('#odataEndpointMode'),
     entitySetName: container.querySelector('#odataEntitySetName'),
     select: container.querySelector('#odataSelect'),
     expand: container.querySelector('#odataExpand'),
+    expandRelationship: container.querySelector('#odataExpandRelationship'),
+    expandNestedSelect: container.querySelector('#odataExpandNestedSelect'),
+    expandNestedFilter: container.querySelector('#odataExpandNestedFilter'),
+    expandNestedOrderBy: container.querySelector('#odataExpandNestedOrderBy'),
     filter: container.querySelector('#odataFilter'),
     orderBy: container.querySelector('#odataOrderBy'),
     top: container.querySelector('#odataTop'),
@@ -138,6 +183,7 @@ export function renderDataverseODataQueryBuilder(container) {
   const preview = container.querySelector('#odataPreview');
   const output = container.querySelector('#odataOutput');
   const buildButton = container.querySelector('#buildOdataButton');
+  const addGuidedExpandButton = container.querySelector('#addGuidedExpandButton');
   const clearButton = container.querySelector('#clearOdataButton');
   const copyButton = container.querySelector('#copyOdataButton');
   const downloadButton = container.querySelector('#downloadOdataButton');
@@ -222,6 +268,7 @@ export function renderDataverseODataQueryBuilder(container) {
   function buildQuery() {
     try {
       const result = buildDataverseODataQuery({
+        endpointPreset: fields.endpointPreset.value,
         endpointMode: fields.endpointMode.value,
         entitySetName: fields.entitySetName.value,
         selectColumns: fields.select.value,
@@ -245,6 +292,43 @@ export function renderDataverseODataQueryBuilder(container) {
     }
   }
 
+  function addGuidedExpand() {
+    try {
+      const expandExpression = buildGuidedExpand({
+        relationshipName: fields.expandRelationship.value,
+        selectColumns: fields.expandNestedSelect.value,
+        filter: fields.expandNestedFilter.value,
+        orderBy: fields.expandNestedOrderBy.value
+      });
+      const existing = fields.expand.value.trim();
+      fields.expand.value = existing ? `${existing},\n${expandExpression}` : expandExpression;
+      fields.expandRelationship.value = '';
+      fields.expandNestedSelect.value = '';
+      fields.expandNestedFilter.value = '';
+      fields.expandNestedOrderBy.value = '';
+      setStatus('Guided $expand added to the query.', 'success');
+      fields.expand.focus();
+    } catch (error) {
+      setStatus(error.message || 'Unable to add this guided $expand.', 'error');
+    }
+  }
+
+  function applyEndpointPreset() {
+    const preset = getEndpointPreset(fields.endpointPreset.value);
+
+    fields.endpointMode.value = preset.endpointMode;
+    fields.entitySetName.value = preset.entitySetName;
+    fields.select.value = preset.selectColumns;
+    fields.expand.value = preset.expand;
+    fields.filter.value = preset.filter;
+    fields.orderBy.value = preset.orderBy;
+    fields.top.value = preset.top;
+    fields.maxPageSize.value = preset.maxPageSize;
+    fields.includeCount.checked = preset.includeCount;
+    fields.formattedValues.checked = preset.includeFormattedValues;
+    setStatus(preset.value === 'custom' ? 'Ready.' : `${preset.label} preset applied.`, preset.value === 'custom' ? null : 'success');
+  }
+
   async function copyOutput() {
     if (!output.value || copyButton.disabled) {
       setStatus('There is no Dataverse query output to copy.', 'error');
@@ -262,13 +346,20 @@ export function renderDataverseODataQueryBuilder(container) {
     }
   }
 
+  fields.endpointPreset.addEventListener('change', applyEndpointPreset);
   buildButton.addEventListener('click', buildQuery);
+  addGuidedExpandButton.addEventListener('click', addGuidedExpand);
   copyButton.addEventListener('click', copyOutput);
   clearButton.addEventListener('click', () => {
+    fields.endpointPreset.value = 'custom';
     fields.endpointMode.value = 'dataverse';
     fields.entitySetName.value = '';
     fields.select.value = '';
     fields.expand.value = '';
+    fields.expandRelationship.value = '';
+    fields.expandNestedSelect.value = '';
+    fields.expandNestedFilter.value = '';
+    fields.expandNestedOrderBy.value = '';
     fields.filter.value = '';
     fields.orderBy.value = '';
     fields.top.value = '';

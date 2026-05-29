@@ -20,8 +20,9 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - Build Power Pages Web API-style endpoints using `/_api/...`.
 - Support `$select`, `$filter`, `$orderby`, `$expand`, `$top`, `$count`, formatted value annotations and max page size headers.
 - Warn when queries retrieve too much data, use wildcard selects, include broad expansions or count records without limiting the result set.
+- Include endpoint presets and guided `$expand` composition for common Dataverse and Power Pages query shapes.
 - Generate a local Markdown report and a copyable `fetch` snippet.
-- Status: implemented with unit and browser coverage.
+- Status: implemented with advanced query mode, unit coverage and browser coverage.
 
 ## Phase 2: Power Platform CLI Command Builder
 

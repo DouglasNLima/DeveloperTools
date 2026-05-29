@@ -627,7 +627,7 @@ test('generates a Power Pages Web API GET snippet', async ({ page }) => {
   await page.getByLabel('EntitySetName').fill('accounts');
   await page.getByLabel('Logical table name').fill('account');
   await page.getByLabel('Columns / Web API fields').fill('name, accountnumber');
-  await page.getByLabel('$filter').fill('statecode eq 0');
+  await page.getByLabel('$filter', { exact: true }).fill('statecode eq 0');
   await page.getByLabel('$top').fill('5');
   await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
 
@@ -762,7 +762,7 @@ test('builds Dataverse OData queries and reports validation errors', async ({ pa
   await expect(page.getByRole('heading', { name: 'Dataverse OData Query Builder' })).toBeVisible();
   await page.getByLabel('EntitySetName').fill('accounts');
   await page.getByLabel('Columns / $select').fill('name, accountnumber');
-  await page.getByLabel('$filter').fill('statecode eq 0');
+  await page.getByLabel('$filter', { exact: true }).fill('statecode eq 0');
   await page.getByLabel('$top').fill('5');
   await page.getByLabel('Include formatted values').check();
   await page.getByRole('button', { name: 'Build query', exact: true }).click();
@@ -778,6 +778,41 @@ test('builds Dataverse OData queries and reports validation errors', async ({ pa
   await page.getByRole('button', { name: 'Build query', exact: true }).click();
   await expect(page.locator('#odataModeDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('Enter the Dataverse EntitySetName.');
+});
+
+test('uses Dataverse OData presets, guided expands and advanced warnings', async ({ page }) => {
+  await page.goto('/#dataverse-odata-query-builder');
+
+  await page.getByLabel('Endpoint preset').selectOption('power-pages-active-accounts');
+  await expect(page.getByLabel('Endpoint mode')).toHaveValue('power-pages');
+  await expect(page.getByLabel('EntitySetName')).toHaveValue('accounts');
+  await expect(page.getByRole('status')).toContainText('Power Pages Web API: active accounts preset applied.');
+
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+  await expect(page.locator('#odataModeDetail')).toHaveText('Power Pages Web API');
+  await expect(page.locator('#odataEndpointDetail')).toHaveText('/_api/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$orderby=name%20asc&$top=50');
+  await expect(page.locator('#odataOutput')).toHaveValue(/Preset: Power Pages Web API: active accounts/);
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Columns / $select').fill('name');
+  await page.getByLabel('Guided $expand relationship').fill('primarycontactid');
+  await page.getByLabel('Nested $select').fill('fullname, emailaddress1');
+  await page.getByLabel('Nested $filter').fill('statecode eq 0');
+  await page.getByLabel('Nested $orderby').fill('fullname asc');
+  await page.getByRole('button', { name: 'Add guided $expand', exact: true }).click();
+  await expect(page.getByLabel('Relationships / $expand')).toHaveValue('primarycontactid($select=fullname,emailaddress1;$filter=statecode eq 0;$orderby=fullname asc)');
+  await expect(page.getByRole('status')).toContainText('Guided $expand added to the query.');
+
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+  await expect(page.locator('#odataEndpointDetail')).toHaveText('/api/data/v9.2/accounts?$select=name&$expand=primarycontactid($select=fullname,emailaddress1;$filter=statecode%20eq%200;$orderby=fullname%20asc)');
+
+  await page.getByLabel('Relationships / $expand').fill('primarycontactid($filter=statecode eq 0), ownerid, createdby($select=fullname)');
+  await page.getByLabel('Include $count').check();
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+  await expect(page.locator('#odataWarningsDetail')).toHaveText('5 warnings');
+  await expect(page.locator('#odataOutput')).toHaveValue(/Review broad \$expand usage/);
+  await expect(page.locator('#downloadOdataButton')).toHaveAttribute('download', 'dataverse-odata-query.md');
 });
 
 test('builds Power Platform CLI commands and reports validation errors', async ({ page }) => {
