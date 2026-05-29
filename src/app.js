@@ -5,6 +5,7 @@ import {
   getToolById,
   matchesToolSearch
 } from './tools/catalog.js';
+import { registerAppServiceWorker } from './pwa.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderCaseConverter } from './tools/case-converter.ui.js';
 import { renderCurlFetchConverter } from './tools/curl-fetch-converter.ui.js';
@@ -449,3 +450,4 @@ if (selectedTheme !== 'light' && selectedTheme !== 'dark') {
 applyTheme(selectedTheme || resolveSystemTheme());
 applyInitialSidebarState();
 renderRoute(resolveRoute());
+registerAppServiceWorker();

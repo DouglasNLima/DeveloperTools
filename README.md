@@ -34,6 +34,8 @@ The current foundation includes:
 
 Open `index.html` directly in a browser, or serve the folder with any static file server.
 
+When served from GitHub Pages, localhost or another HTTPS origin, Microsoft Edge can install the app on Windows using its native app install option. After the first online load, the service worker caches the static app shell and vendored assets so the installed app can reopen and run offline. Opening `index.html` directly with `file://` still works for normal local use, but browsers do not allow service worker registration from that origin.
+
 For the test runner and local development tooling:
 
 ```sh
@@ -60,6 +62,7 @@ Runtime requirements:
 - No CDN-hosted assets.
 - No external API calls.
 - No build step required for the published app.
+- Installable offline support is provided by committed static PWA assets: `manifest.webmanifest`, `sw.js` and local icons.
 
 `devtools.html` remains as a lightweight redirect for older links.
 
@@ -67,8 +70,13 @@ Runtime requirements:
 
 ```text
 index.html
+manifest.webmanifest
+sw.js
+assets/
+  icons/
 src/
   app.js
+  pwa.js
   styles.css
   tools/
     base64.js

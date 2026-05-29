@@ -6,6 +6,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 - Modular static app structure with `index.html` as the GitHub Pages entry point.
 - Scalable sidebar navigation with search, categories and planned tool previews.
+- Installable offline PWA support for Microsoft Edge and other Chromium browsers.
 - Base64 to file and File to Base64 tools preserved from the original prototype.
 - Test setup covering pure utility logic and browser-level workflows.
 - Project documentation and agent guidance.

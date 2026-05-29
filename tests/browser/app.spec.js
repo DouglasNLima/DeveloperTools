@@ -1,6 +1,15 @@
 import { expect, test } from '@playwright/test';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 
+async function primeOfflineApp(page) {
+  await page.goto('/');
+  await page.evaluate(async () => {
+    await navigator.serviceWorker.ready;
+  });
+  await page.reload();
+  await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+}
+
 test('renders the home overview and opens tools from catalogue cards', async ({ page }) => {
   await page.goto('/');
 
@@ -98,6 +107,83 @@ test('uses the system theme until the theme toggle stores a manual choice', asyn
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Use dark theme' })).toBeVisible();
+});
+
+test('exposes installable web app manifest metadata and local icons', async ({ page, request }) => {
+  const manifestResponse = await request.get('/manifest.webmanifest');
+  expect(manifestResponse.ok()).toBe(true);
+  expect(manifestResponse.headers()['content-type']).toContain('application/manifest+json');
+
+  const manifest = await manifestResponse.json();
+  expect(manifest.name).toBe('Developer Tools');
+  expect(manifest.short_name).toBe('Dev Tools');
+  expect(manifest.lang).toBe('en-GB');
+  expect(manifest.id).toBe('./');
+  expect(manifest.start_url).toBe('./');
+  expect(manifest.scope).toBe('./');
+  expect(manifest.display).toBe('standalone');
+  expect(manifest.icons).toEqual(expect.arrayContaining([
+    expect.objectContaining({
+      src: './assets/icons/icon-192.png',
+      sizes: '192x192',
+      type: 'image/png'
+    }),
+    expect.objectContaining({
+      src: './assets/icons/icon-512.png',
+      sizes: '512x512',
+      type: 'image/png'
+    })
+  ]));
+
+  for (const icon of manifest.icons) {
+    const iconResponse = await request.get(icon.src.replace('./', '/'));
+    expect(iconResponse.ok()).toBe(true);
+    expect(iconResponse.headers()['content-type']).toContain('image/png');
+  }
+
+  await page.goto('/');
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', './manifest.webmanifest');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0f766e');
+});
+
+test('serves the app shell and hash routes offline after service worker installation', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/');
+
+    await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
+    await expect(page.locator('[data-home-tool-id="json-formatter"]')).toBeVisible();
+
+    await page.goto('/#url-codec');
+
+    await expect(page.getByRole('heading', { name: 'URL & query string helper' })).toBeVisible();
+    await expect(page.locator('[data-tool-id="url-codec"]')).toHaveAttribute('aria-current', 'page');
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
+test('loads the deferred PDF tool and vendored PDF.js assets offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#pdf-template-field-explorer');
+
+    await expect(page.getByRole('heading', { name: 'PDF Template Field Explorer' })).toBeVisible();
+    await page.setInputFiles('#pdfTemplateFileInput', {
+      name: 'offline-form.pdf',
+      mimeType: 'application/pdf',
+      buffer: await createFillablePdf()
+    });
+
+    await expect(page.locator('#pdfTemplateStatus')).toContainText('PDF loaded successfully.');
+    await expect(page.locator('#pdfFieldCount')).toHaveText('2');
+  } finally {
+    await page.context().setOffline(false);
+  }
 });
 
 test('finds Power Platform tools in the sidebar', async ({ page }) => {
