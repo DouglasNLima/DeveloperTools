@@ -13,6 +13,9 @@ async function primeOfflineApp(page) {
 test('renders the home overview and opens tools from catalogue cards', async ({ page }) => {
   await page.goto('/');
 
+  await expect(page.locator('.topbar')).toBeVisible();
+  await expect(page.locator('.statusbar')).toContainText('Static local workspace');
+  await expect(page.getByRole('status')).toHaveCount(0);
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('[data-home-tool-id="json-formatter"]')).toBeVisible();
@@ -133,6 +136,8 @@ test('exposes installable web app manifest metadata and local icons', async ({ p
   expect(manifest.start_url).toBe('./');
   expect(manifest.scope).toBe('./');
   expect(manifest.display).toBe('standalone');
+  expect(manifest.background_color).toBe('#111318');
+  expect(manifest.theme_color).toBe('#111318');
   expect(manifest.icons).toEqual(expect.arrayContaining([
     expect.objectContaining({
       src: './assets/icons/icon-192.png',
@@ -154,7 +159,7 @@ test('exposes installable web app manifest metadata and local icons', async ({ p
 
   await page.goto('/');
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href', './manifest.webmanifest');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0f766e');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#111318');
 });
 
 test('serves the app shell and hash routes offline after service worker installation', async ({ page }) => {
