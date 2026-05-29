@@ -10,6 +10,7 @@ The current foundation includes:
 - URL & query string helper
 - JSON formatter/validator
 - JSON diff
+- CSV/TSV helper
 - PDF Template Field Explorer
 - JWT Decoder & Claims Inspector
 - FetchXML Formatter & Liquid Builder for Power Pages
@@ -63,6 +64,8 @@ src/
     base64.js
     base64.ui.js
     catalog.js
+    csv-tsv-helper.js
+    csv-tsv-helper.ui.js
     hash-checksums.js
     hash-checksums.ui.js
     json-diff.js

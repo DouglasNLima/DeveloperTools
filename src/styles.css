@@ -478,6 +478,21 @@ label.button.secondary:hover {
   padding: 11px 13px;
 }
 
+.csv-issue-list {
+  display: grid;
+  gap: 8px;
+}
+
+.csv-issue-list p {
+  background: var(--amber-soft);
+  border: 1px solid rgba(180, 83, 9, 0.28);
+  border-radius: 8px;
+  color: var(--amber);
+  line-height: 1.45;
+  margin: 0;
+  padding: 11px 13px;
+}
+
 .drop-zone {
   background: #fbfdfe;
   border: 1px dashed var(--border-strong);

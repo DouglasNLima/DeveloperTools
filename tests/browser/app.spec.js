@@ -233,6 +233,48 @@ test('reports JSON diff validation errors by side', async ({ page }) => {
   await expect(page.locator('#jsonDiffOutput')).toHaveValue(/\^/);
 });
 
+test('converts CSV input to JSON array output', async ({ page }) => {
+  await page.goto('/#csv-tsv-helper');
+
+  await expect(page.getByRole('heading', { name: 'CSV/TSV helper' })).toBeVisible();
+  await page.getByLabel('CSV/TSV input').fill('name,email\nAda Lovelace,ada@example.test\nGrace Hopper,grace@example.test');
+  await page.getByRole('button', { name: 'Process data', exact: true }).click();
+
+  await expect(page.locator('#csvDelimiterDetail')).toHaveText('Comma (,) detected');
+  await expect(page.locator('#csvRowsDetail')).toHaveText('3 total / 2 data');
+  await expect(page.locator('#csvColumnsDetail')).toHaveText('2');
+  await expect(page.locator('#csvWarningsDetail')).toHaveText('None');
+  await expect(page.locator('#csvOutputTypeDetail')).toHaveText('JSON array');
+  await expect(page.locator('#csvOutput')).toHaveValue(/"name": "Ada Lovelace"/);
+  await expect(page.locator('#csvOutput')).toHaveValue(/"email": "grace@example.test"/);
+  await expect(page.locator('#downloadCsvButton')).toHaveAttribute('download', 'delimited-output.json');
+  await expect(page.getByRole('status')).toContainText('Delimited data processed successfully.');
+});
+
+test('loads a delimited file and reports header and row issues', async ({ page }) => {
+  await page.goto('/#csv-tsv-helper');
+
+  await page.setInputFiles('#csvFileInput', {
+    name: 'contacts.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from('name,name,\nAda,,extra\nGrace')
+  });
+  await expect(page.getByRole('status')).toContainText('Loaded contacts.csv.');
+
+  await page.getByLabel('Output format').selectOption('tsv');
+  await page.getByRole('button', { name: 'Process data', exact: true }).click();
+
+  await expect(page.locator('#csvDelimiterDetail')).toHaveText('Comma (,) detected');
+  await expect(page.locator('#csvEmptyCellsDetail')).toHaveText('2');
+  await expect(page.locator('#csvInconsistentRowsDetail')).toHaveText('1');
+  await expect(page.locator('#csvWarningsDetail')).toHaveText('3 warnings');
+  await expect(page.locator('#csvIssueList')).toContainText('unexpected column count');
+  await expect(page.locator('#csvIssueList')).toContainText('Duplicate headers found: name.');
+  await expect(page.locator('#csvOutputTypeDetail')).toHaveText('TSV');
+  await expect(page.locator('#csvOutput')).toHaveValue(/name\tname\t/);
+  await expect(page.locator('#downloadCsvButton')).toHaveAttribute('download', 'contacts.tsv');
+});
+
 test('loads a fillable PDF template and exports field mappings', async ({ page }) => {
   await page.goto('/#pdf-template-field-explorer');
 

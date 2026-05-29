@@ -22,7 +22,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - JSON formatter/validator with helpful parse errors.
 - JSON diff for comparing payloads.
 - CSV/TSV helper for inspecting, cleaning and converting delimited data.
-- Status: JSON formatter/validator and JSON diff implemented; CSV/TSV helper remains planned.
+- Status: JSON formatter/validator, JSON diff and CSV/TSV helper implemented.
 
 ## Phase 4: Documents
 

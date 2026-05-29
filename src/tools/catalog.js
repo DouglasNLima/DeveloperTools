@@ -91,8 +91,9 @@ export const TOOL_CATALOGUE = [
     id: 'csv-tsv-helper',
     title: 'CSV/TSV helper',
     category: 'JSON & data',
-    status: 'planned',
-    summary: 'Inspect delimited data, convert between formats and spot row issues.'
+    status: 'available',
+    summary: 'Inspect delimited data, convert CSV/TSV and spot row issues.',
+    renderer: 'csv-tsv-helper'
   },
   {
     id: 'jwt-decoder',
