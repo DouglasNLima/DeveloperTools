@@ -7,6 +7,7 @@ import {
   generateUuidBatch,
   generateUuidFromBytes,
   normaliseUuid,
+  restoreUuidHyphens,
   splitUuidInput,
   validateUuidInput
 } from '../../src/tools/uuid-generator.js';
@@ -71,6 +72,59 @@ test('normalises braced and hyphenless UUIDs', () => {
     value: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     format: 'Hyphenless'
   });
+});
+
+test('restores hyphens for a hyphenless UUID', () => {
+  const result = restoreUuidHyphens('f47ac10b58cc4372a5670e02b2c3d479');
+
+  assert.equal(result.mode, 'Restored UUIDs');
+  assert.equal(result.output, 'f47ac10b-58cc-4372-a567-0e02b2c3d479');
+  assert.deepEqual(result.uuids, ['f47ac10b-58cc-4372-a567-0e02b2c3d479']);
+  assert.equal(result.summary.total, 1);
+  assert.equal(result.summary.valid, 1);
+  assert.equal(result.records[0].displayValue, 'f47ac10b-58cc-4372-a567-0e02b2c3d479');
+});
+
+test('restores mixed UUID inputs to a clean output list', () => {
+  const result = restoreUuidHyphens([
+    'f47ac10b58cc4372a5670e02b2c3d479',
+    '{00000000-0000-0000-0000-000000000000}',
+    '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+  ].join('\n'));
+
+  assert.equal(result.output, [
+    'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    '00000000-0000-0000-0000-000000000000',
+    '6ba7b810-9dad-11d1-80b4-00c04fd430c8'
+  ].join('\n'));
+  assert.equal(result.summary.total, 3);
+  assert.equal(result.summary.nil, 1);
+  assert.deepEqual(result.records.map(record => record.format), [
+    'Hyphenless',
+    'Braced canonical',
+    'Canonical'
+  ]);
+});
+
+test('restores UUIDs with uppercase and braces options', () => {
+  const result = restoreUuidHyphens('f47ac10b58cc4372a5670e02b2c3d479', {
+    uppercase: true,
+    braces: true
+  });
+
+  assert.equal(result.output, '{F47AC10B-58CC-4372-A567-0E02B2C3D479}');
+  assert.equal(result.records[0].displayValue, '{F47AC10B-58CC-4372-A567-0E02B2C3D479}');
+});
+
+test('blocks UUID restoration when input is empty or invalid', () => {
+  assert.throws(
+    () => restoreUuidHyphens(''),
+    /Enter one or more UUIDs to restore/
+  );
+  assert.throws(
+    () => restoreUuidHyphens('f47ac10b58cc4372a5670e02b2c3d479\nnot-a-uuid'),
+    /Entry 2 is not a valid UUID: Invalid UUID format/
+  );
 });
 
 test('validates mixed UUID input and emits useful warnings', () => {

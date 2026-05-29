@@ -17,7 +17,7 @@ The current foundation includes:
 - Regex Tester
 - Text diff
 - Case converter
-- UUID generator
+- UUID generator, restorer and validator
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages

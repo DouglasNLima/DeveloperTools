@@ -1,4 +1,4 @@
-import { generateUuidBatch, validateUuidInput } from './uuid-generator.js';
+import { generateUuidBatch, restoreUuidHyphens, validateUuidInput } from './uuid-generator.js';
 
 export function renderUuidGenerator(container) {
   container.innerHTML = `
@@ -16,19 +16,20 @@ export function renderUuidGenerator(container) {
 
         <label class="checkbox-row" for="uuidBraces">
           <input id="uuidBraces" type="checkbox" />
-          <span>Wrap generated UUIDs in braces</span>
+          <span>Wrap output in braces</span>
         </label>
       </div>
 
       <div class="button-row">
         <button id="generateUuidButton" class="primary" type="button">Generate UUIDs</button>
+        <button id="restoreUuidButton" class="secondary" type="button">Restore hyphens</button>
         <button id="validateUuidButton" class="secondary" type="button">Validate UUIDs</button>
         <button id="clearUuidButton" class="secondary" type="button">Clear</button>
       </div>
 
       <div class="field-stack">
         <label for="uuidInput">UUID input</label>
-        <textarea id="uuidInput" spellcheck="false" placeholder="Paste UUIDs to validate, one per line."></textarea>
+        <textarea id="uuidInput" spellcheck="false" placeholder="Paste UUIDs to validate or restore, one per line."></textarea>
       </div>
 
       <div class="field-stack">
@@ -44,7 +45,7 @@ export function renderUuidGenerator(container) {
         </div>
       </div>
 
-      <textarea id="uuidOutput" spellcheck="false" readonly placeholder="Generated UUIDs or the validation report will appear here."></textarea>
+      <textarea id="uuidOutput" spellcheck="false" readonly placeholder="Generated UUIDs, restored UUIDs or the validation report will appear here."></textarea>
 
       <div class="detail-grid" aria-live="polite">
         <div class="detail-card">
@@ -91,6 +92,7 @@ export function renderUuidGenerator(container) {
   const input = container.querySelector('#uuidInput');
   const preview = container.querySelector('#uuidPreview');
   const generateButton = container.querySelector('#generateUuidButton');
+  const restoreButton = container.querySelector('#restoreUuidButton');
   const validateButton = container.querySelector('#validateUuidButton');
   const clearButton = container.querySelector('#clearUuidButton');
   const copyButton = container.querySelector('#copyUuidButton');
@@ -177,7 +179,7 @@ export function renderUuidGenerator(container) {
         : `Entry ${record.index} · Invalid`;
 
       const value = document.createElement('code');
-      value.textContent = record.valid ? record.normalised : record.input;
+      value.textContent = record.valid ? (record.displayValue || record.normalised) : record.input;
 
       const meta = document.createElement('small');
       meta.textContent = record.valid
@@ -216,6 +218,19 @@ export function renderUuidGenerator(container) {
     }
   }
 
+  function handleRestore() {
+    try {
+      const result = restoreUuidHyphens(input.value, {
+        uppercase: uppercase.checked,
+        braces: braces.checked
+      });
+      setOutput(result, 'uuid-restored-list.txt');
+      setStatus(buildSuccessMessage('UUID hyphens restored successfully.', result), 'success');
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
   function handleError(error) {
     output.value = '';
     copyButton.disabled = true;
@@ -243,6 +258,7 @@ export function renderUuidGenerator(container) {
   }
 
   generateButton.addEventListener('click', handleGenerate);
+  restoreButton.addEventListener('click', handleRestore);
   validateButton.addEventListener('click', handleValidate);
   copyButton.addEventListener('click', copyOutput);
 

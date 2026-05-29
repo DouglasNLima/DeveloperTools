@@ -57,9 +57,7 @@ export function generateUuidFromBytes(inputBytes, options = {}) {
   bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
   const canonical = formatUuidBytes(bytes);
-  const value = options.uppercase ? canonical.toLocaleUpperCase('en-GB') : canonical;
-
-  return options.braces ? `{${value}}` : value;
+  return applyUuidOutputOptions(canonical, options);
 }
 
 export function validateUuidInput(input) {
@@ -78,6 +76,46 @@ export function validateUuidInput(input) {
     ...analysis,
     output,
     outputType: 'Markdown report',
+    outputBytes,
+    outputSizeLabel: formatBytes(outputBytes)
+  };
+}
+
+export function restoreUuidHyphens(input, options = {}) {
+  const values = splitUuidInput(input);
+
+  if (values.length === 0) {
+    throw new Error('Enter one or more UUIDs to restore.');
+  }
+
+  const sourceRecords = values.map((value, index) => analyseUuidValue(value, index + 1));
+  const invalidRecord = sourceRecords.find(record => !record.valid);
+
+  if (invalidRecord) {
+    throw new Error(`Entry ${invalidRecord.index} is not a valid UUID: ${invalidRecord.issue}`);
+  }
+
+  const canonicalValues = sourceRecords.map(record => record.normalised);
+  const restoredValues = canonicalValues.map(value => applyUuidOutputOptions(value, options));
+  const analysis = analyseUuidValues(canonicalValues);
+  const records = analysis.records.map((record, index) => ({
+    ...record,
+    input: sourceRecords[index].input,
+    format: sourceRecords[index].format,
+    displayValue: restoredValues[index],
+    issue: sourceRecords[index].issue || record.issue
+  }));
+  const output = restoredValues.join('\n');
+  const outputBytes = new TextEncoder().encode(output).length;
+
+  return {
+    mode: 'Restored UUIDs',
+    uuids: restoredValues,
+    records,
+    summary: analysis.summary,
+    warnings: analysis.warnings,
+    output,
+    outputType: 'UUID list',
     outputBytes,
     outputSizeLabel: formatBytes(outputBytes)
   };
@@ -282,6 +320,11 @@ function getRandomBytes(randomBytes, index) {
 function formatUuidBytes(bytes) {
   const hex = [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
   return insertUuidHyphens(hex);
+}
+
+function applyUuidOutputOptions(canonical, options = {}) {
+  const value = options.uppercase ? canonical.toLocaleUpperCase('en-GB') : canonical;
+  return options.braces ? `{${value}}` : value;
 }
 
 function insertUuidHyphens(hex) {

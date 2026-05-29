@@ -439,6 +439,29 @@ test('generates UUID v4 values in the browser', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('UUIDs generated successfully.');
 });
 
+test('restores hyphens for hyphenless UUID input', async ({ page }) => {
+  await page.goto('/#uuid-generator');
+
+  await page.getByLabel('UUID input').fill('f47ac10b58cc4372a5670e02b2c3d479');
+  await page.getByRole('button', { name: 'Restore hyphens', exact: true }).click();
+
+  await expect(page.locator('#uuidModeDetail')).toHaveText('Restored UUIDs');
+  await expect(page.locator('#uuidTotalDetail')).toHaveText('1');
+  await expect(page.locator('#uuidValidInvalidDetail')).toHaveText('1 / 0');
+  await expect(page.locator('#uuidOutputTypeDetail')).toHaveText('UUID list');
+  await expect(page.locator('#uuidWarningsDetail')).toHaveText('None');
+  await expect(page.locator('.uuid-result-card.valid')).toContainText('f47ac10b-58cc-4372-a567-0e02b2c3d479');
+  await expect(page.locator('#uuidOutput')).toHaveValue('f47ac10b-58cc-4372-a567-0e02b2c3d479');
+  await expect(page.locator('#downloadUuidButton')).toHaveAttribute('download', 'uuid-restored-list.txt');
+  await expect(page.getByRole('status')).toContainText('UUID hyphens restored successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByLabel('UUID input').fill('not-a-uuid');
+  await page.getByRole('button', { name: 'Restore hyphens', exact: true }).click();
+  await expect(page.locator('#uuidModeDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Entry 1 is not a valid UUID: Invalid UUID format.');
+});
+
 test('validates UUID input and reports invalid values', async ({ page }) => {
   await page.goto('/');
 

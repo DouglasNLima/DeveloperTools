@@ -172,7 +172,7 @@ export const TOOL_CATALOGUE = [
     title: 'UUID generator',
     category: 'Text utilities',
     status: 'available',
-    summary: 'Generate and validate UUIDs in the browser.',
+    summary: 'Generate, restore and validate UUIDs in the browser.',
     renderer: 'uuid-generator'
   }
 ];
