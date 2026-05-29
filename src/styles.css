@@ -644,6 +644,53 @@ label.button.secondary:hover {
   white-space: pre-wrap;
 }
 
+.uuid-preview {
+  background: #fbfdfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  min-height: 150px;
+  overflow: auto;
+  padding: 12px;
+}
+
+.uuid-result-card {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border-strong);
+  border-radius: 8px;
+  display: grid;
+  gap: 7px;
+  padding: 12px;
+}
+
+.uuid-result-card.valid {
+  background: var(--success-soft);
+  border-left-color: var(--success);
+}
+
+.uuid-result-card.invalid {
+  background: var(--danger-soft);
+  border-left-color: var(--danger);
+}
+
+.uuid-result-card span,
+.uuid-result-card small {
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+
+.uuid-result-card span {
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.uuid-result-card code {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+  overflow-wrap: anywhere;
+}
+
 .drop-zone {
   background: #fbfdfe;
   border: 1px dashed var(--border-strong);

@@ -20,6 +20,7 @@ import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-weba
 import { renderRegexTester } from './tools/regex-tester.ui.js';
 import { renderTextDiff } from './tools/text-diff.ui.js';
 import { renderUrlCodec } from './tools/url-codec.ui.js';
+import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
 
 const renderers = {
   'base64-to-file': renderBase64ToFile,
@@ -37,7 +38,8 @@ const renderers = {
   'power-pages-table-permissions': renderPowerPagesTablePermissionsChecklist,
   'regex-tester': renderRegexTester,
   'text-diff': renderTextDiff,
-  'url-codec': renderUrlCodec
+  'url-codec': renderUrlCodec,
+  'uuid-generator': renderUuidGenerator
 };
 
 const toolNav = document.getElementById('toolNav');

@@ -16,6 +16,7 @@ The current foundation includes:
 - Regex Tester
 - Text diff
 - Case converter
+- UUID generator
 - FetchXML Formatter & Liquid Builder for Power Pages
 - Power Pages Web API Snippet Generator
 - Site Settings Helper for Power Pages
@@ -93,6 +94,8 @@ src/
     text-diff.ui.js
     case-converter.js
     case-converter.ui.js
+    uuid-generator.js
+    uuid-generator.ui.js
     url-codec.js
     url-codec.ui.js
   vendor/

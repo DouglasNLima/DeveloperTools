@@ -349,7 +349,7 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await page.getByLabel('Search tools').fill('Text utilities');
   await expect(page.locator('[data-tool-id="text-diff"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="uuid-generator"]')).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
   await page.locator('[data-tool-id="text-diff"]').click();
 
   await page.getByLabel('Output format').selectOption('json');
@@ -395,7 +395,7 @@ test('finds case converter and converts each line separately', async ({ page }) 
 
   await page.getByLabel('Search tools').fill('Text utilities');
   await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="uuid-generator"]')).toHaveAttribute('aria-disabled', 'true');
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
   await page.locator('[data-tool-id="case-converter"]').click();
 
   await page.getByLabel('Output format').selectOption('kebab');
@@ -414,6 +414,59 @@ test('finds case converter and converts each line separately', async ({ page }) 
   await page.getByRole('button', { name: 'Convert case', exact: true }).click();
   await expect(page.locator('#caseStatusDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('Enter text to convert.');
+});
+
+test('generates UUID v4 values in the browser', async ({ page }) => {
+  await page.goto('/#uuid-generator');
+
+  await expect(page.getByRole('heading', { name: 'UUID generator' })).toBeVisible();
+  await page.getByLabel('UUID count').fill('2');
+  await page.getByRole('button', { name: 'Generate UUIDs', exact: true }).click();
+
+  await expect(page.locator('#uuidModeDetail')).toHaveText('Generated UUIDs');
+  await expect(page.locator('#uuidTotalDetail')).toHaveText('2');
+  await expect(page.locator('#uuidValidInvalidDetail')).toHaveText('2 / 0');
+  await expect(page.locator('#uuidVersion4Detail')).toHaveText('2');
+  await expect(page.locator('#uuidOutputTypeDetail')).toHaveText('UUID list');
+  await expect(page.locator('#uuidWarningsDetail')).toHaveText('None');
+  await expect(page.locator('.uuid-result-card.valid')).toHaveCount(2);
+  await expect(page.locator('#uuidOutput')).toHaveValue(/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/);
+  await expect(page.locator('#downloadUuidButton')).toHaveAttribute('download', 'uuid-list.txt');
+  await expect(page.getByRole('status')).toContainText('UUIDs generated successfully.');
+});
+
+test('validates UUID input and reports invalid values', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('uuid');
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
+  await page.locator('[data-tool-id="uuid-generator"]').click();
+
+  await page.getByLabel('UUID input').fill([
+    'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+    '00000000-0000-0000-0000-000000000000',
+    'f47ac10b58cc4372a5670e02b2c3d479',
+    'not-a-uuid',
+    'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Validate UUIDs', exact: true }).click();
+
+  await expect(page.locator('#uuidModeDetail')).toHaveText('Validation report');
+  await expect(page.locator('#uuidTotalDetail')).toHaveText('5');
+  await expect(page.locator('#uuidValidInvalidDetail')).toHaveText('4 / 1');
+  await expect(page.locator('#uuidNilDetail')).toHaveText('1');
+  await expect(page.locator('#uuidDuplicatesDetail')).toHaveText('2');
+  await expect(page.locator('#uuidWarningsDetail')).toHaveText('4 warnings');
+  await expect(page.locator('.uuid-result-card.invalid')).toHaveCount(1);
+  await expect(page.locator('#uuidOutput')).toHaveValue(/Status: Needs attention/);
+  await expect(page.locator('#uuidOutput')).toHaveValue(/Invalid UUID format/);
+  await expect(page.locator('#downloadUuidButton')).toHaveAttribute('download', 'uuid-validation-report.md');
+  await expect(page.getByRole('status')).toContainText('Some entries are not valid UUIDs.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Validate UUIDs', exact: true }).click();
+  await expect(page.locator('#uuidModeDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Enter one or more UUIDs to validate.');
 });
 
 test('loads a fillable PDF template and exports field mappings', async ({ page }) => {
