@@ -9,6 +9,7 @@ import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderCaseConverter } from './tools/case-converter.ui.js';
 import { renderCurlFetchConverter } from './tools/curl-fetch-converter.ui.js';
 import { renderCsvTsvHelper } from './tools/csv-tsv-helper.ui.js';
+import { renderDataExplorer } from './tools/data-explorer.ui.js';
 import { renderHashChecksums } from './tools/hash-checksums.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
@@ -32,6 +33,7 @@ const renderers = {
   'case-converter': renderCaseConverter,
   'curl-fetch-converter': renderCurlFetchConverter,
   'csv-tsv-helper': renderCsvTsvHelper,
+  'data-explorer': renderDataExplorer,
   'dataverse-odata-query-builder': renderDataverseODataQueryBuilder,
   'file-to-base64': renderFileToBase64,
   'hash-checksums': renderHashChecksums,

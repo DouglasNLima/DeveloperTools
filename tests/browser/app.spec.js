@@ -237,6 +237,103 @@ test('reports JSON diff validation errors by side', async ({ page }) => {
   await expect(page.locator('#jsonDiffOutput')).toHaveValue(/\^/);
 });
 
+test('finds the data explorer and queries JSON records', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('data explorer');
+  await expect(page.locator('[data-tool-id="data-explorer"]')).toBeEnabled();
+  await page.locator('[data-tool-id="data-explorer"]').click();
+
+  await expect(page.getByRole('heading', { name: 'JSON/XML data explorer' })).toBeVisible();
+  await page.getByLabel('JSON or XML input').fill(JSON.stringify({
+    data: {
+      records: [
+        {
+          name: 'Ada Lovelace',
+          status: 'active',
+          age: 36,
+          address: { city: 'London' },
+          hidden: 'kept'
+        },
+        {
+          name: 'Grace Hopper',
+          status: 'active',
+          age: 85,
+          address: { city: 'Arlington' }
+        },
+        {
+          name: 'Katherine Johnson',
+          status: 'retired',
+          age: 101,
+          address: { city: 'Hampton' }
+        }
+      ]
+    }
+  }));
+  await page.getByLabel('Filter field').fill('status');
+  await page.getByLabel('Filter operator').selectOption('equals');
+  await page.getByLabel('Filter value').fill('active');
+  await page.getByLabel('Sort field').fill('age');
+  await page.getByLabel('Sort direction').selectOption('desc');
+  await page.getByLabel('Grid columns').fill('name, address.city');
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+
+  await expect(page.locator('#dataExplorerFormatDetail')).toHaveText('JSON');
+  await expect(page.locator('#dataExplorerPathDetail')).toHaveText('$.data.records');
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('3');
+  await expect(page.locator('#dataExplorerResultsDetail')).toHaveText('2');
+  await expect(page.locator('#dataExplorerColumnsDetail')).toHaveText('2');
+  await expect(page.locator('#dataExplorerWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('.data-grid-table tbody tr').first()).toContainText('Grace Hopper');
+  await expect(page.locator('.data-grid-table tbody tr').first()).toContainText('Arlington');
+  await expect(page.locator('#dataExplorerOutput')).toHaveValue(/"hidden": "kept"/);
+  await expect(page.locator('#dataExplorerOutput')).not.toHaveValue(/Katherine Johnson/);
+  await expect(page.locator('#downloadDataExplorerButton')).toHaveAttribute('download', 'data-explorer-output.json');
+  await expect(page.getByRole('status')).toContainText('JSON data explored successfully.');
+});
+
+test('reports data explorer validation errors', async ({ page }) => {
+  await page.goto('/#data-explorer');
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Enter JSON or XML input before exploring data.');
+
+  await page.getByLabel('Input format').selectOption('json');
+  await page.getByLabel('JSON or XML input').fill('{bad json}');
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('JSON parse error');
+
+  await page.getByLabel('JSON or XML input').fill('{"name":"Ada"}');
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('No JSON record array was found automatically');
+});
+
+test('flattens XML data into a grid and JSON export', async ({ page }) => {
+  await page.goto('/#data-explorer');
+
+  await page.getByLabel('Input format').selectOption('xml');
+  await page.getByLabel('JSON or XML input').fill([
+    '<contacts>',
+    '  <contact id="1"><name>Ada Lovelace</name><address><city>London</city></address></contact>',
+    '  <contact id="2"><name>Grace Hopper</name><address><city>Arlington</city></address></contact>',
+    '</contacts>'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+
+  await expect(page.locator('#dataExplorerFormatDetail')).toHaveText('XML');
+  await expect(page.locator('#dataExplorerPathDetail')).toHaveText('/contacts/contact');
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('2');
+  await expect(page.locator('#dataExplorerResultsDetail')).toHaveText('2');
+  await expect(page.locator('#dataExplorerQueryModeDetail')).toHaveText('XML grid');
+  await expect(page.locator('.data-grid-table thead')).toContainText('@id');
+  await expect(page.locator('.data-grid-table thead')).toContainText('address.city');
+  await expect(page.locator('.data-grid-table tbody')).toContainText('Grace Hopper');
+  await expect(page.locator('#dataExplorerOutput')).toHaveValue(/"@id": "2"/);
+  await expect(page.locator('#dataExplorerOutput')).toHaveValue(/"address.city": "Arlington"/);
+  await expect(page.locator('#downloadDataExplorerButton')).toHaveAttribute('download', 'data-explorer-output.json');
+  await expect(page.getByRole('status')).toContainText('XML data explored successfully.');
+});
+
 test('converts CSV input to JSON array output', async ({ page }) => {
   await page.goto('/#csv-tsv-helper');
 

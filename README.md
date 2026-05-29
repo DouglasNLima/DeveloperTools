@@ -10,6 +10,7 @@ The current foundation includes:
 - URL & query string helper
 - JSON formatter/validator
 - JSON diff
+- JSON/XML data explorer
 - CSV/TSV helper
 - PDF Template Field Explorer
 - JWT Decoder & Claims Inspector
@@ -109,6 +110,8 @@ src/
     case-converter.ui.js
     curl-fetch-converter.js
     curl-fetch-converter.ui.js
+    data-explorer.js
+    data-explorer.ui.js
     uuid-generator.js
     uuid-generator.ui.js
     url-codec.js

@@ -112,6 +112,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'json-diff'
   },
   {
+    id: 'data-explorer',
+    title: 'JSON/XML data explorer',
+    category: 'JSON & data',
+    status: 'available',
+    summary: 'Query JSON records and flatten JSON or XML into a local grid.',
+    renderer: 'data-explorer'
+  },
+  {
     id: 'pdf-template-field-explorer',
     title: 'PDF Template Field Explorer',
     category: 'Documents',

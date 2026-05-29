@@ -493,6 +493,88 @@ label.button.secondary:hover {
   padding: 11px 13px;
 }
 
+.data-query-panel {
+  background: #fbfdfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.data-query-panel-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.data-filter-list {
+  display: grid;
+  gap: 12px;
+}
+
+.data-filter-row {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(150px, 0.8fr) minmax(0, 1fr) auto;
+}
+
+.data-grid-preview {
+  background: #fbfdfe;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  min-height: 180px;
+  overflow: auto;
+}
+
+.data-grid-table {
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  min-width: 100%;
+}
+
+.data-grid-table th,
+.data-grid-table td {
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  max-width: 360px;
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.data-grid-table th {
+  background: var(--surface-muted);
+  color: var(--text);
+  font-weight: 800;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.data-grid-table td {
+  font-family: "Cascadia Mono", Consolas, "Courier New", monospace;
+}
+
+.data-issue-list {
+  display: grid;
+  gap: 8px;
+}
+
+.data-issue-list p {
+  background: var(--amber-soft);
+  border: 1px solid rgba(180, 83, 9, 0.28);
+  border-radius: 8px;
+  color: var(--amber);
+  line-height: 1.45;
+  margin: 0;
+  padding: 11px 13px;
+}
+
 .regex-preview {
   background: #fbfdfe;
   border: 1px solid var(--border);
@@ -1092,6 +1174,7 @@ label.button.secondary:hover {
   .form-grid--split,
   .form-grid--triple,
   .option-grid,
+  .data-filter-row,
   .detail-grid,
   .pdf-template-layout {
     grid-template-columns: 1fr;
