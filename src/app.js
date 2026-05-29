@@ -1,7 +1,7 @@
 import {
   TOOL_CATALOGUE,
+  getAvailableTools,
   getCategories,
-  getDefaultTool,
   getToolById,
   matchesToolSearch
 } from './tools/catalog.js';
@@ -58,23 +58,108 @@ const toolNav = document.getElementById('toolNav');
 const toolSearch = document.getElementById('toolSearch');
 const navToggle = document.getElementById('navToggle');
 const navBackdrop = document.getElementById('navBackdrop');
+const themeToggle = document.getElementById('themeToggle');
+const sidebarCollapse = document.getElementById('sidebarCollapse');
 const activeToolCategory = document.getElementById('activeToolCategory');
 const activeToolStatus = document.getElementById('activeToolStatus');
 const activeToolTitle = document.getElementById('activeToolTitle');
 const activeToolSummary = document.getElementById('activeToolSummary');
 const toolMount = document.getElementById('toolMount');
 
-let activeTool = resolveInitialTool();
+const HOME_VIEW = 'home';
+const THEME_STORAGE_KEY = 'developer-tools-theme';
+const SIDEBAR_STORAGE_KEY = 'developer-tools-sidebar-collapsed';
+
+let activeView = HOME_VIEW;
+let activeTool = null;
 let activeCleanup = null;
+let selectedTheme = readStorage(THEME_STORAGE_KEY);
 
-function resolveInitialTool() {
-  const hashTool = getToolById(window.location.hash.replace('#', ''));
+function readStorage(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
 
-  if (hashTool && hashTool.status === 'available') {
-    return hashTool;
+function writeStorage(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function resolveSystemTheme() {
+  if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
   }
 
-  return getDefaultTool();
+  return 'light';
+}
+
+function applyTheme(theme, source = selectedTheme ? 'manual' : 'system') {
+  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.themeSource = source;
+  updateThemeToggle(theme);
+}
+
+function updateThemeToggle(theme) {
+  const nextTheme = theme === 'dark' ? 'light' : 'dark';
+  const label = `Use ${nextTheme} theme`;
+
+  themeToggle.setAttribute('aria-label', label);
+  themeToggle.querySelector('.sidebar-action-text').textContent = `${capitalise(nextTheme)} theme`;
+}
+
+function toggleTheme() {
+  const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+
+  selectedTheme = nextTheme;
+  writeStorage(THEME_STORAGE_KEY, nextTheme);
+  applyTheme(nextTheme, 'manual');
+}
+
+function capitalise(value) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function applyInitialSidebarState() {
+  const collapsed = readStorage(SIDEBAR_STORAGE_KEY) === 'true';
+
+  setSidebarCollapsed(collapsed, false);
+}
+
+function setSidebarCollapsed(collapsed, persist = true) {
+  document.documentElement.classList.toggle('nav-collapsed', collapsed);
+  sidebarCollapse.setAttribute('aria-pressed', String(collapsed));
+  sidebarCollapse.setAttribute('aria-label', collapsed ? 'Expand tool menu' : 'Collapse tool menu');
+  sidebarCollapse.querySelector('.sidebar-action-text').textContent = collapsed ? 'Expand' : 'Collapse';
+
+  if (persist) {
+    writeStorage(SIDEBAR_STORAGE_KEY, String(collapsed));
+  }
+}
+
+function toggleSidebarCollapsed() {
+  setSidebarCollapsed(!document.documentElement.classList.contains('nav-collapsed'));
+}
+
+function resolveRoute() {
+  const hash = window.location.hash.replace('#', '');
+
+  if (!hash || hash === HOME_VIEW) {
+    return { view: HOME_VIEW, tool: null };
+  }
+
+  const hashTool = getToolById(hash);
+
+  if (hashTool && hashTool.status === 'available') {
+    return { view: 'tool', tool: hashTool };
+  }
+
+  return { view: HOME_VIEW, tool: null };
 }
 
 function renderToolList() {
@@ -83,6 +168,25 @@ function renderToolList() {
   let renderedCount = 0;
 
   toolNav.innerHTML = '';
+
+  const homeButton = document.createElement('button');
+  homeButton.type = 'button';
+  homeButton.className = 'tool-item home-item available';
+  homeButton.dataset.viewId = HOME_VIEW;
+  homeButton.dataset.shortLabel = 'HM';
+  homeButton.setAttribute('aria-label', 'Home');
+  homeButton.innerHTML = `
+    <span class="tool-item-title">Home</span>
+    <span class="tool-item-summary">Browse every local utility by category.</span>
+    <span class="tool-item-status">Overview</span>
+  `;
+
+  if (activeView === HOME_VIEW) {
+    homeButton.setAttribute('aria-current', 'page');
+  }
+
+  homeButton.addEventListener('click', selectHome);
+  toolNav.append(homeButton);
 
   categories.forEach(category => {
     const tools = TOOL_CATALOGUE.filter(tool => tool.category === category && matchesToolSearch(tool, searchTerm));
@@ -108,10 +212,13 @@ function renderToolList() {
       button.type = 'button';
       button.className = `tool-item ${tool.status === 'available' ? 'available' : 'planned'}`;
       button.dataset.toolId = tool.id;
+      button.dataset.shortLabel = getCompactLabel(tool.title);
       button.disabled = tool.status !== 'available';
       button.setAttribute('aria-disabled', String(tool.status !== 'available'));
+      button.setAttribute('aria-label', `${tool.title}, ${tool.status === 'available' ? 'available' : 'planned'}`);
+      button.title = tool.title;
 
-      if (tool.id === activeTool.id) {
+      if (activeTool && tool.id === activeTool.id) {
         button.setAttribute('aria-current', 'page');
       }
 
@@ -140,6 +247,21 @@ function renderToolList() {
   }
 }
 
+function getCompactLabel(title) {
+  const words = title
+    .replace(/&/g, ' ')
+    .split(/[^A-Za-z0-9]+/)
+    .filter(Boolean);
+
+  return words.slice(0, 2).map(word => word.charAt(0)).join('').toUpperCase() || 'TL';
+}
+
+function selectHome() {
+  history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+  closeNavigation();
+  renderRoute({ view: HOME_VIEW, tool: null });
+}
+
 function selectTool(toolId) {
   const nextTool = getToolById(toolId);
 
@@ -147,18 +269,88 @@ function selectTool(toolId) {
     return;
   }
 
-  activeTool = nextTool;
   history.replaceState(null, '', `#${nextTool.id}`);
   closeNavigation();
-  renderToolList();
-  renderActiveTool();
+  renderRoute({ view: 'tool', tool: nextTool });
 }
 
-function renderActiveTool() {
+function renderRoute(route) {
+  activeView = route.view;
+  activeTool = route.tool;
+  renderToolList();
+
+  if (route.view === HOME_VIEW) {
+    renderHome();
+  } else {
+    renderActiveTool();
+  }
+}
+
+function resetActiveTool() {
   if (activeCleanup) {
     activeCleanup();
     activeCleanup = null;
   }
+
+  toolMount.innerHTML = '';
+}
+
+function renderHome() {
+  resetActiveTool();
+
+  const availableTools = getAvailableTools();
+
+  activeToolCategory.textContent = 'Overview';
+  activeToolStatus.textContent = `${availableTools.length} tools`;
+  activeToolTitle.textContent = 'Developer Tools';
+  activeToolSummary.textContent = 'Choose a browser-only utility or scan the catalogue by category.';
+
+  const homeBoard = document.createElement('div');
+  homeBoard.className = 'home-board';
+
+  const summary = document.createElement('div');
+  summary.className = 'home-summary';
+  summary.innerHTML = `
+    <div class="home-summary-card">
+      <span>Available now</span>
+      <strong>${availableTools.length}</strong>
+    </div>
+    <div class="home-summary-card">
+      <span>Categories</span>
+      <strong>${getCategories().length}</strong>
+    </div>
+    <div class="home-summary-card">
+      <span>Runtime</span>
+      <strong>Browser only</strong>
+    </div>
+  `;
+  homeBoard.append(summary);
+
+  getCategories().forEach(category => {
+    const categoryTools = TOOL_CATALOGUE.filter(tool => tool.category === category);
+    const section = document.createElement('section');
+    section.className = 'home-category';
+
+    const heading = document.createElement('h3');
+    heading.textContent = category;
+    section.append(heading);
+
+    const grid = document.createElement('div');
+    grid.className = 'home-tool-grid';
+
+    categoryTools.forEach(tool => {
+      grid.append(createHomeToolCard(tool));
+    });
+
+    section.append(grid);
+    homeBoard.append(section);
+  });
+
+  toolMount.append(homeBoard);
+}
+
+function renderActiveTool() {
+  resetActiveTool();
 
   const renderer = renderers[activeTool.renderer];
 
@@ -166,8 +358,6 @@ function renderActiveTool() {
   activeToolStatus.textContent = 'Available';
   activeToolTitle.textContent = activeTool.title;
   activeToolSummary.textContent = activeTool.summary;
-  toolMount.innerHTML = '';
-
   if (!renderer) {
     const unavailable = document.createElement('div');
     unavailable.className = 'tool-board';
@@ -177,6 +367,35 @@ function renderActiveTool() {
   }
 
   activeCleanup = renderer(toolMount);
+}
+
+function createHomeToolCard(tool) {
+  const card = document.createElement('button');
+  card.type = 'button';
+  card.className = `home-tool-card ${tool.status === 'available' ? 'available' : 'planned'}`;
+  card.dataset.homeToolId = tool.id;
+  card.disabled = tool.status !== 'available';
+  card.setAttribute('aria-disabled', String(tool.status !== 'available'));
+
+  const title = document.createElement('span');
+  title.className = 'home-tool-title';
+  title.textContent = tool.title;
+
+  const summary = document.createElement('span');
+  summary.className = 'home-tool-summary';
+  summary.textContent = tool.summary;
+
+  const status = document.createElement('span');
+  status.className = 'home-tool-status';
+  status.textContent = tool.status === 'available' ? 'Available' : 'Planned';
+
+  card.append(title, summary, status);
+
+  if (tool.status === 'available') {
+    card.addEventListener('click', () => selectTool(tool.id));
+  }
+
+  return card;
 }
 
 function openNavigation() {
@@ -202,6 +421,8 @@ function toggleNavigation() {
 toolSearch.addEventListener('input', renderToolList);
 navToggle.addEventListener('click', toggleNavigation);
 navBackdrop.addEventListener('click', closeNavigation);
+themeToggle.addEventListener('click', toggleTheme);
+sidebarCollapse.addEventListener('click', toggleSidebarCollapsed);
 
 window.addEventListener('keydown', event => {
   if (event.key === 'Escape') {
@@ -210,14 +431,21 @@ window.addEventListener('keydown', event => {
 });
 
 window.addEventListener('hashchange', () => {
-  const hashTool = getToolById(window.location.hash.replace('#', ''));
+  renderRoute(resolveRoute());
+});
 
-  if (hashTool && hashTool.status === 'available' && hashTool.id !== activeTool.id) {
-    activeTool = hashTool;
-    renderToolList();
-    renderActiveTool();
+const systemThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+systemThemeQuery.addEventListener('change', event => {
+  if (!selectedTheme) {
+    applyTheme(event.matches ? 'dark' : 'light', 'system');
   }
 });
 
-renderToolList();
-renderActiveTool();
+if (selectedTheme !== 'light' && selectedTheme !== 'dark') {
+  selectedTheme = null;
+}
+
+applyTheme(selectedTheme || resolveSystemTheme());
+applyInitialSidebarState();
+renderRoute(resolveRoute());

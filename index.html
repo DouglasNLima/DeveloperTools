@@ -22,10 +22,23 @@
     </header>
 
     <aside id="toolSidebar" class="sidebar" aria-label="Tool menu">
-      <div class="brand">
-        <p class="app-kicker">Local suite</p>
-        <h1>Developer Tools</h1>
-        <p>Fast utilities for technical work, running entirely in your browser.</p>
+      <div class="sidebar-top">
+        <div class="brand">
+          <p class="app-kicker">Local suite</p>
+          <h1>Developer Tools</h1>
+          <p>Fast utilities for technical work, running entirely in your browser.</p>
+        </div>
+
+        <div class="sidebar-controls" aria-label="Display options">
+          <button id="themeToggle" class="sidebar-action" type="button" aria-label="Use dark theme">
+            <span class="sidebar-action-icon" aria-hidden="true">T</span>
+            <span class="sidebar-action-text">Dark theme</span>
+          </button>
+          <button id="sidebarCollapse" class="sidebar-action sidebar-collapse-button" type="button" aria-label="Collapse tool menu" aria-pressed="false">
+            <span class="sidebar-action-icon" aria-hidden="true">C</span>
+            <span class="sidebar-action-text">Collapse</span>
+          </button>
+        </div>
       </div>
 
       <div class="search-field">
@@ -41,11 +54,11 @@
     <main class="workspace">
       <section class="workspace-header" aria-labelledby="activeToolTitle">
         <div class="workspace-meta">
-          <p id="activeToolCategory" class="eyebrow">Encoding &amp; files</p>
-          <span id="activeToolStatus" class="status-pill">Available</span>
+          <p id="activeToolCategory" class="eyebrow">Overview</p>
+          <span id="activeToolStatus" class="status-pill">Local first</span>
         </div>
-        <h2 id="activeToolTitle">Base64 to file</h2>
-        <p id="activeToolSummary">Paste Base64 content and create a downloadable local file.</p>
+        <h2 id="activeToolTitle">Developer Tools</h2>
+        <p id="activeToolSummary">Choose a browser-only utility or scan the catalogue by category.</p>
       </section>
 
       <section id="toolMount" class="tool-mount" aria-live="polite"></section>

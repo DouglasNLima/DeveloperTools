@@ -1,12 +1,37 @@
 import { expect, test } from '@playwright/test';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 
+test('renders the home overview and opens tools from catalogue cards', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
+  await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('[data-home-tool-id="json-formatter"]')).toBeVisible();
+
+  await page.locator('[data-home-tool-id="json-formatter"]').click();
+
+  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="json-formatter"]')).toHaveAttribute('aria-current', 'page');
+});
+
+test('preserves direct tool links and falls back to home for unknown hashes', async ({ page }) => {
+  await page.goto('/#url-codec');
+
+  await expect(page.getByRole('heading', { name: 'URL & query string helper' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="url-codec"]')).toHaveAttribute('aria-current', 'page');
+
+  await page.goto('/#missing-tool');
+
+  await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
+  await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
+});
+
 test('searches the sidebar and switches between available tools', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'Base64 to file' })).toBeVisible();
-  await expect(page.locator('[data-tool-id="base64-to-file"]')).toHaveAttribute('aria-current', 'page');
-  await expect(page.getByRole('heading', { name: 'Power Platform' })).toBeVisible();
+  await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
+  await expect(page.locator('#toolNav').getByRole('heading', { name: 'Power Platform' })).toBeVisible();
 
   await page.getByLabel('Search tools').fill('jwt');
   await expect(page.locator('[data-tool-id="jwt-decoder"]')).toBeVisible();
@@ -20,6 +45,59 @@ test('searches the sidebar and switches between available tools', async ({ page 
 
   await expect(page.getByRole('heading', { name: 'File to Base64' })).toBeVisible();
   await expect(page.locator('[data-tool-id="file-to-base64"]')).toHaveAttribute('aria-current', 'page');
+});
+
+test('returns to home from the menu and keeps search available', async ({ page }) => {
+  await page.goto('/#jwt-decoder');
+
+  await page.locator('[data-view-id="home"]').click();
+
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
+  await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
+
+  await page.getByLabel('Search tools').fill('Power Platform');
+
+  await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
+});
+
+test('collapses the desktop tool menu and persists compact navigation', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await expect(page.locator('html')).not.toHaveClass(/nav-collapsed/);
+  await page.getByRole('button', { name: 'Collapse tool menu' }).click();
+
+  await expect(page.locator('html')).toHaveClass(/nav-collapsed/);
+  await expect(page.getByRole('button', { name: 'Expand tool menu' })).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => window.localStorage.getItem('developer-tools-sidebar-collapsed'))).toBe('true');
+
+  await page.reload();
+
+  await expect(page.locator('html')).toHaveClass(/nav-collapsed/);
+  await page.locator('[data-tool-id="url-codec"]').click();
+
+  await expect(page.getByRole('heading', { name: 'URL & query string helper' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="url-codec"]')).toHaveAttribute('aria-current', 'page');
+});
+
+test('uses the system theme until the theme toggle stores a manual choice', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await page.goto('/');
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme-source', 'system');
+
+  await page.getByRole('button', { name: 'Use light theme' }).click();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('html')).toHaveAttribute('data-theme-source', 'manual');
+  expect(await page.evaluate(() => window.localStorage.getItem('developer-tools-theme'))).toBe('light');
+
+  await page.reload();
+
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await expect(page.getByRole('button', { name: 'Use dark theme' })).toBeVisible();
 });
 
 test('finds Power Platform tools in the sidebar', async ({ page }) => {
@@ -993,7 +1071,7 @@ test('opens and closes the mobile tool menu', async ({ page }) => {
 });
 
 test('creates a downloadable file from Base64 and reports validation errors', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/#base64-to-file');
 
   await page.getByLabel('Base64 content').fill('data:application/json;base64,eyJvayI6dHJ1ZX0=');
   await page.getByLabel('File name override').fill('sample');
