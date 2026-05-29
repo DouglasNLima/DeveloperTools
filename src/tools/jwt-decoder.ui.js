@@ -1,4 +1,5 @@
 import { decodeJwt } from './jwt-decoder.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderJwtDecoder(container) {
   container.innerHTML = `
@@ -91,6 +92,8 @@ export function renderJwtDecoder(container) {
   const warningsDetail = container.querySelector('#jwtWarningsDetail');
   const warningList = container.querySelector('#jwtWarningList');
   const status = container.querySelector('#jwtStatus');
+  const headerHighlight = bindSyntaxHighlight(headerOutput, { language: 'json' });
+  const payloadHighlight = bindSyntaxHighlight(payloadOutput, { language: 'json' });
 
   let currentObjectUrl = null;
   let currentExport = '';
@@ -145,6 +148,8 @@ export function renderJwtDecoder(container) {
   }
 
   function setOutput(result) {
+    headerHighlight.setLanguage('json');
+    payloadHighlight.setLanguage('json');
     headerOutput.value = result.headerJson;
     payloadOutput.value = result.payloadJson;
     currentExport = result.exportJson;
@@ -167,6 +172,8 @@ export function renderJwtDecoder(container) {
       setOutput(result);
       setStatus(buildSuccessMessage('JWT decoded successfully.', result), 'success');
     } catch (error) {
+      headerHighlight.setLanguage('plain');
+      payloadHighlight.setLanguage('plain');
       headerOutput.value = '';
       payloadOutput.value = '';
       currentExport = '';
@@ -199,6 +206,8 @@ export function renderJwtDecoder(container) {
 
   clearButton.addEventListener('click', () => {
     input.value = '';
+    headerHighlight.setLanguage('json');
+    payloadHighlight.setLanguage('json');
     headerOutput.value = '';
     payloadOutput.value = '';
     currentExport = '';
@@ -209,7 +218,11 @@ export function renderJwtDecoder(container) {
     input.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    headerHighlight.destroy();
+    payloadHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(message, result) {

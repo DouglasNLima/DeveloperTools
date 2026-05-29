@@ -1,4 +1,5 @@
 import { formatPowerFxSnippet } from './power-fx-formatter.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderPowerFxSnippetFormatter(container) {
   container.innerHTML = `
@@ -75,6 +76,8 @@ export function renderPowerFxSnippetFormatter(container) {
     warnings: container.querySelector('#powerFxWarningsDetail')
   };
   const status = container.querySelector('#powerFxStatus');
+  const inputHighlight = bindSyntaxHighlight(input, { language: 'expression' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'expression' });
 
   let currentObjectUrl = null;
 
@@ -129,6 +132,7 @@ export function renderPowerFxSnippetFormatter(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage('expression');
     output.value = result.output;
     copyButton.disabled = false;
     setDetails(result);
@@ -149,6 +153,7 @@ export function renderPowerFxSnippetFormatter(container) {
       setOutput(result);
       setStatus(buildSuccessMessage(result), 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -179,6 +184,7 @@ export function renderPowerFxSnippetFormatter(container) {
   copyButton.addEventListener('click', copyOutput);
   clearButton.addEventListener('click', () => {
     input.value = '';
+    outputHighlight.setLanguage('expression');
     output.value = '';
     copyButton.disabled = true;
     revokeObjectUrl();
@@ -187,7 +193,11 @@ export function renderPowerFxSnippetFormatter(container) {
     input.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    inputHighlight.destroy();
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(result) {

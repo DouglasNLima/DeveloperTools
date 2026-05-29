@@ -120,6 +120,7 @@ src/
     regex-tester.ui.js
     support-pack-sanitiser.js
     support-pack-sanitiser.ui.js
+    syntax-highlight.js
     text-diff.js
     text-diff.ui.js
     html-cleaner.js

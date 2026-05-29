@@ -1,4 +1,5 @@
 import { formatPowerAutomateExpression } from './power-automate-expression.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderPowerAutomateExpressionFormatter(container) {
   container.innerHTML = `
@@ -75,6 +76,8 @@ export function renderPowerAutomateExpressionFormatter(container) {
     warnings: container.querySelector('#flowExpressionWarningsDetail')
   };
   const status = container.querySelector('#flowExpressionStatus');
+  const inputHighlight = bindSyntaxHighlight(input, { language: 'expression' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'expression' });
 
   let currentObjectUrl = null;
 
@@ -129,6 +132,7 @@ export function renderPowerAutomateExpressionFormatter(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage('expression');
     output.value = result.output;
     copyButton.disabled = false;
     setDetails(result);
@@ -149,6 +153,7 @@ export function renderPowerAutomateExpressionFormatter(container) {
       setOutput(result);
       setStatus(buildSuccessMessage(result), 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -179,6 +184,7 @@ export function renderPowerAutomateExpressionFormatter(container) {
   copyButton.addEventListener('click', copyOutput);
   clearButton.addEventListener('click', () => {
     input.value = '';
+    outputHighlight.setLanguage('expression');
     output.value = '';
     copyButton.disabled = true;
     revokeObjectUrl();
@@ -187,7 +193,11 @@ export function renderPowerAutomateExpressionFormatter(container) {
     input.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    inputHighlight.destroy();
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(result) {

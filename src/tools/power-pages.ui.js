@@ -1,4 +1,5 @@
 import { buildLiquidFetchXml, formatFetchXml } from './power-pages.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderFetchXmlLiquidBuilder(container) {
   container.innerHTML = `
@@ -68,6 +69,8 @@ export function renderFetchXmlLiquidBuilder(container) {
   const warnings = container.querySelector('#fetchXmlWarnings');
   const outputType = container.querySelector('#powerPagesOutputType');
   const status = container.querySelector('#powerPagesStatus');
+  const inputHighlight = bindSyntaxHighlight(fetchXmlInput, { language: 'xml' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'xml' });
 
   let currentObjectUrl = null;
 
@@ -101,6 +104,7 @@ export function renderFetchXmlLiquidBuilder(container) {
   }
 
   function setOutput(value, type, analysis) {
+    outputHighlight.setLanguage('xml');
     output.value = value;
     copyButton.disabled = false;
     setDetails(analysis, type);
@@ -165,6 +169,7 @@ export function renderFetchXmlLiquidBuilder(container) {
   clearButton.addEventListener('click', () => {
     fetchXmlInput.value = '';
     liquidVariableName.value = '';
+    outputHighlight.setLanguage('xml');
     output.value = '';
     copyButton.disabled = true;
     revokeObjectUrl();
@@ -173,7 +178,11 @@ export function renderFetchXmlLiquidBuilder(container) {
     fetchXmlInput.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    inputHighlight.destroy();
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(message, analysis) {

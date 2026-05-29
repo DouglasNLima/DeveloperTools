@@ -1,4 +1,5 @@
 import { buildCronRruleSchedule, SCHEDULE_FREQUENCIES, WEEKDAYS } from './cron-rrule-builder.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderCronRruleBuilder(container) {
   container.innerHTML = `
@@ -114,6 +115,7 @@ export function renderCronRruleBuilder(container) {
   const warningsDetail = container.querySelector('#scheduleWarningsDetail');
   const sizeDetail = container.querySelector('#scheduleSizeDetail');
   const status = container.querySelector('#scheduleStatus');
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'markdown' });
 
   let currentObjectUrl = null;
 
@@ -143,6 +145,7 @@ export function renderCronRruleBuilder(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage('markdown');
     output.value = result.output;
     copyButton.disabled = false;
     frequencyDetail.textContent = result.frequencyLabel;
@@ -181,6 +184,7 @@ export function renderCronRruleBuilder(container) {
       setOutput(result);
       setStatus('Cron and RRULE schedule built successfully.', 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -221,6 +225,7 @@ export function renderCronRruleBuilder(container) {
       input.checked = input.value === 'MO';
     });
     output.value = '';
+    outputHighlight.setLanguage('markdown');
     copyButton.disabled = true;
     revokeObjectUrl();
     resetDetails();
@@ -228,5 +233,8 @@ export function renderCronRruleBuilder(container) {
     frequency.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }

@@ -1,4 +1,5 @@
 import { buildJsonDiff } from './json-diff.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderJsonDiff(container) {
   container.innerHTML = `
@@ -82,6 +83,9 @@ export function renderJsonDiff(container) {
   const addedRemovedDetail = container.querySelector('#jsonDiffAddedRemovedDetail');
   const changedUnchangedDetail = container.querySelector('#jsonDiffChangedUnchangedDetail');
   const status = container.querySelector('#jsonDiffStatus');
+  const leftHighlight = bindSyntaxHighlight(leftInput, { language: 'json' });
+  const rightHighlight = bindSyntaxHighlight(rightInput, { language: 'json' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'markdown' });
 
   let currentObjectUrl = null;
 
@@ -115,6 +119,7 @@ export function renderJsonDiff(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage(result.outputFormat === 'json' ? 'json' : 'markdown');
     output.value = result.output;
     copyButton.disabled = false;
     setDetails(result);
@@ -140,6 +145,7 @@ export function renderJsonDiff(container) {
       setOutput(result);
       setStatus(result.equal ? 'JSON documents are structurally identical.' : 'JSON diff report created successfully.', 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = error.details?.parseError?.snippet || '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -172,6 +178,7 @@ export function renderJsonDiff(container) {
   clearButton.addEventListener('click', () => {
     leftInput.value = '';
     rightInput.value = '';
+    outputHighlight.setLanguage('markdown');
     output.value = '';
     outputFormat.value = 'markdown';
     sortKeys.checked = true;
@@ -182,5 +189,10 @@ export function renderJsonDiff(container) {
     leftInput.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    leftHighlight.destroy();
+    rightHighlight.destroy();
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }

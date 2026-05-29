@@ -5,6 +5,7 @@ import {
   buildGuidedExpand,
   getEndpointPreset
 } from './dataverse-odata.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderDataverseODataQueryBuilder(container) {
   container.innerHTML = `
@@ -198,6 +199,9 @@ export function renderDataverseODataQueryBuilder(container) {
     warnings: container.querySelector('#odataWarningsDetail')
   };
   const status = container.querySelector('#odataStatus');
+  const selectHighlight = bindSyntaxHighlight(fields.select, { language: 'expression' });
+  const expandHighlight = bindSyntaxHighlight(fields.expand, { language: 'expression' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'markdown' });
 
   let currentObjectUrl = null;
 
@@ -252,6 +256,7 @@ export function renderDataverseODataQueryBuilder(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage('markdown');
     output.value = result.output;
     copyButton.disabled = false;
     setDetails(result);
@@ -283,6 +288,7 @@ export function renderDataverseODataQueryBuilder(container) {
       setOutput(result);
       setStatus(buildSuccessMessage(result), 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -366,6 +372,7 @@ export function renderDataverseODataQueryBuilder(container) {
     fields.maxPageSize.value = '';
     fields.includeCount.checked = false;
     fields.formattedValues.checked = false;
+    outputHighlight.setLanguage('markdown');
     output.value = '';
     copyButton.disabled = true;
     revokeObjectUrl();
@@ -374,7 +381,12 @@ export function renderDataverseODataQueryBuilder(container) {
     fields.entitySetName.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    selectHighlight.destroy();
+    expandHighlight.destroy();
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(result) {

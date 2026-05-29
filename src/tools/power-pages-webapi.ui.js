@@ -1,4 +1,5 @@
 import { buildPowerPagesWebApiSnippet, WEB_API_OPERATIONS } from './power-pages-webapi.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderPowerPagesWebApiSnippetGenerator(container) {
   container.innerHTML = `
@@ -106,6 +107,8 @@ export function renderPowerPagesWebApiSnippetGenerator(container) {
   const settingsCount = container.querySelector('#webApiSiteSettingsCount');
   const warnings = container.querySelector('#webApiWarnings');
   const status = container.querySelector('#webApiSnippetStatus');
+  const payloadHighlight = bindSyntaxHighlight(payloadJson, { language: 'json' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'markdown' });
 
   let currentObjectUrl = null;
 
@@ -139,6 +142,7 @@ export function renderPowerPagesWebApiSnippetGenerator(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage('markdown');
     output.value = result.output;
     copyButton.disabled = false;
     setDetails(result);
@@ -168,6 +172,7 @@ export function renderPowerPagesWebApiSnippetGenerator(container) {
       setOutput(result);
       setStatus(buildSuccessMessage('Power Pages Web API snippet generated successfully.', result), 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -205,6 +210,7 @@ export function renderPowerPagesWebApiSnippetGenerator(container) {
     topRows.value = '';
     filterExpression.value = '';
     payloadJson.value = '';
+    outputHighlight.setLanguage('markdown');
     output.value = '';
     copyButton.disabled = true;
     revokeObjectUrl();
@@ -213,7 +219,11 @@ export function renderPowerPagesWebApiSnippetGenerator(container) {
     entitySetName.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    payloadHighlight.destroy();
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(message, result) {

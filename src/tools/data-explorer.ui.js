@@ -4,6 +4,7 @@ import {
   processDataExplorer
 } from './data-explorer.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 const DATA_EXPLORER_FILE_ACCEPT = '.json,.xml,.txt,application/json,text/xml,application/xml,text/plain';
 
@@ -162,6 +163,8 @@ export function renderDataExplorer(container) {
   let currentObjectUrl = null;
   let currentSourceName = '';
   let unbindDropZone = null;
+  const inputHighlight = bindSyntaxHighlight(input, { language: 'auto' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'json' });
 
   function revokeObjectUrl() {
     if (currentObjectUrl) {
@@ -209,6 +212,7 @@ export function renderDataExplorer(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage('json');
     output.value = result.outputJson;
     copyButton.disabled = false;
     setDetails(result);
@@ -299,6 +303,7 @@ export function renderDataExplorer(container) {
       setOutput(result);
       setStatus(buildSuccessMessage(result), 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -341,6 +346,8 @@ export function renderDataExplorer(container) {
       }
 
       output.value = '';
+      inputHighlight.setLanguage(inputFormat.value === 'xml' ? 'xml' : 'auto');
+      outputHighlight.setLanguage('json');
       copyButton.disabled = true;
       revokeObjectUrl();
       resetDetails();
@@ -407,6 +414,9 @@ export function renderDataExplorer(container) {
     onReject: () => setStatus('Choose a JSON, XML or text file.', 'error')
   });
   inputFormat.addEventListener('change', syncQueryControls);
+  inputFormat.addEventListener('change', () => {
+    inputHighlight.setLanguage(inputFormat.value === 'xml' ? 'xml' : 'auto');
+  });
 
   clearButton.addEventListener('click', () => {
     inputFormat.value = 'auto';
@@ -419,6 +429,8 @@ export function renderDataExplorer(container) {
     sortDirection.value = 'asc';
     limit.value = '';
     selectedColumns.value = '';
+    inputHighlight.setLanguage('auto');
+    outputHighlight.setLanguage('json');
     output.value = '';
     currentSourceName = '';
     copyButton.disabled = true;
@@ -432,6 +444,8 @@ export function renderDataExplorer(container) {
   addFilterRow();
 
   return () => {
+    inputHighlight.destroy();
+    outputHighlight.destroy();
     unbindDropZone?.();
     revokeObjectUrl();
   };

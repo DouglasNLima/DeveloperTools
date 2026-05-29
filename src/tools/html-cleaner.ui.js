@@ -1,4 +1,5 @@
 import { HTML_OUTPUT_FORMATS, processHtmlContent } from './html-cleaner.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderHtmlCleaner(container) {
   container.innerHTML = `
@@ -77,6 +78,7 @@ export function renderHtmlCleaner(container) {
   const referenceCountDetail = container.querySelector('#htmlReferenceCountDetail');
   const warningsDetail = container.querySelector('#htmlWarningsDetail');
   const status = container.querySelector('#htmlCleanerStatus');
+  const inputHighlight = bindSyntaxHighlight(input, { language: 'xml' });
 
   let currentObjectUrl = null;
 
@@ -185,7 +187,10 @@ export function renderHtmlCleaner(container) {
     input.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    inputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function buildSuccessMessage(result) {

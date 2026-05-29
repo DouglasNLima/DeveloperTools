@@ -484,6 +484,27 @@ test('generates JSON shape and schema output from the JSON formatter', async ({ 
   await expect(page.locator('#downloadJsonButton')).toHaveAttribute('download', 'json-schema.json');
 });
 
+test('syntax highlights structured text areas without changing textarea values', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await page.getByLabel('JSON input').fill('{"name":"Ada","active":true}');
+  await expect(page.locator('[data-syntax-editor-for="jsonInput"] .syntax-token--key').first()).toHaveText('"name"');
+  await expect(page.locator('[data-syntax-editor-for="jsonInput"] .syntax-token--literal').first()).toHaveText('true');
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+  await expect(page.locator('[data-syntax-editor-for="jsonOutput"] .syntax-token--key').first()).toHaveText('"name"');
+  await expect(page.locator('#jsonOutput')).toHaveValue(/"active": true/);
+
+  await page.goto('/#fetchxml-liquid-builder');
+  await page.getByLabel('FetchXML input').fill('<fetch><entity name="account" /></fetch>');
+  await expect(page.locator('[data-syntax-editor-for="fetchXmlInput"] .syntax-token--tag').first()).toHaveText('fetch');
+  await expect(page.locator('[data-syntax-editor-for="fetchXmlInput"] .syntax-token--attribute').first()).toHaveText('name');
+
+  await page.goto('/#power-automate-expression-formatter');
+  await page.getByLabel('Expression input').fill("@{concat(variables('name'), ' ok')}");
+  await expect(page.locator('[data-syntax-editor-for="flowExpressionInput"] .syntax-token--function').first()).toHaveText('concat');
+  await expect(page.locator('#flowExpressionInput')).toHaveValue("@{concat(variables('name'), ' ok')}");
+});
+
 test('reports JSON formatter validation errors with context', async ({ page }) => {
   await page.goto('/#json-formatter');
 

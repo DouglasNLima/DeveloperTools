@@ -1,4 +1,5 @@
 import { generateJsonShape, JSON_SCHEMA_OUTPUT_FORMATS, processJson } from './json-formatter.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderJsonFormatter(container) {
   container.innerHTML = `
@@ -86,6 +87,8 @@ export function renderJsonFormatter(container) {
   const depthDetail = container.querySelector('#jsonDepthDetail');
   const structureDetail = container.querySelector('#jsonStructureDetail');
   const status = container.querySelector('#jsonStatus');
+  const inputHighlight = bindSyntaxHighlight(input, { language: 'json' });
+  const outputHighlight = bindSyntaxHighlight(output, { language: 'json' });
 
   let currentObjectUrl = null;
 
@@ -127,6 +130,7 @@ export function renderJsonFormatter(container) {
   }
 
   function setOutput(result) {
+    outputHighlight.setLanguage(resolveJsonOutputLanguage(result));
     output.value = result.output;
     copyButton.disabled = false;
     setValidDetails(result);
@@ -152,6 +156,7 @@ export function renderJsonFormatter(container) {
       setOutput(result);
       setStatus(`${result.outputType} created successfully.`, 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = error.details?.snippet || '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -169,6 +174,7 @@ export function renderJsonFormatter(container) {
       setOutput(result);
       setStatus(`${result.outputType} generated successfully.`, 'success');
     } catch (error) {
+      outputHighlight.setLanguage('plain');
       output.value = error.details?.snippet || '';
       copyButton.disabled = true;
       revokeObjectUrl();
@@ -201,6 +207,7 @@ export function renderJsonFormatter(container) {
 
   clearButton.addEventListener('click', () => {
     input.value = '';
+    outputHighlight.setLanguage('json');
     output.value = '';
     indent.value = '2';
     schemaOutputFormat.value = 'markdown';
@@ -212,7 +219,11 @@ export function renderJsonFormatter(container) {
     input.focus();
   });
 
-  return () => revokeObjectUrl();
+  return () => {
+    inputHighlight.destroy();
+    outputHighlight.destroy();
+    revokeObjectUrl();
+  };
 }
 
 function resolveJsonDownload(result) {
@@ -234,4 +245,12 @@ function resolveJsonDownload(result) {
     fileName: result.mode === 'minify' ? 'minified-json.json' : 'formatted-json.json',
     mimeType: 'application/json;charset=utf-8'
   };
+}
+
+function resolveJsonOutputLanguage(result) {
+  if (result.outputType === 'Markdown contract') {
+    return 'markdown';
+  }
+
+  return 'json';
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v3';
+const CACHE_NAME = 'developer-tools-static-v4';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -57,6 +57,7 @@ const PRECACHE_URLS = [
   './src/tools/regex-tester.ui.js',
   './src/tools/support-pack-sanitiser.js',
   './src/tools/support-pack-sanitiser.ui.js',
+  './src/tools/syntax-highlight.js',
   './src/tools/text-diff.js',
   './src/tools/text-diff.ui.js',
   './src/tools/url-codec.js',
