@@ -38,8 +38,30 @@ const HANDOVER_TRANSFORMS = {
   'json-records-to-csv': {
     kind: 'text',
     apply: transformJsonRecordsToCsv
+  },
+  'pdf-fields-to-csv': {
+    kind: 'text',
+    apply: transformPdfFieldsToCsv
   }
 };
+
+const PDF_FIELD_CSV_COLUMNS = [
+  { label: 'Page', path: 'page' },
+  { label: 'Name', path: 'name' },
+  { label: 'Type', path: 'type' },
+  { label: 'Value', path: 'value' },
+  { label: 'DefaultValue', path: 'defaultValue' },
+  { label: 'AlternativeText', path: 'alternativeText' },
+  { label: 'PdfX1', path: 'rect.pdf.x1' },
+  { label: 'PdfY1', path: 'rect.pdf.y1' },
+  { label: 'PdfX2', path: 'rect.pdf.x2' },
+  { label: 'PdfY2', path: 'rect.pdf.y2' },
+  { label: 'ViewportX', path: 'rect.viewport.x' },
+  { label: 'ViewportY', path: 'rect.viewport.y' },
+  { label: 'ViewportWidth', path: 'rect.viewport.width' },
+  { label: 'ViewportHeight', path: 'rect.viewport.height' },
+  { label: 'RawAnnotationId', path: 'rawAnnotationId' }
+];
 
 export function getToolIntegrationContract(toolId, contracts = TOOL_INTEGRATION_CONTRACTS) {
   return contracts.find(contract => contract.toolId === toolId) || null;
@@ -949,6 +971,39 @@ function formatCsvValue(value) {
   }
 
   return String(value);
+}
+
+function transformPdfFieldsToCsv(value) {
+  let exportPayload;
+
+  try {
+    exportPayload = JSON.parse(String(value ?? ''));
+  } catch {
+    return '';
+  }
+
+  const fields = Array.isArray(exportPayload?.fields) ? exportPayload.fields : [];
+
+  if (fields.length === 0 || fields.some(field => !isPlainObject(field))) {
+    return '';
+  }
+
+  return [
+    PDF_FIELD_CSV_COLUMNS.map(column => serialiseCsvCell(column.label)).join(','),
+    ...fields.map(field => (
+      PDF_FIELD_CSV_COLUMNS.map(column => serialiseCsvCell(readObjectPath(field, column.path))).join(',')
+    ))
+  ].join('\n');
+}
+
+function readObjectPath(value, path) {
+  return String(path || '')
+    .split('.')
+    .reduce((currentValue, segment) => (
+      currentValue && Object.prototype.hasOwnProperty.call(currentValue, segment)
+        ? currentValue[segment]
+        : ''
+    ), value);
 }
 
 function escapeSelectorId(id) {

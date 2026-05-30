@@ -8,7 +8,8 @@ const JSON_SOURCE_PORTS = [
   { toolId: 'regex-tester', outputId: 'output' },
   { toolId: 'text-diff', outputId: 'output' },
   { toolId: 'jwt-decoder', outputId: 'header' },
-  { toolId: 'jwt-decoder', outputId: 'payload' }
+  { toolId: 'jwt-decoder', outputId: 'payload' },
+  { toolId: 'pdf-template-field-explorer', outputId: 'fields-json' }
 ];
 
 const TEXT_HANDOVER_ROUTES = [
@@ -324,6 +325,19 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         id: 'payload',
         selector: '#jwtPayloadOutput',
         label: 'Decoded payload',
+        mediaType: 'application/json',
+        kind: 'json'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'pdf-template-field-explorer',
+    outputs: [
+      {
+        id: 'fields-json',
+        selector: '#pdfFieldsJsonOutput',
+        label: 'Field mapping JSON',
         mediaType: 'application/json',
         kind: 'json'
       }
@@ -656,6 +670,17 @@ export const TOOL_HANDOVER_ROUTES = [
     description: 'Transform this JSON output into CSV input for the CSV/TSV helper.',
     transform: 'json-records-to-csv'
   },
+  {
+    id: 'pdf-template-field-explorer-fields-json-to-csv-tsv-helper-input',
+    sourceToolId: 'pdf-template-field-explorer',
+    sourceOutputId: 'fields-json',
+    targetToolId: 'csv-tsv-helper',
+    targetInputId: 'input',
+    acceptKinds: ['text'],
+    label: 'Convert fields to CSV',
+    description: 'Transform the exported field mapping into CSV input for the CSV/TSV helper.',
+    transform: 'pdf-fields-to-csv'
+  },
   ...TEXT_HANDOVER_ROUTES,
   {
     id: 'file-to-base64-output-to-base64-to-file-content',
@@ -710,6 +735,15 @@ function getRouteSetFields(source, target) {
       {
         selector: '#dataExplorerRecordPath',
         value: 'changes'
+      }
+    ];
+  }
+
+  if (source.toolId === 'pdf-template-field-explorer') {
+    return [
+      {
+        selector: '#dataExplorerRecordPath',
+        value: 'fields'
       }
     ];
   }

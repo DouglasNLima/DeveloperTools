@@ -123,6 +123,7 @@ export function renderPdfTemplateFieldExplorer(container) {
       </div>
 
       <div id="pdfTemplateStatus" class="status-message" role="status" aria-live="polite">Ready.</div>
+      <textarea id="pdfFieldsJsonOutput" hidden readonly aria-hidden="true"></textarea>
     </form>
   `;
 
@@ -149,6 +150,7 @@ export function renderPdfTemplateFieldExplorer(container) {
   const fieldCount = container.querySelector('#pdfFieldCount');
   const selectedFieldDetail = container.querySelector('#pdfSelectedFieldDetail');
   const status = container.querySelector('#pdfTemplateStatus');
+  const handoverOutput = container.querySelector('#pdfFieldsJsonOutput');
 
   const state = {
     pdf: null,
@@ -163,6 +165,19 @@ export function renderPdfTemplateFieldExplorer(container) {
   function setStatus(message, type) {
     status.textContent = message;
     status.className = `status-message${type ? ` ${type}` : ''}`;
+  }
+
+  function syncHandoverOutput() {
+    handoverOutput.value = state.pdf && state.fields.length > 0
+      ? buildFieldsJsonExport({
+          fields: state.fields,
+          fileName: state.fileName,
+          pageCount: state.pdf?.numPages || 0
+        })
+      : '';
+
+    handoverOutput.dispatchEvent(new Event('input', { bubbles: true }));
+    handoverOutput.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   function setControlsEnabled(enabled) {
@@ -315,6 +330,7 @@ export function renderPdfTemplateFieldExplorer(container) {
       state.fileName = '';
       state.fields = [];
       viewer.innerHTML = emptyState('Unable to read this PDF', 'The file may not be a valid PDF or may use unsupported form features.');
+      syncHandoverOutput();
       setStatus(error.message || 'Unable to load this PDF.', 'error');
     } finally {
       updateSummary();
@@ -383,6 +399,8 @@ export function renderPdfTemplateFieldExplorer(container) {
     if (state.fields.length === 0) {
       viewer.innerHTML = emptyState('No fillable fields found', 'This PDF loaded, but PDF.js did not report AcroForm field annotations.');
     }
+
+    syncHandoverOutput();
   }
 
   function createFieldOverlay(field) {

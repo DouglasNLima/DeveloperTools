@@ -35,6 +35,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'csv-tsv-helper'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-pages-web-api-snippets'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'fetchxml-liquid-builder'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'pdf-template-field-explorer'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-automate-expression-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-fx-snippet-formatter'));
@@ -49,6 +50,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-web-api-snippets' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'safeajax-to-fetch'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-web-api-snippets' && route.targetToolId === 'url-codec' && route.transform === 'extract-webapi-endpoint'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'csv-tsv-helper' && route.transform === 'json-records-to-csv'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'pdf-template-field-explorer' && route.targetToolId === 'csv-tsv-helper' && route.transform === 'pdf-fields-to-csv'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'data-explorer' && route.targetInputId === 'xml'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.transform === 'extract-liquid-fetchxml'));
@@ -156,6 +158,48 @@ test('transforms targeted handover payloads before suggestions are shown', () =>
     valid: false,
     reason: 'empty-transform'
   });
+
+  const pdfFieldsCsv = transformHandoverValue(JSON.stringify({
+    fileName: 'template.pdf',
+    pageCount: 1,
+    fieldCount: 1,
+    fields: [
+      {
+        page: 1,
+        name: 'customer,name',
+        type: 'Tx',
+        value: 'Contoso',
+        defaultValue: '',
+        alternativeText: 'Customer name',
+        rect: {
+          pdf: {
+            x1: 10,
+            y1: 20,
+            x2: 210,
+            y2: 40
+          },
+          viewport: {
+            x: 10.12,
+            y: 20.11,
+            width: 200.86,
+            height: 20.35
+          }
+        },
+        rawAnnotationId: 'field-1'
+      }
+    ]
+  }), 'pdf-fields-to-csv');
+  assert.equal(pdfFieldsCsv.valid, true);
+  assert.equal(pdfFieldsCsv.kind, 'text');
+  assert.equal(pdfFieldsCsv.rawValue, [
+    'Page,Name,Type,Value,DefaultValue,AlternativeText,PdfX1,PdfY1,PdfX2,PdfY2,ViewportX,ViewportY,ViewportWidth,ViewportHeight,RawAnnotationId',
+    '1,"customer,name",Tx,Contoso,,Customer name,10,20,210,40,10.12,20.11,200.86,20.35,field-1'
+  ].join('\n'));
+
+  assert.deepEqual(transformHandoverValue('{"fields":[]}', 'pdf-fields-to-csv'), {
+    valid: false,
+    reason: 'empty-transform'
+  });
 });
 
 test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
@@ -247,7 +291,8 @@ test('resolves suggestions for additional JSON report sources', () => {
     ['url-codec', 'urlOutput'],
     ['regex-tester', 'regexOutput'],
     ['text-diff', 'textDiffOutput'],
-    ['jwt-decoder', 'jwtHeaderOutput']
+    ['jwt-decoder', 'jwtHeaderOutput'],
+    ['pdf-template-field-explorer', 'pdfFieldsJsonOutput']
   ]) {
     const root = createRoot([
       createControl({ id: outputId, tagName: 'TEXTAREA', value: '{"ok":true}' })
@@ -270,7 +315,107 @@ test('resolves suggestions for additional JSON report sources', () => {
         }
       ]);
     }
+
+    if (toolId === 'pdf-template-field-explorer') {
+      const dataExplorerSuggestion = suggestions.find(suggestion => suggestion.label === 'Explore JSON records');
+      assert.deepEqual(dataExplorerSuggestion.setFields, [
+        {
+          selector: '#dataExplorerRecordPath',
+          value: 'fields'
+        }
+      ]);
+    }
   }
+});
+
+test('resolves PDF field mapping handover sources', () => {
+  const root = createRoot([
+    createControl({
+      id: 'pdfFieldsJsonOutput',
+      tagName: 'TEXTAREA',
+      value: JSON.stringify({
+        fileName: 'template.pdf',
+        pageCount: 1,
+        fieldCount: 2,
+        fields: [
+          {
+            page: 1,
+            name: 'customer_name',
+            type: 'Tx',
+            value: 'Contoso',
+            defaultValue: '',
+            alternativeText: 'Customer name',
+            rect: {
+              pdf: {
+                x1: 10,
+                y1: 20,
+                x2: 210,
+                y2: 40
+              },
+              viewport: {
+                x: 10,
+                y: 20,
+                width: 200,
+                height: 20
+              }
+            },
+            rawAnnotationId: 'field-1'
+          },
+          {
+            page: 1,
+            name: 'newsletter_opt_in',
+            type: 'Btn',
+            value: '',
+            defaultValue: '',
+            alternativeText: 'Newsletter opt in',
+            rect: {
+              pdf: {
+                x1: 20,
+                y1: 60,
+                x2: 40,
+                y2: 80
+              },
+              viewport: {
+                x: 20,
+                y: 60,
+                width: 20,
+                height: 20
+              }
+            },
+            rawAnnotationId: 'field-2'
+          }
+        ]
+      })
+    })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'pdf-template-field-explorer',
+    root,
+    availableTools: ['json-formatter', 'data-explorer', 'csv-tsv-helper']
+  });
+
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Format JSON'));
+  const explorerSuggestion = suggestions.find(suggestion => suggestion.label === 'Explore JSON records');
+  assert.equal(explorerSuggestion.kind, 'json');
+  assert.deepEqual(explorerSuggestion.setFields, [
+    {
+      selector: '#dataExplorerRecordPath',
+      value: 'fields'
+    }
+  ]);
+
+  const csvSuggestion = suggestions.find(suggestion => suggestion.label === 'Convert fields to CSV');
+  assert.equal(csvSuggestion.kind, 'text');
+  assert.match(csvSuggestion.value, /^Page,Name,Type,Value/);
+  assert.match(csvSuggestion.value, /customer_name/);
+  assert.match(csvSuggestion.value, /newsletter_opt_in/);
+
+  root.controls[0].value = '';
+  assert.deepEqual(resolveHandoverSuggestions({
+    sourceToolId: 'pdf-template-field-explorer',
+    root,
+    availableTools: ['json-formatter', 'data-explorer', 'csv-tsv-helper']
+  }), []);
 });
 
 test('resolves suggestions for text handover sources', () => {

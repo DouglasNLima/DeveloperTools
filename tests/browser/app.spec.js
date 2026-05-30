@@ -1422,6 +1422,7 @@ test('loads a fillable PDF template and exports field mappings', async ({ page }
   await page.goto('/#pdf-template-field-explorer');
 
   await expect(page.getByRole('heading', { name: 'PDF Template Field Explorer' })).toBeVisible();
+  await expect(page.locator('#toolHandover')).toBeHidden();
   await page.setInputFiles('#pdfTemplateFileInput', {
     name: 'template.pdf',
     mimeType: 'application/pdf',
@@ -1443,6 +1444,55 @@ test('loads a fillable PDF template and exports field mappings', async ({ page }
   await expect(page.locator('#pdfSelectedFieldDetail')).toHaveText('newsletter_opt_in');
   await expect(page.locator('#copyPdfSelectedJsonButton')).toBeEnabled();
   await expect(page.locator('#exportPdfFieldsJsonButton')).toBeEnabled();
+  await expect(page.locator('#toolHandover').getByRole('button', { name: /Field mapping JSON: Explore JSON records/ })).toBeVisible();
+});
+
+test('hands PDF field mappings to Data Explorer', async ({ page }) => {
+  await page.goto('/#pdf-template-field-explorer');
+
+  await page.setInputFiles('#pdfTemplateFileInput', {
+    name: 'template.pdf',
+    mimeType: 'application/pdf',
+    buffer: await createFillablePdf()
+  });
+  await expect(page.getByRole('status')).toContainText('PDF loaded successfully.');
+  await page.locator('#toolHandover').getByRole('button', { name: /Field mapping JSON: Explore JSON records/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('json');
+  await expect(page.getByLabel('JSON record path')).toHaveValue('fields');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"fieldCount": 2/);
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"name": "customer_name"/);
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.locator('#dataExplorerPathDetail')).toHaveText('$.fields');
+  await expect(page.locator('#dataExplorerResultsDetail')).toHaveText('2');
+  await expect(page.locator('#dataExplorerOutput')).toHaveValue(/"name": "customer_name"/);
+});
+
+test('hands PDF field mappings to the CSV helper', async ({ page }) => {
+  await page.goto('/#pdf-template-field-explorer');
+
+  await page.setInputFiles('#pdfTemplateFileInput', {
+    name: 'template.pdf',
+    mimeType: 'application/pdf',
+    buffer: await createFillablePdf()
+  });
+  await expect(page.getByRole('status')).toContainText('PDF loaded successfully.');
+  await page.locator('#toolHandover').getByRole('button', { name: /Field mapping JSON: Convert fields to CSV/ }).click();
+
+  await expect(page).toHaveURL(/#csv-tsv-helper$/);
+  await expect(page.getByLabel('Delimiter')).toHaveValue('comma');
+  await expect(page.getByLabel('Output format')).toHaveValue('csv');
+  await expect(page.getByLabel('First row contains headers')).toBeChecked();
+  await expect(page.getByLabel('CSV/TSV input')).toHaveValue(/^Page,Name,Type,Value/);
+  await expect(page.getByLabel('CSV/TSV input')).toHaveValue(/customer_name/);
+  await expect(page.getByLabel('CSV/TSV input')).toHaveValue(/newsletter_opt_in/);
+
+  await page.getByRole('button', { name: 'Process data', exact: true }).click();
+  await expect(page.locator('#csvRowsDetail')).toHaveText('3 total / 2 data');
+  await expect(page.locator('#csvOutputTypeDetail')).toHaveText('CSV');
+  await expect(page.locator('#csvOutput')).toHaveValue(/customer_name/);
 });
 
 test('decodes JWT claims and reports local verification warnings', async ({ page }) => {
