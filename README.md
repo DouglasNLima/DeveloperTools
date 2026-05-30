@@ -58,7 +58,7 @@ npm run test:unit
 npm run test:browser
 ```
 
-Tools that produce compatible JSON, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff and JWT tools can move into JSON tools; sanitised text, cleaned HTML and converted case output can move into text tools; Base64 file output can move into the file creator. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
+Tools that produce compatible JSON, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff and JWT tools can move into JSON tools; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the file creator. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 

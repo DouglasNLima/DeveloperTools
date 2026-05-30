@@ -23,7 +23,19 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('html-cleaner-converter', 'output', 'support-pack-sanitiser', 'input', 'Sanitise text', 'Use this output as input for the support pack sanitiser.'),
   createTextRoute('case-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('case-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
-  createTextRoute('case-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.')
+  createTextRoute('case-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('curl-fetch-converter', 'output', 'support-pack-sanitiser', 'input', 'Sanitise request', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('curl-fetch-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
+  createTextRoute('curl-fetch-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('curl-fetch-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('power-pages-web-api-snippets', 'output', 'support-pack-sanitiser', 'input', 'Sanitise snippet', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('power-platform-cli-command-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise command', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('power-platform-cli-command-builder', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('power-platform-cli-command-builder', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.')
 ];
 
 const GENERIC_JSON_TARGETS = [
@@ -334,6 +346,78 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         kind: 'text'
       }
     ]
+  },
+  {
+    toolId: 'curl-fetch-converter',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#curlFetchOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#curlFetchInput',
+        label: 'Request input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
+    toolId: 'power-pages-web-api-snippets',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#webApiSnippetOutput',
+        label: 'Output',
+        mediaType: 'text/javascript',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'power-platform-cli-command-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#pacOutput',
+        label: 'Output',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'power-automate-expression-formatter',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#flowExpressionOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'power-fx-snippet-formatter',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#powerFxOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: []
   }
 ];
 

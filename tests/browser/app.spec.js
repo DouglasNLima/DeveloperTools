@@ -1529,6 +1529,21 @@ test('converts fetch snippets to cURL and reports converter errors', async ({ pa
   await expect(page.getByRole('status')).toContainText('Enter cURL or fetch input to convert.');
 });
 
+test('hands converted request output to the support sanitiser', async ({ page }) => {
+  await page.goto('/#curl-fetch-converter');
+
+  await page.getByLabel('Request input').fill("curl https://api.internal.local/items -H 'x-api-key: secretToken12345'");
+  await page.getByRole('button', { name: 'Convert request', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Sanitise request/ }).click();
+
+  await expect(page).toHaveURL(/#support-pack-sanitiser$/);
+  await expect(page.getByLabel('Support pack input')).toHaveValue(/api\.internal\.local/);
+  await expect(page.getByLabel('Support pack input')).toHaveValue(/secretToken12345/);
+
+  await page.getByRole('button', { name: 'Sanitise support pack', exact: true }).click();
+  await expect(page.locator('#supportPackOutput')).toHaveValue(/\[TOKEN_1\]/);
+});
+
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
 
@@ -1546,6 +1561,20 @@ test('generates a Power Pages Web API GET snippet', async ({ page }) => {
   await expect(page.locator('#webApiSnippetOutput')).toHaveValue(/webapi\.safeAjax/);
   await expect(page.locator('#webApiSnippetOutput')).toHaveValue(/Webapi\/account\/enabled = true/);
   await expect(page.getByRole('status')).toContainText('Power Pages Web API snippet generated successfully.');
+});
+
+test('hands Power Pages Web API snippets to the support sanitiser', async ({ page }) => {
+  await page.goto('/#power-pages-web-api-snippets');
+
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByLabel('Columns / Web API fields').fill('name');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Sanitise snippet/ }).click();
+
+  await expect(page).toHaveURL(/#support-pack-sanitiser$/);
+  await expect(page.getByLabel('Support pack input')).toHaveValue(/webapi\.safeAjax/);
+  await expect(page.getByLabel('Support pack input')).toHaveValue(/Webapi\/account\/enabled/);
 });
 
 test('generates Power Pages Web API POST and PATCH payload snippets', async ({ page }) => {
@@ -1746,6 +1775,21 @@ test('builds Power Platform CLI commands and reports validation errors', async (
   await expect(page.getByRole('status')).toContainText('Enter an environment URL');
 });
 
+test('hands Power Platform CLI output to text diff', async ({ page }) => {
+  await page.goto('/#power-platform-cli-command-builder');
+
+  await page.getByLabel('Command', { exact: true }).selectOption('solution-export');
+  await page.getByLabel('Solution name').fill('Core Solution');
+  await page.getByLabel('Zip or file path').fill('dist/core.zip');
+  await page.getByRole('button', { name: 'Build command', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as left text/ }).click();
+
+  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/pac solution export/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/Core Solution/);
+  await expect(page.getByLabel('Right text')).toHaveValue('');
+});
+
 test('formats Power Automate expressions and reports syntax errors', async ({ page }) => {
   await page.goto('/#power-automate-expression-formatter');
 
@@ -1785,6 +1829,19 @@ test('formats Power Automate expressions and reports syntax errors', async ({ pa
   await expect(page.getByRole('status')).toContainText('Expression has an unclosed');
 });
 
+test('hands Power Automate expression output to text diff', async ({ page }) => {
+  await page.goto('/#power-automate-expression-formatter');
+
+  await page.getByLabel('Expression input').fill("@{concat(triggerOutputs()?['body/name'], ' ok')}");
+  await page.getByRole('button', { name: 'Format expression', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as right text/ }).click();
+
+  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page.getByLabel('Left text')).toHaveValue('');
+  await expect(page.getByLabel('Right text')).toHaveValue(/concat\(/);
+  await expect(page.getByLabel('Right text')).toHaveValue(/triggerOutputs/);
+});
+
 test('formats Power Fx snippets and reports syntax errors', async ({ page }) => {
   await page.goto('/#power-fx-snippet-formatter');
 
@@ -1803,6 +1860,19 @@ test('formats Power Fx snippets and reports syntax errors', async ({ page }) => 
   await page.getByRole('button', { name: 'Format formula', exact: true }).click();
   await expect(page.locator('#powerFxOutputTypeDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('Formula has an unclosed');
+});
+
+test('hands Power Fx output to text diff', async ({ page }) => {
+  await page.goto('/#power-fx-snippet-formatter');
+
+  await page.getByLabel('Formula input').fill('If(IsBlank(TextInput1.Text), Notify("Missing"), Patch(Accounts, Defaults(Accounts), { Name: TextInput1.Text }))');
+  await page.getByRole('button', { name: 'Format formula', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as left text/ }).click();
+
+  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/Patch\(/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/Accounts/);
+  await expect(page.getByLabel('Right text')).toHaveValue('');
 });
 
 test('opens and closes the mobile tool menu', async ({ page }) => {

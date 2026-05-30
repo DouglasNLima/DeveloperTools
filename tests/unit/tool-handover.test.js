@@ -29,10 +29,19 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'text-diff'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'file-to-base64'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'curl-fetch-converter'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-pages-web-api-snippets'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-automate-expression-formatter'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-fx-snippet-formatter'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'file-to-base64' && route.targetToolId === 'base64-to-file'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'curl-fetch-converter' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-cli-command-builder' && route.targetToolId === 'text-diff'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-automate-expression-formatter' && route.targetToolId === 'text-diff'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-fx-snippet-formatter' && route.targetToolId === 'text-diff'));
 });
 
 test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
@@ -158,6 +167,37 @@ test('resolves suggestions for text handover sources', () => {
     root,
     availableTools: ['regex-tester', 'text-diff', 'case-converter', 'html-cleaner-converter']
   }), []);
+});
+
+test('resolves suggestions for API and Power Platform text sources', () => {
+  for (const [toolId, outputId, availableTools, expectedLabels] of [
+    ['curl-fetch-converter', 'curlFetchOutput', ['support-pack-sanitiser', 'regex-tester', 'text-diff'], ['Sanitise request', 'Test with regex', 'Compare as left text']],
+    ['power-pages-web-api-snippets', 'webApiSnippetOutput', ['support-pack-sanitiser'], ['Sanitise snippet']],
+    ['power-platform-cli-command-builder', 'pacOutput', ['support-pack-sanitiser', 'text-diff'], ['Sanitise command', 'Compare as left text']],
+    ['power-automate-expression-formatter', 'flowExpressionOutput', ['text-diff'], ['Compare as left text', 'Compare as right text']],
+    ['power-fx-snippet-formatter', 'powerFxOutput', ['text-diff'], ['Compare as left text', 'Compare as right text']]
+  ]) {
+    const root = createRoot([
+      createControl({ id: outputId, tagName: 'TEXTAREA', value: 'Generated output' })
+    ]);
+    const suggestions = resolveHandoverSuggestions({
+      sourceToolId: toolId,
+      root,
+      availableTools
+    });
+
+    assert.ok(suggestions.every(suggestion => suggestion.kind === 'text'), `${toolId} should only expose text handovers`);
+    expectedLabels.forEach(label => {
+      assert.ok(suggestions.some(suggestion => suggestion.label === label), `${toolId} should offer ${label}`);
+    });
+
+    root.controls[0].value = '';
+    assert.deepEqual(resolveHandoverSuggestions({
+      sourceToolId: toolId,
+      root,
+      availableTools
+    }), []);
+  }
 });
 
 test('resolves suggestions for Base64 handover sources', () => {
