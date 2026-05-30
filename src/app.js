@@ -5,6 +5,7 @@ import {
   getToolById,
   matchesToolSearch
 } from './tools/catalog.js';
+import { APP_TITLE } from './app-metadata.js';
 import { registerAppServiceWorker } from './pwa.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderCaseConverter } from './tools/case-converter.ui.js';
@@ -83,6 +84,8 @@ let activeTool = null;
 let activeCleanup = null;
 let selectedTheme = readStorage(THEME_STORAGE_KEY);
 
+document.title = APP_TITLE;
+
 function readStorage(key) {
   try {
     return window.localStorage.getItem(key);
@@ -117,9 +120,15 @@ function updateThemeToggle(theme) {
   const nextTheme = theme === 'dark' ? 'light' : 'dark';
   const label = `Use ${nextTheme} theme`;
   const text = themeToggle.querySelector('.sidebar-action-text');
+  const icons = themeToggle.querySelectorAll('.theme-icon');
 
   themeToggle.setAttribute('aria-label', label);
   themeToggle.title = label;
+  themeToggle.dataset.nextTheme = nextTheme;
+
+  icons.forEach(icon => {
+    icon.toggleAttribute('hidden', icon.dataset.themeIcon !== nextTheme);
+  });
 
   if (text) {
     text.textContent = `${capitalise(nextTheme)} theme`;

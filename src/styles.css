@@ -315,9 +315,21 @@ a.button[hidden],
 
 .theme-toggle-icon {
   color: var(--text-strong-soft);
-  font-size: 0.76rem;
-  font-weight: 900;
+  display: inline-flex;
+  height: 1.08rem;
   line-height: 1;
+  width: 1.08rem;
+}
+
+.theme-icon {
+  display: block;
+  fill: none;
+  height: 1.08rem;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 1.08rem;
 }
 
 .workbench-shell {

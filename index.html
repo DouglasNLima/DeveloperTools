@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Developer Tools</title>
+  <title>Developer Tools v0.1.0 (build 5)</title>
   <meta name="description" content="A local-first suite of developer utilities that runs entirely in the browser." />
   <meta name="theme-color" content="#111318" />
   <link rel="manifest" href="./manifest.webmanifest" />
@@ -30,7 +30,22 @@
 
       <div class="topbar-actions" aria-label="Display options">
         <button id="themeToggle" class="icon-button topbar-action theme-toggle-button" type="button" aria-label="Use dark theme" title="Use dark theme">
-          <span class="theme-toggle-icon" aria-hidden="true">Aa</span>
+          <span class="theme-toggle-icon" aria-hidden="true">
+            <svg class="theme-icon theme-icon-sun" data-theme-icon="light" viewBox="0 0 24 24" hidden>
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2v2"></path>
+              <path d="M12 20v2"></path>
+              <path d="m4.93 4.93 1.41 1.41"></path>
+              <path d="m17.66 17.66 1.41 1.41"></path>
+              <path d="M2 12h2"></path>
+              <path d="M20 12h2"></path>
+              <path d="m6.34 17.66-1.41 1.41"></path>
+              <path d="m19.07 4.93-1.41 1.41"></path>
+            </svg>
+            <svg class="theme-icon theme-icon-moon" data-theme-icon="dark" viewBox="0 0 24 24">
+              <path d="M20.99 12.79A8.5 8.5 0 1 1 11.21 3.01 6.5 6.5 0 0 0 20.99 12.79z"></path>
+            </svg>
+          </span>
           <span class="sidebar-action-text visually-hidden">Dark theme</span>
         </button>
       </div>

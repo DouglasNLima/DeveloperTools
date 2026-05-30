@@ -54,6 +54,8 @@ npm run test:unit
 npm run test:browser
 ```
 
+The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
+
 ## GitHub Pages
 
 This project is compatible with GitHub Pages as a static site. Publish the repository root, and GitHub Pages will use `index.html` as the entry point.
@@ -79,6 +81,7 @@ sw.js
 assets/
   icons/
 src/
+  app-metadata.js
   app.js
   pwa.js
   styles.css

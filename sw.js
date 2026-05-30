@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v4';
+const CACHE_NAME = 'developer-tools-static-v5';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -9,6 +9,7 @@ const PRECACHE_URLS = [
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './src/app.js',
+  './src/app-metadata.js',
   './src/pwa.js',
   './src/styles.css',
   './src/tools/base64.js',

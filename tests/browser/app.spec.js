@@ -1,6 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 
+import { APP_TITLE } from '../../src/app-metadata.js';
+
 async function primeOfflineApp(page) {
   await page.goto('/');
   await page.evaluate(async () => {
@@ -13,6 +15,7 @@ async function primeOfflineApp(page) {
 test('renders the home overview and opens tools from catalogue cards', async ({ page }) => {
   await page.goto('/');
 
+  await expect(page).toHaveTitle(APP_TITLE);
   await expect(page.locator('.topbar')).toBeVisible();
   await expect(page.locator('.statusbar')).toContainText('Static local workspace');
   await expect(page.getByRole('status')).toHaveCount(0);
@@ -145,8 +148,12 @@ test('uses the system theme until the theme toggle stores a manual choice', asyn
   const themeButton = page.locator('#themeToggle');
   await expect(themeButton).toHaveAttribute('aria-label', 'Use light theme');
   await expect(themeButton).toHaveAttribute('title', 'Use light theme');
+  await expect(themeButton).toHaveAttribute('data-next-theme', 'light');
   await expect(themeButton).toHaveClass(/theme-toggle-button/);
   await expect(themeButton.locator('.theme-toggle-icon')).toBeVisible();
+  await expect(themeButton.locator('.theme-toggle-icon')).not.toHaveText('Aa');
+  await expect(themeButton.locator('.theme-icon-sun')).toBeVisible();
+  await expect(themeButton.locator('.theme-icon-moon')).toBeHidden();
   await expect(themeButton.locator('.sidebar-action-text')).toHaveClass(/visually-hidden/);
 
   const themeButtonBox = await themeButton.boundingBox();
@@ -158,6 +165,9 @@ test('uses the system theme until the theme toggle stores a manual choice', asyn
 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('html')).toHaveAttribute('data-theme-source', 'manual');
+  await expect(themeButton).toHaveAttribute('data-next-theme', 'dark');
+  await expect(themeButton.locator('.theme-icon-moon')).toBeVisible();
+  await expect(themeButton.locator('.theme-icon-sun')).toBeHidden();
   expect(await page.evaluate(() => window.localStorage.getItem('developer-tools-theme'))).toBe('light');
 
   await page.reload();
@@ -165,6 +175,16 @@ test('uses the system theme until the theme toggle stores a manual choice', asyn
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect(page.getByRole('button', { name: 'Use dark theme' })).toBeVisible();
   await expect(page.locator('#themeToggle')).toHaveAttribute('title', 'Use dark theme');
+});
+
+test('exposes the app version and build in static document titles', async ({ page, request }) => {
+  await page.goto('/');
+
+  await expect(page).toHaveTitle(APP_TITLE);
+
+  const legacyRedirectResponse = await request.get('/devtools.html');
+  expect(legacyRedirectResponse.ok()).toBe(true);
+  expect(await legacyRedirectResponse.text()).toContain(`<title>${APP_TITLE}</title>`);
 });
 
 test('exposes installable web app manifest metadata and local icons', async ({ page, request }) => {
