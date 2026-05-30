@@ -32,6 +32,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'file-to-base64'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'curl-fetch-converter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'dataverse-odata-query-builder'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'csv-tsv-helper'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-pages-web-api-snippets'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'fetchxml-liquid-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
@@ -43,7 +44,9 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'file-to-base64' && route.targetToolId === 'base64-to-file'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'curl-fetch-converter' && route.targetToolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'extract-fenced-fetch'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'url-codec' && route.transform === 'extract-odata-endpoint'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'csv-tsv-helper' && route.transform === 'json-records-to-csv'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'data-explorer' && route.targetInputId === 'xml'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.transform === 'extract-liquid-fetchxml'));
@@ -96,6 +99,26 @@ test('transforms targeted handover payloads before suggestions are shown', () =>
   assert.deepEqual(transformHandoverValue(liquid, 'missing-transform'), {
     valid: false,
     reason: 'unsupported-transform'
+  });
+
+  const endpoint = transformHandoverValue('Endpoint: /api/data/v9.2/accounts?$select=name&$top=5', 'extract-odata-endpoint');
+  assert.equal(endpoint.valid, true);
+  assert.equal(endpoint.rawValue, '/api/data/v9.2/accounts?$select=name&$top=5');
+
+  const csv = transformHandoverValue(JSON.stringify([
+    { name: 'Ada Lovelace', status: 'active' },
+    { name: 'Grace, Hopper', status: 'active' }
+  ]), 'json-records-to-csv');
+  assert.equal(csv.valid, true);
+  assert.equal(csv.rawValue, [
+    'name,status',
+    'Ada Lovelace,active',
+    '"Grace, Hopper",active'
+  ].join('\n'));
+
+  assert.deepEqual(transformHandoverValue('{"name":"Ada"}', 'json-records-to-csv'), {
+    valid: false,
+    reason: 'empty-transform'
   });
 });
 
@@ -305,6 +328,8 @@ test('resolves XML and Data Explorer text handover sources', () => {
       value: [
         '# Dataverse OData query',
         '',
+        'Endpoint: /api/data/v9.2/accounts',
+        '',
         '```js',
         'const response = await fetch("/api/data/v9.2/accounts", { method: "GET" });',
         '```'
@@ -314,7 +339,7 @@ test('resolves XML and Data Explorer text handover sources', () => {
   const dataverseSuggestions = resolveHandoverSuggestions({
     sourceToolId: 'dataverse-odata-query-builder',
     root: dataverseRoot,
-    availableTools: ['curl-fetch-converter', 'support-pack-sanitiser', 'text-diff']
+    availableTools: ['curl-fetch-converter', 'support-pack-sanitiser', 'text-diff', 'url-codec']
   });
 
   const converterSuggestion = dataverseSuggestions.find(suggestion => suggestion.label === 'Convert fetch to cURL');
@@ -326,6 +351,19 @@ test('resolves XML and Data Explorer text handover sources', () => {
       value: 'fetch-to-curl'
     }
   ]);
+  const endpointSuggestion = dataverseSuggestions.find(suggestion => suggestion.label === 'Inspect endpoint query');
+  assert.equal(endpointSuggestion.kind, 'text');
+  assert.equal(endpointSuggestion.value, '/api/data/v9.2/accounts');
+  assert.deepEqual(endpointSuggestion.setFields, [
+    {
+      selector: '#urlToolMode',
+      value: 'parse-query'
+    },
+    {
+      selector: '#urlOutputFormat',
+      value: 'json'
+    }
+  ]);
 
   const dataExplorerRoot = createRoot([
     createControl({ id: 'dataExplorerOutput', tagName: 'TEXTAREA', value: '[{"name":"Ada"}]' })
@@ -333,11 +371,14 @@ test('resolves XML and Data Explorer text handover sources', () => {
   const textSuggestions = resolveHandoverSuggestions({
     sourceToolId: 'data-explorer',
     root: dataExplorerRoot,
-    availableTools: ['text-diff']
+    availableTools: ['text-diff', 'csv-tsv-helper']
   });
 
   assert.ok(textSuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
   assert.ok(textSuggestions.some(suggestion => suggestion.label === 'Compare as right text'));
+  const csvSuggestion = textSuggestions.find(suggestion => suggestion.label === 'Convert to CSV');
+  assert.equal(csvSuggestion.kind, 'text');
+  assert.equal(csvSuggestion.value, 'name\nAda');
 });
 
 test('resolves suggestions for Base64 handover sources', () => {
@@ -442,6 +483,39 @@ test('applies handover payloads and restores serialised form state', () => {
   ]);
   assert.equal(applyHandoverPayload(base64TargetRoot, 'base64-to-file', 'content', 'aGVsbG8='), true);
   assert.equal(base64TargetRoot.querySelector('#base64Input').value, 'aGVsbG8=');
+
+  const csvTargetRoot = createRoot([
+    createControl({ id: 'csvDelimiter', tagName: 'SELECT', value: 'auto' }),
+    createControl({ id: 'csvOutputFormat', tagName: 'SELECT', value: 'json' }),
+    createControl({ id: 'csvFirstRowHeaders', tagName: 'INPUT', type: 'checkbox', checked: false }),
+    createControl({ id: 'csvInput', tagName: 'TEXTAREA', value: '' })
+  ]);
+  assert.equal(applyHandoverPayload(csvTargetRoot, 'csv-tsv-helper', 'input', 'name\nAda'), true);
+  assert.equal(csvTargetRoot.querySelector('#csvDelimiter').value, 'comma');
+  assert.equal(csvTargetRoot.querySelector('#csvOutputFormat').value, 'csv');
+  assert.equal(csvTargetRoot.querySelector('#csvFirstRowHeaders').checked, true);
+  assert.equal(csvTargetRoot.querySelector('#csvInput').value, 'name\nAda');
+
+  const urlTargetRoot = createRoot([
+    createControl({ id: 'urlToolMode', tagName: 'SELECT', value: 'encode-component' }),
+    createControl({ id: 'urlOutputFormat', tagName: 'SELECT', value: 'markdown' }),
+    createControl({ id: 'urlInput', tagName: 'TEXTAREA', value: '' })
+  ]);
+  assert.equal(applyHandoverPayload(urlTargetRoot, 'url-codec', 'input', '/api/data/v9.2/accounts?$select=name', undefined, {
+    setFields: [
+      {
+        selector: '#urlToolMode',
+        value: 'parse-query'
+      },
+      {
+        selector: '#urlOutputFormat',
+        value: 'json'
+      }
+    ]
+  }), true);
+  assert.equal(urlTargetRoot.querySelector('#urlToolMode').value, 'parse-query');
+  assert.equal(urlTargetRoot.querySelector('#urlOutputFormat').value, 'json');
+  assert.equal(urlTargetRoot.querySelector('#urlInput').value, '/api/data/v9.2/accounts?$select=name');
 });
 
 function createRoot(controls) {

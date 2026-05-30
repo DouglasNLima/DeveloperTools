@@ -221,7 +221,28 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         kind: 'json'
       }
     ],
-    inputs: []
+    inputs: [
+      {
+        id: 'input',
+        selector: '#csvInput',
+        label: 'CSV/TSV input',
+        kind: 'text',
+        setFields: [
+          {
+            selector: '#csvDelimiter',
+            value: 'comma'
+          },
+          {
+            selector: '#csvOutputFormat',
+            value: 'csv'
+          },
+          {
+            selector: '#csvFirstRowHeaders',
+            value: true
+          }
+        ]
+      }
+    ]
   },
   {
     toolId: 'url-codec',
@@ -234,7 +255,14 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         kind: 'json'
       }
     ],
-    inputs: []
+    inputs: [
+      {
+        id: 'input',
+        selector: '#urlInput',
+        label: 'Input',
+        kind: 'text'
+      }
+    ]
   },
   {
     toolId: 'regex-tester',
@@ -518,6 +546,27 @@ export const TOOL_HANDOVER_ROUTES = [
     ]
   },
   {
+    id: 'dataverse-odata-query-builder-output-to-url-codec-input',
+    sourceToolId: 'dataverse-odata-query-builder',
+    sourceOutputId: 'output',
+    targetToolId: 'url-codec',
+    targetInputId: 'input',
+    acceptKinds: ['text'],
+    label: 'Inspect endpoint query',
+    description: 'Extract the generated endpoint and open it in the URL and query string helper.',
+    transform: 'extract-odata-endpoint',
+    setFields: [
+      {
+        selector: '#urlToolMode',
+        value: 'parse-query'
+      },
+      {
+        selector: '#urlOutputFormat',
+        value: 'json'
+      }
+    ]
+  },
+  {
     id: 'fetchxml-liquid-builder-output-to-data-explorer-xml',
     sourceToolId: 'fetchxml-liquid-builder',
     sourceOutputId: 'output',
@@ -557,6 +606,17 @@ export const TOOL_HANDOVER_ROUTES = [
     acceptKinds: ['json', 'json-schema'],
     label: 'Compare as right text',
     description: 'Use this JSON output as the right side of a text diff.'
+  },
+  {
+    id: 'data-explorer-output-to-csv-tsv-helper-input',
+    sourceToolId: 'data-explorer',
+    sourceOutputId: 'output',
+    targetToolId: 'csv-tsv-helper',
+    targetInputId: 'input',
+    acceptKinds: ['text'],
+    label: 'Convert to CSV',
+    description: 'Transform this JSON output into CSV input for the CSV/TSV helper.',
+    transform: 'json-records-to-csv'
   },
   ...TEXT_HANDOVER_ROUTES,
   {

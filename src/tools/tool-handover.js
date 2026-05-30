@@ -19,9 +19,17 @@ const HANDOVER_TRANSFORMS = {
     kind: 'text',
     apply: extractFencedFetchSnippet
   },
+  'extract-odata-endpoint': {
+    kind: 'text',
+    apply: extractODataEndpoint
+  },
   'extract-liquid-fetchxml': {
     kind: 'xml',
     apply: extractLiquidFetchXml
+  },
+  'json-records-to-csv': {
+    kind: 'text',
+    apply: transformJsonRecordsToCsv
   }
 };
 
@@ -557,6 +565,70 @@ function extractLiquidFetchXml(value) {
   const text = String(value ?? '');
   const match = text.match(/{%\s*fetchxml\b[^%]*%}([\s\S]*?){%\s*endfetchxml\s*%}/i);
   return match ? match[1].trim() : '';
+}
+
+function extractODataEndpoint(value) {
+  const text = String(value ?? '');
+  const match = text.match(/^Endpoint:\s*(.+)$/im);
+  return match ? match[1].trim() : '';
+}
+
+function transformJsonRecordsToCsv(value) {
+  let records;
+
+  try {
+    records = JSON.parse(String(value ?? ''));
+  } catch {
+    return '';
+  }
+
+  if (!Array.isArray(records) || records.length === 0 || records.some(record => !isPlainObject(record))) {
+    return '';
+  }
+
+  const headers = collectCsvHeaders(records);
+
+  if (headers.length === 0) {
+    return '';
+  }
+
+  return [
+    headers.map(serialiseCsvCell).join(','),
+    ...records.map(record => headers.map(header => serialiseCsvCell(record[header])).join(','))
+  ].join('\n');
+}
+
+function collectCsvHeaders(records) {
+  const headers = [];
+  const seenHeaders = new Set();
+
+  records.forEach(record => {
+    Object.keys(record).forEach(header => {
+      if (!seenHeaders.has(header)) {
+        seenHeaders.add(header);
+        headers.push(header);
+      }
+    });
+  });
+
+  return headers;
+}
+
+function serialiseCsvCell(value) {
+  const text = formatCsvValue(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function formatCsvValue(value) {
+  if (value == null) {
+    return '';
+  }
+
+  if (typeof value === 'object') {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
 }
 
 function escapeSelectorId(id) {

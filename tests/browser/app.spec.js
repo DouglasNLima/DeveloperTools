@@ -936,6 +936,33 @@ test('hands Data Explorer JSON output to text diff', async ({ page }) => {
   await expect(page.getByLabel('Right text')).toHaveValue('');
 });
 
+test('hands Data Explorer JSON output to the CSV helper', async ({ page }) => {
+  await page.goto('/#data-explorer');
+
+  await page.getByLabel('Input format').selectOption('json');
+  await page.getByLabel('JSON or XML input').fill(JSON.stringify([
+    { name: 'Ada Lovelace', status: 'active' },
+    { name: 'Grace Hopper', status: 'active' }
+  ]));
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /JSON output: Convert to CSV/ }).click();
+
+  await expect(page).toHaveURL(/#csv-tsv-helper$/);
+  await expect(page.getByLabel('Delimiter')).toHaveValue('comma');
+  await expect(page.getByLabel('Output format')).toHaveValue('csv');
+  await expect(page.getByLabel('First row contains headers')).toBeChecked();
+  await expect(page.getByLabel('CSV/TSV input')).toHaveValue([
+    'name,status',
+    'Ada Lovelace,active',
+    'Grace Hopper,active'
+  ].join('\n'));
+
+  await page.getByRole('button', { name: 'Process data', exact: true }).click();
+  await expect(page.locator('#csvOutputTypeDetail')).toHaveText('CSV');
+  await expect(page.locator('#csvOutput')).toHaveValue(/name,status/);
+  await expect(page.locator('#csvOutput')).toHaveValue(/Grace Hopper,active/);
+});
+
 test('converts CSV input to JSON array output', async ({ page }) => {
   await page.goto('/#csv-tsv-helper');
 
@@ -1771,6 +1798,27 @@ test('extracts Dataverse OData fetch snippets into the cURL/fetch converter', as
   await expect(page.locator('#curlFetchOutput')).toHaveValue(/curl/);
   await expect(page.locator('#curlFetchOutput')).toHaveValue(/\/api\/data\/v9\.2\/accounts/);
   await expect(page.locator('#curlFetchOutputTypeDetail')).toHaveText('cURL command');
+});
+
+test('hands Dataverse OData endpoints to the URL helper', async ({ page }) => {
+  await page.goto('/#dataverse-odata-query-builder');
+
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Columns / $select').fill('name, accountnumber');
+  await page.getByLabel('$filter', { exact: true }).fill('statecode eq 0');
+  await page.getByLabel('$top').fill('5');
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Inspect endpoint query/ }).click();
+
+  await expect(page).toHaveURL(/#url-codec$/);
+  await expect(page.getByLabel('Mode')).toHaveValue('parse-query');
+  await expect(page.getByLabel('Query parse output')).toHaveValue('json');
+  await expect(page.getByLabel('Input')).toHaveValue('/api/data/v9.2/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
+
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+  await expect(page.locator('#urlOutput')).toHaveValue(/"\$select"/);
+  await expect(page.locator('#urlOutput')).toHaveValue(/"name,accountnumber"/);
+  await expect(page.locator('#urlOutput')).toHaveValue(/"\$top"/);
 });
 
 test('uses Dataverse OData presets, guided expands and advanced warnings', async ({ page }) => {
