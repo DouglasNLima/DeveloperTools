@@ -61,10 +61,18 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - Produce a Markdown inventory and hand selected diagrams to the Mermaid editor/exporter.
 - Status: implemented with unit and browser coverage.
 
+## Phase 6: Power Platform Solution Documentation Generator
+
+- Reuse the local solution ZIP reader created for Mermaid generation.
+- Generate operational Markdown documentation with solution metadata, process inventory, environment variables, connection references and review warnings.
+- Avoid printing environment variable values directly; report value presence states instead.
+- Hand generated documentation to the Markdown preview and Text diff tools.
+- Status: implemented with unit and browser coverage.
+
 ## Candidate Next Tools
 
 - Dataverse FetchXML to OData helper.
-- Environment variable and connection reference checklist.
+- Environment variable and connection reference deployment checklist.
 - Solution settings file helper.
 - Power Automate trigger condition builder.
 - Power Fx delegation risk checklist.

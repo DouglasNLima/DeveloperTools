@@ -293,6 +293,7 @@ test('finds Power Platform tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="dataverse-odata-query-builder"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-cli-command-builder"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-solution-mermaid"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-platform-solution-docs"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-fx-snippet-formatter"]')).toBeEnabled();
 });
@@ -2260,6 +2261,53 @@ test('reports Power Platform solution Mermaid validation errors', async ({ page 
   await expect(page.getByRole('status')).toContainText('The ZIP central directory could not be found.');
 });
 
+test('generates Markdown documentation from an exported Power Platform solution ZIP', async ({ page }) => {
+  await page.goto('/#power-platform-solution-docs');
+
+  await expect(page.getByRole('heading', { name: 'Power Platform Solution Documentation Generator' })).toBeVisible();
+  await page.setInputFiles('#solutionDocsFileInput', {
+    name: 'ops-toolkit.zip',
+    mimeType: 'application/zip',
+    buffer: createSolutionZip()
+  });
+  await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Power Platform solution documentation generated successfully.');
+  await expect(page.locator('#solutionDocsNameDetail')).toHaveText('Operations Toolkit');
+  await expect(page.locator('#solutionDocsVersionDetail')).toHaveText('1.2.3.4');
+  await expect(page.locator('#solutionDocsProcessesDetail')).toHaveText('2');
+  await expect(page.locator('#solutionDocsVariablesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionDocsConnectionsDetail')).toHaveText('1');
+  await expect(page.locator('#solutionDocsOutput')).toHaveValue(/^# Power Platform solution documentation/);
+  await expect(page.locator('#solutionDocsOutput')).toHaveValue(/Account approval/);
+  await expect(page.locator('#solutionDocsOutput')).toHaveValue(/Environment variables/);
+  await expect(page.locator('#solutionDocsOutput')).toHaveValue(/Current and default included/);
+  await expect(page.locator('#solutionDocsOutput')).not.toHaveValue(/https:\/\/api\.example\.test\/current/);
+  await expect(page.locator('#downloadSolutionDocsButton')).toHaveAttribute('download', 'Operations-Toolkit-documentation.md');
+  await expect(page.locator('#toolHandover')).toContainText('Documentation Markdown: Preview documentation');
+  await page.locator('#toolHandover').getByRole('button', { name: /Documentation Markdown: Preview documentation/ }).click();
+
+  await expect(page).toHaveURL(/#markdown-preview-inspector$/);
+  await expect(page.getByLabel('Markdown input')).toHaveValue(/^# Power Platform solution documentation/);
+  await expect(page.getByLabel('Markdown input')).toHaveValue(/Connection references/);
+});
+
+test('reports Power Platform solution documentation validation errors', async ({ page }) => {
+  await page.goto('/#power-platform-solution-docs');
+
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP file before analysing the solution.');
+
+  await page.setInputFiles('#solutionDocsFileInput', {
+    name: 'not-a-solution.zip',
+    mimeType: 'application/zip',
+    buffer: Buffer.alloc(32)
+  });
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('The ZIP central directory could not be found.');
+});
+
 test('formats Power Automate expressions and reports syntax errors', async ({ page }) => {
   await page.goto('/#power-automate-expression-formatter');
 
@@ -2751,6 +2799,28 @@ test('loads the Power Platform solution Mermaid generator offline', async ({ pag
   }
 });
 
+test('loads the Power Platform solution documentation generator offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#power-platform-solution-docs');
+
+    await expect(page.getByRole('heading', { name: 'Power Platform Solution Documentation Generator' })).toBeVisible();
+    await page.setInputFiles('#solutionDocsFileInput', {
+      name: 'offline-solution.zip',
+      mimeType: 'application/zip',
+      buffer: createSolutionZip()
+    });
+    await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+    await expect(page.getByRole('status')).toContainText('Power Platform solution documentation generated successfully.');
+    await expect(page.locator('#solutionDocsOutput')).toHaveValue(/^# Power Platform solution documentation/);
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
 test('loads the Markdown preview inspector offline', async ({ page }) => {
   await primeOfflineApp(page);
   await page.context().setOffline(true);
@@ -2900,6 +2970,11 @@ function createSolutionZip() {
       '      <ClientData>{"stages":[{"stageName":"Qualify"},{"stageName":"Develop"},{"stageName":"Close"}]}</ClientData>',
       '    </Workflow>',
       '  </Workflows>',
+      '  <EnvironmentVariableDefinition schemaName="contoso_api_url" displayName="API URL" type="100000000" defaultValue="https://api.example.test/default" />',
+      '  <EnvironmentVariableValue schemaName="contoso_api_url">',
+      '    <Value>https://api.example.test/current</Value>',
+      '  </EnvironmentVariableValue>',
+      '  <ConnectionReference connectionreferencelogicalname="contoso_dataverse" displayname="Dataverse connection" connectorid="/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps" />',
       '</ImportExportXml>'
     ].join('\n')],
     ['Workflows/11111111-1111-1111-1111-111111111111.json', JSON.stringify({
@@ -2918,6 +2993,7 @@ function createSolutionZip() {
               type: 'OpenApiConnection',
               inputs: {
                 host: {
+                  apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
                   operationId: 'GetItem'
                 }
               }

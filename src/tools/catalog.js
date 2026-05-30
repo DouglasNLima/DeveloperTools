@@ -120,6 +120,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'power-platform-solution-mermaid'
   },
   {
+    id: 'power-platform-solution-docs',
+    title: 'Power Platform Solution Documentation Generator',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Inspect exported solution ZIP files and generate operational Markdown documentation.',
+    renderer: 'power-platform-solution-docs'
+  },
+  {
     id: 'power-automate-expression-formatter',
     title: 'Power Automate Expression Formatter',
     category: 'Power Platform',

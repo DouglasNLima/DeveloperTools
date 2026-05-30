@@ -39,6 +39,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'pdf-template-field-explorer'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-solution-mermaid'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-solution-docs'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-automate-expression-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-fx-snippet-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-editor'));
@@ -66,6 +67,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-cli-command-builder' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.targetToolId === 'mermaid-editor'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.sourceOutputId === 'inventory' && route.targetToolId === 'markdown-preview-inspector'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-docs' && route.sourceOutputId === 'documentation' && route.targetToolId === 'markdown-preview-inspector'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-automate-expression-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-fx-snippet-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'data-to-mermaid'));
@@ -887,6 +889,18 @@ test('resolves Mermaid handover sources', () => {
 
   assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'mermaid' && suggestion.targetToolId === 'mermaid-editor'));
   assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'inventory' && suggestion.targetToolId === 'markdown-preview-inspector'));
+
+  const docsRoot = createRoot([
+    createControl({ id: 'solutionDocsOutput', tagName: 'TEXTAREA', value: '# Power Platform solution documentation\n\n## Operational summary' })
+  ]);
+  const docsSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'power-platform-solution-docs',
+    root: docsRoot,
+    availableTools: ['markdown-preview-inspector', 'text-diff']
+  });
+
+  assert.ok(docsSuggestions.some(suggestion => suggestion.sourceOutputId === 'documentation' && suggestion.targetToolId === 'markdown-preview-inspector'));
+  assert.ok(docsSuggestions.some(suggestion => suggestion.sourceOutputId === 'documentation' && suggestion.targetToolId === 'text-diff'));
 });
 
 test('resolves schema handovers for detected JSON Schema output', () => {
