@@ -13,6 +13,9 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - [Use expressions in conditions in Power Automate](https://learn.microsoft.com/en-us/power-automate/use-expressions-in-conditions)
 - [Power Fx formula reference overview](https://learn.microsoft.com/en-us/power-platform/power-fx/formula-reference-cards)
 - [Power Fx operators and identifiers](https://learn.microsoft.com/en-us/power-platform/power-fx/reference/operators)
+- [Export cloud flows to solutions](https://learn.microsoft.com/en-us/power-automate/export-flow-solution)
+- [Manage flows with code](https://learn.microsoft.com/en-us/power-automate/manage-flows-with-code)
+- [SolutionPackager tool](https://learn.microsoft.com/en-us/power-platform/alm/solution-packager-tool)
 
 ## Phase 1: Dataverse OData Query Builder
 
@@ -48,6 +51,14 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - Validate common delimiter and quoted identifier balance.
 - Extract function names and report unknown names.
 - Warn about `!`, semicolon chaining and `Patch(...)` snippets that should be checked for create/update intent.
+- Status: implemented with unit and browser coverage.
+
+## Phase 5: Power Platform Solution Mermaid Generator
+
+- Read exported solution ZIP files locally in the browser.
+- Detect cloud flows, business process flows, business rules and classic workflows from solution metadata and `Workflows/*.json` files.
+- Generate semantic Mermaid diagrams with metadata fallback warnings when exported process detail is limited.
+- Produce a Markdown inventory and hand selected diagrams to the Mermaid editor/exporter.
 - Status: implemented with unit and browser coverage.
 
 ## Candidate Next Tools

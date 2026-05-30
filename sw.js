@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v22';
+const CACHE_NAME = 'developer-tools-static-v23';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -61,6 +61,8 @@ const PRECACHE_URLS = [
   './src/tools/power-automate-expression.ui.js',
   './src/tools/power-fx-formatter.js',
   './src/tools/power-fx-formatter.ui.js',
+  './src/tools/power-platform-solution-mermaid.js',
+  './src/tools/power-platform-solution-mermaid.ui.js',
   './src/tools/power-pages-site-settings.js',
   './src/tools/power-pages-site-settings.ui.js',
   './src/tools/power-pages-table-permissions.js',

@@ -1404,6 +1404,7 @@ label.button.secondary:hover {
 .jwt-warning-list,
 .csv-issue-list,
 .markdown-table-issue-list,
+.solution-mermaid-issue-list,
 .data-issue-list {
   gap: 0.4rem;
 }
@@ -1411,6 +1412,7 @@ label.button.secondary:hover {
 .jwt-warning-list p,
 .csv-issue-list p,
 .markdown-table-issue-list p,
+.solution-mermaid-issue-list p,
 .data-issue-list p {
   background: var(--amber-soft);
   border: 1px solid rgba(217, 119, 6, 0.28);
@@ -1840,6 +1842,79 @@ label.button.secondary:hover {
   max-height: 560px;
   max-width: 100%;
   padding: 0.5rem;
+}
+
+.power-solution-mermaid-tool {
+  gap: 0.75rem;
+}
+
+.solution-mermaid-layout {
+  align-items: start;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(230px, 0.75fr) minmax(0, 1.25fr);
+}
+
+.solution-component-panel,
+.solution-output-panel {
+  display: grid;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.solution-component-panel h2 {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.solution-component-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 620px;
+  min-height: 260px;
+  overflow: auto;
+}
+
+.solution-component-card {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  cursor: pointer;
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.65rem;
+  text-align: left;
+}
+
+.solution-component-card:hover,
+.solution-component-card:focus-visible {
+  border-left-color: var(--accent);
+}
+
+.solution-component-card.selected {
+  background: var(--accent-soft);
+  border-color: rgba(255, 136, 62, 0.38);
+  border-left-color: var(--accent);
+}
+
+.solution-component-card strong,
+.solution-component-card span,
+.solution-component-card small {
+  overflow-wrap: anywhere;
+}
+
+.solution-component-card span,
+.solution-component-card small {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.solution-mermaid-selected-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .uuid-result-card {
@@ -2589,7 +2664,9 @@ label.button.secondary:hover {
   .data-filter-row,
   .detail-grid,
   .markdown-inspector-grid,
-  .pdf-template-layout {
+  .pdf-template-layout,
+  .solution-mermaid-layout,
+  .solution-mermaid-selected-grid {
     grid-template-columns: 1fr;
   }
 

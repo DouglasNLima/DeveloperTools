@@ -104,6 +104,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'power-platform-cli-command-builder'
   },
   {
+    id: 'power-platform-solution-mermaid',
+    title: 'Power Platform Solution Mermaid Generator',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Inspect exported solution ZIP files and generate Mermaid diagrams for workflow components.',
+    renderer: 'power-platform-solution-mermaid'
+  },
+  {
     id: 'power-automate-expression-formatter',
     title: 'Power Automate Expression Formatter',
     category: 'Power Platform',

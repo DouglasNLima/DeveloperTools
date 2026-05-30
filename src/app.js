@@ -38,6 +38,7 @@ import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js'
 import { renderPowerAutomateExpressionFormatter } from './tools/power-automate-expression.ui.js';
 import { renderPowerFxSnippetFormatter } from './tools/power-fx-formatter.ui.js';
 import { renderPowerPlatformCliCommandBuilder } from './tools/power-platform-cli.ui.js';
+import { renderPowerPlatformSolutionMermaid } from './tools/power-platform-solution-mermaid.ui.js';
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
 import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-settings.ui.js';
 import { renderPowerPagesTablePermissionsChecklist } from './tools/power-pages-table-permissions.ui.js';
@@ -73,6 +74,7 @@ const renderers = {
   'mermaid-template-builder': renderMermaidTemplateBuilder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
+  'power-platform-solution-mermaid': renderPowerPlatformSolutionMermaid,
   'power-fx-snippet-formatter': renderPowerFxSnippetFormatter,
   'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder,
   'power-platform-cli-command-builder': renderPowerPlatformCliCommandBuilder,

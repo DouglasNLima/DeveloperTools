@@ -37,6 +37,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'fetchxml-liquid-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'pdf-template-field-explorer'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-solution-mermaid'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-automate-expression-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-fx-snippet-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-editor'));
@@ -61,6 +62,8 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'data-explorer' && route.targetInputId === 'xml'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.transform === 'extract-liquid-fetchxml'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-cli-command-builder' && route.targetToolId === 'text-diff'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.targetToolId === 'mermaid-editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.sourceOutputId === 'inventory' && route.targetToolId === 'markdown-preview-inspector'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-automate-expression-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-fx-snippet-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'data-to-mermaid'));
@@ -855,6 +858,19 @@ test('resolves Mermaid handover sources', () => {
 
   assert.ok(requestSuggestions.some(suggestion => suggestion.targetToolId === 'api-workflow-to-mermaid'));
   assert.ok(requestSuggestions.some(suggestion => suggestion.transform === 'request-to-mermaid-sequence'));
+
+  const solutionRoot = createRoot([
+    createControl({ id: 'solutionMermaidOutput', tagName: 'TEXTAREA', value: 'flowchart TD\n  Flow --> Action' }),
+    createControl({ id: 'solutionMermaidInventoryOutput', tagName: 'TEXTAREA', value: '# Inventory\n\n```mermaid\nflowchart TD\n  Flow --> Action\n```' })
+  ]);
+  const solutionSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'power-platform-solution-mermaid',
+    root: solutionRoot,
+    availableTools: ['mermaid-editor', 'markdown-preview-inspector', 'text-diff']
+  });
+
+  assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'mermaid' && suggestion.targetToolId === 'mermaid-editor'));
+  assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'inventory' && suggestion.targetToolId === 'markdown-preview-inspector'));
 });
 
 test('resolves schema handovers for detected JSON Schema output', () => {

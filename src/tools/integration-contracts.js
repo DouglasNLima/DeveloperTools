@@ -15,7 +15,8 @@ const JSON_SOURCE_PORTS = [
 const MERMAID_GENERATOR_SOURCE_PORTS = [
   { toolId: 'mermaid-template-builder', outputId: 'output' },
   { toolId: 'data-to-mermaid', outputId: 'output' },
-  { toolId: 'api-workflow-to-mermaid', outputId: 'output' }
+  { toolId: 'api-workflow-to-mermaid', outputId: 'output' },
+  { toolId: 'power-platform-solution-mermaid', outputId: 'mermaid' }
 ];
 
 const MERMAID_SOURCE_PORTS = [
@@ -63,6 +64,9 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('power-platform-cli-command-builder', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
   createTextRoute('power-platform-cli-command-builder', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('power-platform-cli-command-builder', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('power-platform-solution-mermaid', 'inventory', 'markdown-preview-inspector', 'input', 'Preview inventory', 'Open this generated inventory in the Markdown preview and inspector.'),
+  createTextRoute('power-platform-solution-mermaid', 'inventory', 'text-diff', 'left', 'Compare inventory as left text', 'Use this inventory as the left side of a text diff.'),
+  createTextRoute('power-platform-solution-mermaid', 'inventory', 'text-diff', 'right', 'Compare inventory as right text', 'Use this inventory as the right side of a text diff.'),
   createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
@@ -225,6 +229,26 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         kind: 'text'
       }
     ]
+  },
+  {
+    toolId: 'power-platform-solution-mermaid',
+    outputs: [
+      {
+        id: 'mermaid',
+        selector: '#solutionMermaidOutput',
+        label: 'Selected Mermaid',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      },
+      {
+        id: 'inventory',
+        selector: '#solutionMermaidInventoryOutput',
+        label: 'Inventory Markdown',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: []
   },
   {
     toolId: 'markdown-preview-inspector',

@@ -291,6 +291,7 @@ test('finds Power Platform tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="dataverse-odata-query-builder"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-cli-command-builder"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-platform-solution-mermaid"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-fx-snippet-formatter"]')).toBeEnabled();
 });
@@ -2209,6 +2210,55 @@ test('hands Power Platform CLI output to text diff', async ({ page }) => {
   await expect(page.getByLabel('Right text')).toHaveValue('');
 });
 
+test('generates Mermaid diagrams from an exported Power Platform solution ZIP', async ({ page }) => {
+  await page.goto('/#power-platform-solution-mermaid');
+
+  await expect(page.getByRole('heading', { name: 'Power Platform Solution Mermaid Generator' })).toBeVisible();
+  await page.setInputFiles('#solutionMermaidFileInput', {
+    name: 'ops-toolkit.zip',
+    mimeType: 'application/zip',
+    buffer: createSolutionZip()
+  });
+  await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Power Platform solution analysed successfully.');
+  await expect(page.locator('#solutionMermaidNameDetail')).toHaveText('Operations Toolkit');
+  await expect(page.locator('#solutionMermaidVersionDetail')).toHaveText('1.2.3.4');
+  await expect(page.locator('#solutionMermaidComponentsDetail')).toHaveText('2');
+  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Lead process');
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^stateDiagram-v2/);
+
+  await page.getByLabel('Component filter').selectOption('cloud-flow');
+  await expect(page.locator('#solutionMermaidFilteredDetail')).toHaveText('1 shown');
+  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Account approval');
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart TD/);
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Get account - OpenApiConnection - GetItem/);
+  await expect(page.locator('#downloadSolutionMermaidButton')).toHaveAttribute('download', 'Cloud flow-Account approval.mmd');
+  await expect(page.locator('#downloadSolutionMermaidInventoryButton')).toHaveAttribute('download', 'Operations Toolkit-inventory.md');
+  await expect(page.locator('#toolHandover')).toContainText('Selected Mermaid: Preview and export');
+  await page.locator('#toolHandover').getByRole('button', { name: /Selected Mermaid: Preview and export/ }).click();
+
+  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/Account approval/);
+});
+
+test('reports Power Platform solution Mermaid validation errors', async ({ page }) => {
+  await page.goto('/#power-platform-solution-mermaid');
+
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP file before analysing the solution.');
+
+  await page.setInputFiles('#solutionMermaidFileInput', {
+    name: 'not-a-solution.zip',
+    mimeType: 'application/zip',
+    buffer: Buffer.alloc(32)
+  });
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('The ZIP central directory could not be found.');
+});
+
 test('formats Power Automate expressions and reports syntax errors', async ({ page }) => {
   await page.goto('/#power-automate-expression-formatter');
 
@@ -2607,6 +2657,28 @@ test('loads the Mermaid renderer and chunks offline', async ({ page }) => {
   }
 });
 
+test('loads the Power Platform solution Mermaid generator offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#power-platform-solution-mermaid');
+
+    await expect(page.getByRole('heading', { name: 'Power Platform Solution Mermaid Generator' })).toBeVisible();
+    await page.setInputFiles('#solutionMermaidFileInput', {
+      name: 'offline-solution.zip',
+      mimeType: 'application/zip',
+      buffer: createSolutionZip()
+    });
+    await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+    await expect(page.getByRole('status')).toContainText('Power Platform solution analysed successfully.');
+    await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^stateDiagram-v2|^flowchart TD/);
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
 test('loads the Markdown preview inspector offline', async ({ page }) => {
   await primeOfflineApp(page);
   await page.context().setOffline(true);
@@ -2731,6 +2803,134 @@ test('extracts FetchXML from generated Liquid blocks for Data Explorer', async (
   ].join('\n'));
   await expect(page.getByLabel('JSON or XML input')).not.toHaveValue(/{% fetchxml/);
 });
+
+function createSolutionZip() {
+  const files = [
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>ops_toolkit</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Operations Toolkit" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>1.2.3.4</Version>',
+      '    <Managed>0</Managed>',
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <Workflows>',
+      '    <Workflow WorkflowId="{11111111-1111-1111-1111-111111111111}" Name="Account approval" Category="5" />',
+      '    <Workflow WorkflowId="{22222222-2222-2222-2222-222222222222}" Name="Lead process" Category="4">',
+      '      <PrimaryEntity>lead</PrimaryEntity>',
+      '      <ClientData>{"stages":[{"stageName":"Qualify"},{"stageName":"Develop"},{"stageName":"Close"}]}</ClientData>',
+      '    </Workflow>',
+      '  </Workflows>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['Workflows/11111111-1111-1111-1111-111111111111.json', JSON.stringify({
+      properties: {
+        displayName: 'Account approval',
+        workflowEntityId: '11111111-1111-1111-1111-111111111111',
+        definition: {
+          triggers: {
+            manual: {
+              type: 'Request',
+              description: 'When an account is selected'
+            }
+          },
+          actions: {
+            Get_account: {
+              type: 'OpenApiConnection',
+              inputs: {
+                host: {
+                  operationId: 'GetItem'
+                }
+              }
+            },
+            Condition: {
+              type: 'If',
+              runAfter: {
+                Get_account: ['Succeeded']
+              },
+              actions: {
+                Approval_branch: {
+                  type: 'OpenApiConnection',
+                  inputs: {
+                    host: {
+                      operationId: 'StartApproval'
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }, null, 2)]
+  ];
+
+  return createStoredZip(files);
+}
+
+function createStoredZip(files) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  files.forEach(([name, content]) => {
+    const nameBytes = Buffer.from(name, 'utf8');
+    const data = Buffer.from(content, 'utf8');
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0x0800, 6);
+    localHeader.writeUInt16LE(0, 8);
+    localHeader.writeUInt32LE(0, 10);
+    localHeader.writeUInt32LE(0, 14);
+    localHeader.writeUInt32LE(data.length, 18);
+    localHeader.writeUInt32LE(data.length, 22);
+    localHeader.writeUInt16LE(nameBytes.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    localParts.push(localHeader, nameBytes, data);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0x0800, 8);
+    centralHeader.writeUInt16LE(0, 10);
+    centralHeader.writeUInt32LE(0, 12);
+    centralHeader.writeUInt32LE(0, 16);
+    centralHeader.writeUInt32LE(data.length, 20);
+    centralHeader.writeUInt32LE(data.length, 24);
+    centralHeader.writeUInt16LE(nameBytes.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE(0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+    centralParts.push(centralHeader, nameBytes);
+    offset += localHeader.length + nameBytes.length + data.length;
+  });
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const localData = Buffer.concat(localParts);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(0, 4);
+  eocd.writeUInt16LE(0, 6);
+  eocd.writeUInt16LE(files.length, 8);
+  eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt32LE(centralDirectory.length, 12);
+  eocd.writeUInt32LE(localData.length, 16);
+  eocd.writeUInt16LE(0, 20);
+
+  return Buffer.concat([localData, centralDirectory, eocd]);
+}
 
 async function createFillablePdf() {
   const pdfDoc = await PDFDocument.create();
