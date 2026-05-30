@@ -1,7 +1,9 @@
 export function bindFileDropZone(dropZone, options = {}) {
   const {
     accept = '',
+    multiple = false,
     onFile,
+    onFiles,
     onReject
   } = options;
   const acceptedRules = parseAcceptRules(accept);
@@ -21,18 +23,34 @@ export function bindFileDropZone(dropZone, options = {}) {
     event.preventDefault();
     dropZone.classList.remove('drag-over');
 
-    const file = event.dataTransfer?.files?.[0];
+    const files = Array.from(event.dataTransfer?.files || []);
 
-    if (!file) {
+    if (files.length === 0) {
       return;
     }
 
-    if (!isAcceptedFile(file, acceptedRules)) {
-      onReject?.(file);
+    if (!multiple) {
+      const file = files[0];
+
+      if (!isAcceptedFile(file, acceptedRules)) {
+        onReject?.(file);
+        return;
+      }
+
+      onFile?.(file);
       return;
     }
 
-    onFile?.(file);
+    const acceptedFiles = files.filter(file => isAcceptedFile(file, acceptedRules));
+    const rejectedFiles = files.filter(file => !isAcceptedFile(file, acceptedRules));
+
+    if (rejectedFiles.length > 0) {
+      onReject?.(rejectedFiles[0], rejectedFiles);
+    }
+
+    if (acceptedFiles.length > 0) {
+      onFiles?.(acceptedFiles);
+    }
   }
 
   dropZone.addEventListener('dragenter', setDragOver);

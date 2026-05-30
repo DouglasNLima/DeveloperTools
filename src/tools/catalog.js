@@ -16,6 +16,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'file-to-base64'
   },
   {
+    id: 'image-converter',
+    title: 'Image converter',
+    category: 'Encoding & files',
+    status: 'available',
+    summary: 'Convert local SVG, PNG, JPEG and WebP images with browser-only previews and downloads.',
+    renderer: 'image-converter'
+  },
+  {
     id: 'fetchxml-liquid-builder',
     title: 'FetchXML Formatter & Liquid Builder',
     category: 'Power Platform',

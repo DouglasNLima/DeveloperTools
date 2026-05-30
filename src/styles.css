@@ -1443,6 +1443,118 @@ label.button.secondary:hover {
   justify-content: space-between;
 }
 
+.image-converter-tool {
+  gap: 0.7rem;
+}
+
+.image-converter-results {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.image-result-card {
+  background: var(--surface-strong);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: minmax(96px, 140px) minmax(0, 1fr);
+  min-width: 0;
+  padding: 0.65rem;
+}
+
+.image-result-card.success {
+  border-left-color: var(--success);
+}
+
+.image-result-card.has-warning {
+  border-left-color: var(--amber);
+}
+
+.image-result-card.error {
+  border-left-color: var(--danger);
+}
+
+.image-result-preview {
+  align-items: center;
+  aspect-ratio: 4 / 3;
+  background: var(--preview-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: flex;
+  justify-content: center;
+  min-height: 6rem;
+  overflow: hidden;
+}
+
+.image-result-preview span {
+  color: var(--text-soft);
+  font-weight: 800;
+}
+
+.image-result-preview img {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.image-result-body {
+  align-content: start;
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.image-result-header {
+  align-items: start;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.image-result-header strong {
+  overflow-wrap: anywhere;
+}
+
+.image-result-header span {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-pill);
+  color: var(--text-soft);
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.16rem 0.5rem;
+}
+
+.image-result-card.success .image-result-header span {
+  background: var(--success-soft);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.image-result-card.error .image-result-header span {
+  background: var(--danger-soft);
+  border-color: rgba(220, 38, 38, 0.28);
+  color: var(--danger);
+}
+
+.image-result-body p {
+  color: var(--text-soft);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.image-warning-list {
+  color: var(--amber);
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
 .pdf-template-tool {
   gap: 0.7rem;
 }
@@ -1873,6 +1985,10 @@ label.button.secondary:hover {
 
   textarea {
     min-height: 220px;
+  }
+
+  .image-result-card {
+    grid-template-columns: 1fr;
   }
 
   .statusbar {

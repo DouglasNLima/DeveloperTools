@@ -3,6 +3,9 @@ import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 import { APP_TITLE } from '../../src/app-metadata.js';
 
+const SAMPLE_SVG = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10" viewBox="0 0 16 10"><rect width="16" height="10" fill="#ff883e"/></svg>');
+const SAMPLE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAFgwJ/l73XtQAAAABJRU5ErkJggg==', 'base64');
+
 async function primeOfflineApp(page) {
   await page.goto('/');
   await page.evaluate(async () => {
@@ -399,6 +402,24 @@ test('accepts dropped files in every file-capable tool', async ({ page }) => {
 
   await expect(page.getByRole('status')).toContainText('PDF loaded successfully.');
   await expect(page.locator('#pdfFieldCount')).toHaveText('2');
+
+  await page.goto('/#image-converter');
+  await dropFiles(page, '#imageConverterDropZone', [
+    {
+      name: 'mark.svg',
+      mimeType: 'image/svg+xml',
+      buffer: SAMPLE_SVG
+    },
+    {
+      name: 'pixel.png',
+      mimeType: 'image/png',
+      buffer: SAMPLE_PNG
+    }
+  ]);
+
+  await expect(page.getByRole('status')).toContainText('2 image files selected.');
+  await page.getByRole('button', { name: 'Convert images', exact: true }).click();
+  await expect(page.locator('#imageConvertedCount')).toHaveText('2');
 });
 
 test('parses and builds query strings', async ({ page }) => {
@@ -1488,6 +1509,72 @@ test('converts a selected file to raw Base64 and Data URL output', async ({ page
   await expect(page.locator('#base64Output')).toHaveValue('data:text/plain;base64,aGVsbG8=');
 });
 
+test('converts multiple local images to PNG outputs', async ({ page }) => {
+  await page.goto('/#image-converter');
+
+  await expect(page.getByRole('heading', { name: 'Image converter' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="image-converter"]')).toHaveAttribute('aria-current', 'page');
+  await page.setInputFiles('#imageConverterFileInput', [
+    {
+      name: 'mark.svg',
+      mimeType: 'image/svg+xml',
+      buffer: SAMPLE_SVG
+    },
+    {
+      name: 'pixel.png',
+      mimeType: 'image/png',
+      buffer: SAMPLE_PNG
+    }
+  ]);
+
+  await expect(page.locator('#imageSelectedCount')).toHaveText('2');
+  await expect(page.getByRole('status')).toContainText('2 image files selected.');
+  await page.getByRole('button', { name: 'Convert images', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Image conversion completed successfully.');
+  await expect(page.locator('#imageConvertedCount')).toHaveText('2');
+  await expect(page.locator('#imageFailedCount')).toHaveText('0');
+  await expect(page.locator('.image-result-card.success')).toHaveCount(2);
+  await expect(page.locator('.image-download-link[download="mark.png"]')).toBeVisible();
+  await expect(page.locator('.image-download-link[download="pixel.png"]')).toBeVisible();
+});
+
+test('wraps raster images in SVG output with a clear warning', async ({ page }) => {
+  await page.goto('/#image-converter');
+
+  await page.getByLabel('Target format').selectOption('svg');
+  await page.setInputFiles('#imageConverterFileInput', {
+    name: 'pixel.png',
+    mimeType: 'image/png',
+    buffer: SAMPLE_PNG
+  });
+  await page.getByRole('button', { name: 'Convert images', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Image conversion completed successfully.');
+  await expect(page.locator('#imageWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('.image-result-card.has-warning')).toBeVisible();
+  await expect(page.locator('.image-warning-list')).toContainText('does not vectorise');
+  await expect(page.locator('.image-download-link[download="pixel.svg"]')).toBeVisible();
+});
+
+test('reports Image converter validation errors', async ({ page }) => {
+  await page.goto('/#image-converter');
+
+  await page.getByRole('button', { name: 'Convert images', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Select one or more image files before converting.');
+
+  await page.setInputFiles('#imageConverterFileInput', {
+    name: 'notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('not an image')
+  });
+  await page.getByRole('button', { name: 'Convert images', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Unsupported image type');
+  await expect(page.locator('#imageFailedCount')).toHaveText('1');
+  await expect(page.locator('.image-result-card.error')).toContainText('Choose SVG, PNG, JPEG or WebP');
+});
+
 test('formats FetchXML and builds a Power Pages Liquid block', async ({ page }) => {
   await page.goto('/#fetchxml-liquid-builder');
 
@@ -1545,16 +1632,24 @@ async function createFillablePdf() {
 }
 
 async function dropFile(page, selector, file) {
-  const dataTransfer = await page.evaluateHandle(({ name, mimeType, bytes }) => {
+  await dropFiles(page, selector, [file]);
+}
+
+async function dropFiles(page, selector, files) {
+  const dataTransfer = await page.evaluateHandle(droppedFiles => {
     const transfer = new DataTransfer();
-    const droppedFile = new File([new Uint8Array(bytes)], name, { type: mimeType });
-    transfer.items.add(droppedFile);
+
+    droppedFiles.forEach(({ name, mimeType, bytes }) => {
+      const droppedFile = new File([new Uint8Array(bytes)], name, { type: mimeType });
+      transfer.items.add(droppedFile);
+    });
+
     return transfer;
-  }, {
+  }, files.map(file => ({
     name: file.name,
     mimeType: file.mimeType,
     bytes: [...file.buffer]
-  });
+  })));
 
   await page.dispatchEvent(selector, 'dragenter', { dataTransfer });
   await page.dispatchEvent(selector, 'dragover', { dataTransfer });

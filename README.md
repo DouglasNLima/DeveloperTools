@@ -6,6 +6,7 @@ The current foundation includes:
 
 - Base64 to file
 - File to Base64
+- Image converter
 - Hashes/checksums
 - URL & query string helper
 - JSON formatter/validator
@@ -95,6 +96,8 @@ src/
     csv-tsv-helper.ui.js
     hash-checksums.js
     hash-checksums.ui.js
+    image-converter.js
+    image-converter.ui.js
     json-diff.js
     json-diff.ui.js
     json-formatter.js

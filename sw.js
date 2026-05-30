@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v5';
+const CACHE_NAME = 'developer-tools-static-v6';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -32,6 +32,8 @@ const PRECACHE_URLS = [
   './src/tools/file-drop-zone.js',
   './src/tools/html-cleaner.js',
   './src/tools/html-cleaner.ui.js',
+  './src/tools/image-converter.js',
+  './src/tools/image-converter.ui.js',
   './src/tools/json-diff.js',
   './src/tools/json-diff.ui.js',
   './src/tools/json-formatter.js',

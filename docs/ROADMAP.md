@@ -15,8 +15,9 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 - URL encode/decode and query string parse/build helper.
 - Hashes/checksums for text and local files.
+- Image converter for local SVG, PNG, JPEG and WebP files.
 - File type inspection improvements for common developer artefacts.
-- Status: URL & query string helper and hashes/checksums implemented.
+- Status: URL & query string helper, hashes/checksums and image converter implemented.
 
 ## Phase 3: JSON & Data
 
