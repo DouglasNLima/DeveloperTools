@@ -479,7 +479,14 @@ function applyPendingToolState() {
   }
 
   if (pendingHandover && pendingHandover.targetToolId === activeTool.id) {
-    applyHandoverPayload(toolMount, pendingHandover.targetToolId, pendingHandover.targetInputId, pendingHandover.value);
+    applyHandoverPayload(
+      toolMount,
+      pendingHandover.targetToolId,
+      pendingHandover.targetInputId,
+      pendingHandover.value,
+      undefined,
+      pendingHandover
+    );
     pendingHandover = null;
   }
 }
@@ -580,7 +587,7 @@ function createHandoverSuggestionButton(suggestion) {
   button.dataset.handoverInput = suggestion.targetInputId;
 
   const title = document.createElement('strong');
-  title.textContent = suggestion.label;
+  title.textContent = `${suggestion.sourceLabel}: ${suggestion.label}`;
 
   const detail = document.createElement('span');
   detail.textContent = `${targetTool?.title || suggestion.targetToolId}: ${suggestion.description}`;

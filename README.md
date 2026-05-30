@@ -58,7 +58,7 @@ npm run test:unit
 npm run test:browser
 ```
 
-Tools that produce valid JSON can hand their populated output to compatible JSON tools during the same browser session. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
+Tools that produce valid JSON, including JSON reports from URL, regex, text diff and JWT tools, can hand their populated output to compatible JSON tools during the same browser session. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 

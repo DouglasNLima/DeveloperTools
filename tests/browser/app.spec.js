@@ -461,6 +461,22 @@ test('reports URL helper validation errors', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('must use key=value format');
 });
 
+test('hands parsed URL query JSON to Data Explorer', async ({ page }) => {
+  await page.goto('/#url-codec');
+
+  await page.getByLabel('Mode').selectOption('parse-query');
+  await page.getByLabel('Input').fill('https://example.test/search?q=hello+world&tag=alpha');
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('json');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"key": "q"/);
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('2');
+});
+
 test('finds the JSON formatter and processes formatted and minified output', async ({ page }) => {
   await page.goto('/');
 
@@ -649,11 +665,30 @@ test('hands decoded JWT payload to the JSON formatter', async ({ page }) => {
     active: true
   }));
   await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
-  await page.locator('#toolHandover').getByRole('button', { name: /Format JSON/ }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Decoded payload: Format JSON/ }).click();
 
   await expect(page).toHaveURL(/#json-formatter$/);
   await expect(page.getByLabel('JSON input')).toHaveValue(/"sub": "user-123"/);
   await expect(page.getByLabel('JSON input')).toHaveValue(/"roles": \[/);
+});
+
+test('hands decoded JWT header to the JSON formatter', async ({ page }) => {
+  await page.goto('/#jwt-decoder');
+
+  await page.getByLabel('JWT input').fill(makeJwt({
+    sub: 'user-123'
+  }, {
+    alg: 'RS256',
+    typ: 'JWT',
+    kid: 'key-1'
+  }));
+  await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Decoded header: Format JSON/ }).click();
+
+  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page.getByLabel('JSON input')).toHaveValue(/"alg": "RS256"/);
+  await expect(page.getByLabel('JSON input')).toHaveValue(/"kid": "key-1"/);
+  await expect(page.getByLabel('JSON input')).not.toHaveValue(/"sub": "user-123"/);
 });
 
 test('generates JSON structural diff reports', async ({ page }) => {
@@ -970,6 +1005,24 @@ test('reports regex warnings and invalid patterns', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Invalid regular expression');
 });
 
+test('hands regex JSON reports to Data Explorer', async ({ page }) => {
+  await page.goto('/#regex-tester');
+
+  await page.getByLabel('Pattern').fill('(?<name>[A-Z][a-z]+)\\s+(?<email>[^\\s]+@[^\\s]+)');
+  await page.getByLabel('Flags').fill('g');
+  await page.getByLabel('Test text').fill('Ada ada@example.test\nGrace grace@example.test');
+  await page.getByRole('button', { name: 'Run test', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('json');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"matches": \[/);
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.locator('#dataExplorerPathDetail')).toHaveText('$.matches');
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('2');
+});
+
 test('formats and linearises SQL queries', async ({ page }) => {
   await page.goto('/#sql-query-formatter');
 
@@ -1078,6 +1131,24 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('#textDiffOutput')).toHaveValue(/"equal": true/);
   await expect(page.locator('#downloadTextDiffButton')).toHaveAttribute('download', 'text-diff.json');
   await expect(page.getByRole('status')).toContainText('Whitespace differences were ignored.');
+});
+
+test('hands text diff JSON reports to Data Explorer', async ({ page }) => {
+  await page.goto('/#text-diff');
+
+  await page.getByLabel('Output format').selectOption('json');
+  await page.getByLabel('Left text').fill('one\ntwo');
+  await page.getByLabel('Right text').fill('one\ntwo updated\nthree');
+  await page.getByRole('button', { name: 'Compare text', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('json');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"rows": \[/);
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.locator('#dataExplorerPathDetail')).toHaveText('$.rows');
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('3');
 });
 
 test('converts HTML to readable text and Markdown', async ({ page }) => {

@@ -4,6 +4,10 @@ const JSON_SOURCE_PORTS = [
   { toolId: 'json-schema-validator', outputId: 'output' },
   { toolId: 'data-explorer', outputId: 'output' },
   { toolId: 'csv-tsv-helper', outputId: 'output' },
+  { toolId: 'url-codec', outputId: 'output' },
+  { toolId: 'regex-tester', outputId: 'output' },
+  { toolId: 'text-diff', outputId: 'output' },
+  { toolId: 'jwt-decoder', outputId: 'header' },
   { toolId: 'jwt-decoder', outputId: 'payload' }
 ];
 
@@ -153,8 +157,54 @@ export const TOOL_INTEGRATION_CONTRACTS = [
     inputs: []
   },
   {
+    toolId: 'url-codec',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#urlOutput',
+        label: 'Output',
+        mediaType: 'application/json',
+        kind: 'json'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'regex-tester',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#regexOutput',
+        label: 'Output',
+        mediaType: 'application/json',
+        kind: 'json'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'text-diff',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#textDiffOutput',
+        label: 'Output',
+        mediaType: 'application/json',
+        kind: 'json'
+      }
+    ],
+    inputs: []
+  },
+  {
     toolId: 'jwt-decoder',
     outputs: [
+      {
+        id: 'header',
+        selector: '#jwtHeaderOutput',
+        label: 'Decoded header',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
       {
         id: 'payload',
         selector: '#jwtPayloadOutput',
@@ -177,7 +227,8 @@ export const TOOL_HANDOVER_ROUTES = [
       targetInputId: target.inputId,
       acceptKinds: ['json', 'json-schema'],
       label: target.label,
-      description: target.description
+      description: target.description,
+      setFields: getRouteSetFields(source, target)
     }))
   )),
   ...JSON_SOURCE_PORTS.map(source => ({
@@ -191,3 +242,38 @@ export const TOOL_HANDOVER_ROUTES = [
     description: 'Load this output as the schema for JSON validation.'
   }))
 ];
+
+function getRouteSetFields(source, target) {
+  if (target.toolId !== 'data-explorer' || target.inputId !== 'input') {
+    return [];
+  }
+
+  if (source.toolId === 'regex-tester') {
+    return [
+      {
+        selector: '#dataExplorerRecordPath',
+        value: 'matches'
+      }
+    ];
+  }
+
+  if (source.toolId === 'text-diff') {
+    return [
+      {
+        selector: '#dataExplorerRecordPath',
+        value: 'rows'
+      }
+    ];
+  }
+
+  if (source.toolId === 'json-diff') {
+    return [
+      {
+        selector: '#dataExplorerRecordPath',
+        value: 'changes'
+      }
+    ];
+  }
+
+  return [];
+}

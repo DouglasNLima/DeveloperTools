@@ -23,7 +23,11 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'json-formatter'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'url-codec'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'regex-tester'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
 });
 
 test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
@@ -71,6 +75,37 @@ test('resolves suggestions only for compatible populated outputs', () => {
     root,
     availableTools: ['json-formatter', 'json-diff', 'json-schema-validator', 'data-explorer']
   }), []);
+});
+
+test('resolves suggestions for additional JSON report sources', () => {
+  for (const [toolId, outputId] of [
+    ['url-codec', 'urlOutput'],
+    ['regex-tester', 'regexOutput'],
+    ['text-diff', 'textDiffOutput'],
+    ['jwt-decoder', 'jwtHeaderOutput']
+  ]) {
+    const root = createRoot([
+      createControl({ id: outputId, tagName: 'TEXTAREA', value: '{"ok":true}' })
+    ]);
+    const suggestions = resolveHandoverSuggestions({
+      sourceToolId: toolId,
+      root,
+      availableTools: ['json-formatter', 'json-diff', 'json-schema-validator', 'data-explorer']
+    });
+
+    assert.ok(suggestions.some(suggestion => suggestion.label === 'Format JSON'), `${toolId} should offer JSON formatter handover`);
+    assert.ok(suggestions.some(suggestion => suggestion.label === 'Explore JSON records'), `${toolId} should offer Data Explorer handover`);
+
+    if (toolId === 'regex-tester') {
+      const dataExplorerSuggestion = suggestions.find(suggestion => suggestion.label === 'Explore JSON records');
+      assert.deepEqual(dataExplorerSuggestion.setFields, [
+        {
+          selector: '#dataExplorerRecordPath',
+          value: 'matches'
+        }
+      ]);
+    }
+  }
 });
 
 test('resolves schema handovers for detected JSON Schema output', () => {
@@ -122,11 +157,20 @@ test('applies handover payloads and restores serialised form state', () => {
 
   const targetRoot = createRoot([
     createControl({ id: 'dataExplorerFormat', tagName: 'SELECT', value: 'auto' }),
+    createControl({ id: 'dataExplorerRecordPath', tagName: 'INPUT', value: '' }),
     createControl({ id: 'dataExplorerInput', tagName: 'TEXTAREA', value: '' })
   ]);
 
-  assert.equal(applyHandoverPayload(targetRoot, 'data-explorer', 'input', '[{"name":"Ada"}]'), true);
+  assert.equal(applyHandoverPayload(targetRoot, 'data-explorer', 'input', '[{"name":"Ada"}]', undefined, {
+    setFields: [
+      {
+        selector: '#dataExplorerRecordPath',
+        value: 'items'
+      }
+    ]
+  }), true);
   assert.equal(targetRoot.querySelector('#dataExplorerFormat').value, 'json');
+  assert.equal(targetRoot.querySelector('#dataExplorerRecordPath').value, 'items');
   assert.equal(targetRoot.querySelector('#dataExplorerInput').value, '[{"name":"Ada"}]');
 });
 

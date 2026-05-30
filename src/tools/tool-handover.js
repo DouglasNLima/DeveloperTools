@@ -118,7 +118,8 @@ export function resolveHandoverSuggestions({
           targetInputId: route.targetInputId,
           targetInputLabel: targetInput.label,
           kind: analysis.kind,
-          value: analysis.rawValue
+          value: analysis.rawValue,
+          setFields: route.setFields || []
         });
       });
   });
@@ -126,7 +127,7 @@ export function resolveHandoverSuggestions({
   return suggestions;
 }
 
-export function applyHandoverPayload(root, toolId, inputId, value, contracts = TOOL_INTEGRATION_CONTRACTS) {
+export function applyHandoverPayload(root, toolId, inputId, value, contracts = TOOL_INTEGRATION_CONTRACTS, options = {}) {
   const contract = getToolIntegrationContract(toolId, contracts);
   const input = contract?.inputs.find(candidate => candidate.id === inputId);
 
@@ -134,7 +135,10 @@ export function applyHandoverPayload(root, toolId, inputId, value, contracts = T
     return false;
   }
 
-  (input.setFields || []).forEach(field => {
+  [
+    ...(input.setFields || []),
+    ...(options.setFields || [])
+  ].forEach(field => {
     const element = root.querySelector(field.selector);
     setControlValue(element, field.value);
   });
