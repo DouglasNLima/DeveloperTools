@@ -2219,7 +2219,7 @@ test('generates Mermaid diagrams from an exported Power Platform solution ZIP', 
   await page.setInputFiles('#solutionMermaidFileInput', {
     name: 'ops-toolkit.zip',
     mimeType: 'application/zip',
-    buffer: createSolutionZip()
+    buffer: createDependencySolutionZip()
   });
   await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
@@ -2227,23 +2227,30 @@ test('generates Mermaid diagrams from an exported Power Platform solution ZIP', 
   await expect(page.getByRole('status')).toContainText('Power Platform solution analysed successfully.');
   await expect(page.locator('#solutionMermaidNameDetail')).toHaveText('Operations Toolkit');
   await expect(page.locator('#solutionMermaidVersionDetail')).toHaveText('1.2.3.4');
-  await expect(page.locator('#solutionMermaidComponentsDetail')).toHaveText('2');
-  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Lead process');
-  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^stateDiagram-v2/);
+  await expect(page.locator('#solutionMermaidComponentsDetail')).toHaveText('5');
+  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Parent account updater');
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR/);
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Parent account updater/);
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/calls child flow/);
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Account post update/);
+  await expect(page.locator('#downloadSolutionMermaidButton')).toHaveAttribute('download', 'Operations Toolkit-automation-map.mmd');
 
   await page.getByLabel('Component filter').selectOption('cloud-flow');
+  await page.getByLabel('Search components').fill('Parent account');
   await expect(page.locator('#solutionMermaidFilteredDetail')).toHaveText('1 shown');
-  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Account approval');
+  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Parent account updater');
   await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart TD/);
-  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Get account - OpenApiConnection - GetItem/);
-  await expect(page.locator('#downloadSolutionMermaidButton')).toHaveAttribute('download', 'Cloud flow-Account approval.mmd');
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Update account - OpenApiConnection - UpdateRecord/);
+  await expect(page.locator('#downloadSolutionMermaidButton')).toHaveAttribute('download', 'Cloud flow-Parent account updater.mmd');
   await expect(page.locator('#downloadSolutionMermaidInventoryButton')).toHaveAttribute('download', 'Operations Toolkit-inventory.md');
+  await page.getByRole('button', { name: 'Show dependency map', exact: true }).click();
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR/);
   await expect(page.locator('#toolHandover')).toContainText('Selected Mermaid: Preview and export');
   await page.locator('#toolHandover').getByRole('button', { name: /Selected Mermaid: Preview and export/ }).click();
 
   await expect(page).toHaveURL(/#mermaid-editor$/);
-  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
-  await expect(page.getByLabel('Mermaid source')).toHaveValue(/Account approval/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart LR/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/Parent account updater/);
 });
 
 test('reports Power Platform solution Mermaid validation errors', async ({ page }) => {
@@ -2793,7 +2800,7 @@ test('loads the Power Platform solution Mermaid generator offline', async ({ pag
     await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
 
     await expect(page.getByRole('status')).toContainText('Power Platform solution analysed successfully.');
-    await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^stateDiagram-v2|^flowchart TD/);
+    await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR|^stateDiagram-v2|^flowchart TD/);
   } finally {
     await page.context().setOffline(false);
   }
@@ -3013,6 +3020,118 @@ function createSolutionZip() {
                   }
                 }
               }
+            }
+          }
+        }
+      }
+    }, null, 2)]
+  ];
+
+  return createStoredZip(files);
+}
+
+function createDependencySolutionZip() {
+  const files = [
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>ops_toolkit</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Operations Toolkit" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>1.2.3.4</Version>',
+      '    <Managed>0</Managed>',
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <Workflows>',
+      '    <Workflow WorkflowId="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" Name="Parent account updater" Category="5" />',
+      '    <Workflow WorkflowId="{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}" Name="Child account notifier" Category="5" />',
+      '    <Workflow WorkflowId="{cccccccc-cccc-cccc-cccc-cccccccccccc}" Name="Account risk rule" Category="2">',
+      '      <PrimaryEntity>account</PrimaryEntity>',
+      '      <ClientData>{"conditions":[{"field":"name","name":"Name changed"}],"actions":[{"name":"Show risk field"}]}</ClientData>',
+      '    </Workflow>',
+      '    <Workflow WorkflowId="{dddddddd-dddd-dddd-dddd-dddddddddddd}" Name="contoso_DoAccountWork" Category="3">',
+      '      <PrimaryEntity>account</PrimaryEntity>',
+      '    </Workflow>',
+      '  </Workflows>',
+      '  <SdkMessageProcessingStep SdkMessageProcessingStepId="{eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee}" Name="Account post update" MessageName="Update" PrimaryEntity="account" FilteringAttributes="name" Stage="40" Mode="0" />',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['Workflows/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.json', JSON.stringify({
+      properties: {
+        displayName: 'Parent account updater',
+        workflowEntityId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        definition: {
+          triggers: {
+            manual: {
+              type: 'Request',
+              description: 'When an account is selected'
+            }
+          },
+          actions: {
+            Update_account: {
+              type: 'OpenApiConnection',
+              inputs: {
+                host: {
+                  apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
+                  operationId: 'UpdateRecord'
+                },
+                parameters: {
+                  entityName: 'account',
+                  item: {
+                    name: 'Contoso'
+                  }
+                }
+              }
+            },
+            Run_child_flow: {
+              type: 'Workflow',
+              runAfter: {
+                Update_account: ['Succeeded']
+              },
+              inputs: {
+                host: {
+                  workflowReferenceName: 'Child account notifier'
+                }
+              }
+            },
+            Call_custom_action: {
+              type: 'OpenApiConnection',
+              runAfter: {
+                Run_child_flow: ['Succeeded']
+              },
+              inputs: {
+                host: {
+                  apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
+                  operationId: 'PerformUnboundAction'
+                },
+                parameters: {
+                  actionName: 'contoso_DoAccountWork'
+                }
+              }
+            }
+          }
+        }
+      }
+    }, null, 2)],
+    ['Workflows/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.json', JSON.stringify({
+      properties: {
+        displayName: 'Child account notifier',
+        workflowEntityId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        definition: {
+          triggers: {
+            request: {
+              type: 'Request',
+              description: 'Run from parent flow'
+            }
+          },
+          actions: {
+            Compose_response: {
+              type: 'Compose'
             }
           }
         }

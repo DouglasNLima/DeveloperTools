@@ -56,10 +56,10 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 ## Phase 5: Power Platform Solution Mermaid Generator
 
 - Read exported solution ZIP files locally in the browser.
-- Detect cloud flows, business process flows, business rules and classic workflows from solution metadata and `Workflows/*.json` files.
-- Generate semantic Mermaid diagrams with metadata fallback warnings when exported process detail is limited.
+- Detect cloud flows, child flow calls, business process flows, business rules, classic workflows, custom actions and plug-in steps from solution metadata and `Workflows/*.json` files.
+- Generate semantic Mermaid diagrams and an automation dependency map with explicit and probable Dataverse trigger relations.
 - Produce a Markdown inventory and hand selected diagrams to the Mermaid editor/exporter.
-- Status: implemented with unit and browser coverage.
+- Status: implemented with unit and browser coverage, including dependency maps for flow-to-flow calls and Dataverse update to plug-in paths.
 
 ## Phase 6: Power Platform Solution Documentation Generator
 

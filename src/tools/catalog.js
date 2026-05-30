@@ -116,7 +116,7 @@ export const TOOL_CATALOGUE = [
     title: 'Power Platform Solution Mermaid Generator',
     category: 'Power Platform',
     status: 'available',
-    summary: 'Inspect exported solution ZIP files and generate Mermaid diagrams for workflow components.',
+    summary: 'Inspect exported solution ZIP files and generate Mermaid dependency maps for automation components.',
     renderer: 'power-platform-solution-mermaid'
   },
   {

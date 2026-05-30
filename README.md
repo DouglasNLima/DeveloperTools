@@ -39,7 +39,7 @@ The current foundation includes:
 - Table Permissions Checklist for Power Pages
 - Dataverse OData Query Builder
 - Power Platform CLI Command Builder
-- Power Platform Solution Mermaid Generator
+- Power Platform Solution Mermaid and Dependency Map Generator
 - Power Platform Solution Documentation Generator
 - Power Automate Expression Formatter
 - Power Fx Snippet Formatter
