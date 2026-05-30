@@ -44,6 +44,8 @@ Open `index.html` directly in a browser, or serve the folder with any static fil
 
 When served from GitHub Pages, localhost or another HTTPS origin, Microsoft Edge can install the app on Windows using its native app install option. After the first online load, the service worker caches the static app shell and vendored assets so the installed app can reopen and run offline. Opening `index.html` directly with `file://` still works for normal local use, but browsers do not allow service worker registration from that origin.
 
+The home page includes a transparency section that explains the local-first philosophy and names runtime and testing libraries. Runtime libraries are bundled locally for the published app; testing-only libraries support development and are not loaded by the published app.
+
 For the test runner and local development tooling:
 
 ```sh
@@ -88,6 +90,7 @@ assets/
   icons/
 src/
   app-metadata.js
+  app-transparency.js
   app.js
   pwa.js
   styles.css

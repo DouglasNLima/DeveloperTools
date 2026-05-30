@@ -12,6 +12,7 @@ import {
   serialiseToolState
 } from './tools/tool-handover.js';
 import { APP_TITLE } from './app-metadata.js';
+import { APP_PHILOSOPHY, TRANSPARENCY_LIBRARY_ENTRIES } from './app-transparency.js';
 import { registerAppServiceWorker } from './pwa.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderCaseConverter } from './tools/case-converter.ui.js';
@@ -425,6 +426,7 @@ function renderHome() {
     </div>
   `;
   homeBoard.append(summary);
+  homeBoard.append(createTransparencySection());
 
   getCategories().forEach(category => {
     const categoryTools = TOOL_CATALOGUE.filter(tool => tool.category === category);
@@ -447,6 +449,128 @@ function renderHome() {
   });
 
   toolMount.append(homeBoard);
+}
+
+function createTransparencySection() {
+  const section = document.createElement('section');
+  section.className = 'home-transparency';
+  section.setAttribute('aria-labelledby', 'homeTransparencyTitle');
+
+  const header = document.createElement('div');
+  header.className = 'home-section-header';
+
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'Transparency';
+
+  const title = document.createElement('h2');
+  title.id = 'homeTransparencyTitle';
+  title.textContent = 'Local-first by design';
+
+  const summary = document.createElement('p');
+  summary.textContent = 'Developer Tools is built to stay inspectable: the app runs locally, avoids external runtime services and names the libraries behind each workflow.';
+
+  header.append(eyebrow, title, summary);
+
+  const philosophyGrid = document.createElement('div');
+  philosophyGrid.className = 'home-philosophy-grid';
+  APP_PHILOSOPHY.forEach(item => {
+    philosophyGrid.append(createPhilosophyCard(item));
+  });
+
+  const librariesHeader = document.createElement('div');
+  librariesHeader.className = 'home-library-header';
+
+  const librariesTitle = document.createElement('h3');
+  librariesTitle.textContent = 'Library transparency';
+
+  const librariesSummary = document.createElement('p');
+  librariesSummary.textContent = 'Runtime libraries are bundled locally. Testing-only libraries support development and are not loaded by the published app.';
+
+  librariesHeader.append(librariesTitle, librariesSummary);
+
+  const libraryGrid = document.createElement('div');
+  libraryGrid.className = 'home-library-grid';
+  TRANSPARENCY_LIBRARY_ENTRIES.forEach(entry => {
+    libraryGrid.append(createLibraryCard(entry));
+  });
+
+  const note = document.createElement('p');
+  note.className = 'home-transparency-note';
+  note.textContent = 'All other tools use first-party code and built-in browser APIs.';
+
+  section.append(header, philosophyGrid, librariesHeader, libraryGrid, note);
+  return section;
+}
+
+function createPhilosophyCard(item) {
+  const card = document.createElement('article');
+  card.className = 'home-philosophy-card';
+
+  const title = document.createElement('h3');
+  title.textContent = item.title;
+
+  const summary = document.createElement('p');
+  summary.textContent = item.summary;
+
+  card.append(title, summary);
+  return card;
+}
+
+function createLibraryCard(entry) {
+  const card = document.createElement('article');
+  card.className = 'home-library-card';
+  card.dataset.libraryName = entry.name;
+
+  const header = document.createElement('div');
+  header.className = 'home-library-card-header';
+
+  const link = document.createElement('a');
+  link.className = 'home-library-link';
+  link.href = entry.website;
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = entry.name;
+
+  const scope = document.createElement('span');
+  scope.className = `home-library-scope ${getLibraryScopeClass(entry.scope)}`;
+  scope.textContent = entry.scope;
+
+  header.append(link, scope);
+
+  const usage = document.createElement('p');
+  usage.className = 'home-library-usage';
+  usage.textContent = entry.usage;
+
+  const details = document.createElement('dl');
+  details.className = 'home-library-details';
+  details.append(
+    createDefinitionItem('Used by', entry.usedBy.join(', ')),
+    createDefinitionItem('Published app', entry.loadedByPublishedApp ? 'Loaded by published app' : 'Not loaded by published app')
+  );
+
+  const note = document.createElement('p');
+  note.className = 'home-library-note';
+  note.textContent = entry.note;
+
+  card.append(header, usage, details, note);
+  return card;
+}
+
+function createDefinitionItem(term, description) {
+  const fragment = document.createDocumentFragment();
+  const termElement = document.createElement('dt');
+  const descriptionElement = document.createElement('dd');
+
+  termElement.textContent = term;
+  descriptionElement.textContent = description;
+  fragment.append(termElement, descriptionElement);
+
+  return fragment;
+}
+
+function getLibraryScopeClass(scope) {
+  return scope.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 }
 
 function renderActiveTool() {

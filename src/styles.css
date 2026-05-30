@@ -352,6 +352,8 @@ a.button[hidden],
 .handover-trail,
 .tool-handover,
 .home-summary-card,
+.home-philosophy-card,
+.home-library-card,
 .home-tool-card,
 .pdf-template-panel,
 .pdf-viewer-area,
@@ -1029,6 +1031,156 @@ textarea.syntax-editor-input::placeholder {
 
 .home-category {
   gap: 0.5rem;
+}
+
+.home-transparency {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.home-section-header,
+.home-library-header {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.home-section-header h2,
+.home-library-header h3 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.home-section-header p:last-child,
+.home-library-header p,
+.home-transparency-note {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.home-philosophy-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.home-philosophy-card,
+.home-library-card {
+  background: var(--surface);
+  box-shadow: none;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+}
+
+.home-philosophy-card h3 {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.home-philosophy-card p,
+.home-library-usage,
+.home-library-note {
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.home-library-grid {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-library-card {
+  align-content: start;
+  min-width: 0;
+}
+
+.home-library-card-header {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: space-between;
+}
+
+.home-library-link {
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  text-decoration-color: var(--accent-border);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2rem;
+}
+
+.home-library-link:hover,
+.home-library-link:focus-visible {
+  color: var(--accent);
+}
+
+.home-library-link:focus-visible {
+  border-radius: var(--radius-small);
+  box-shadow: var(--focus);
+  outline: none;
+}
+
+.home-library-scope {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-pill);
+  color: var(--text-soft);
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 0.18rem 0.5rem;
+}
+
+.home-library-scope.runtime {
+  background: var(--success-soft);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.home-library-scope.testing-only {
+  background: var(--amber-soft);
+  border-color: rgba(217, 119, 6, 0.28);
+  color: var(--amber);
+}
+
+.home-library-details {
+  display: grid;
+  gap: 0.25rem 0.5rem;
+  grid-template-columns: max-content minmax(0, 1fr);
+  margin: 0;
+}
+
+.home-library-details dt,
+.home-library-details dd {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.home-library-details dt {
+  color: var(--text-strong-soft);
+  font-weight: 800;
+}
+
+.home-library-details dd {
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
 }
 
 .home-category h3 {
@@ -2178,6 +2330,10 @@ label.button.secondary:hover {
   .home-tool-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .home-library-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 780px) {
@@ -2206,10 +2362,12 @@ label.button.secondary:hover {
 
   .form-grid--actions,
   .form-grid--split,
-  .form-grid--triple,
-  .home-summary,
-  .home-tool-grid,
-  .option-grid,
+    .form-grid--triple,
+    .home-summary,
+    .home-philosophy-grid,
+    .home-library-grid,
+    .home-tool-grid,
+    .option-grid,
   .data-filter-row,
   .detail-grid,
   .pdf-template-layout {

@@ -16,7 +16,7 @@ const devtoolsHtml = await readFile(new URL('../../devtools.html', import.meta.u
 const serviceWorkerSource = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
 
 test('formats the versioned app title consistently', () => {
-  assert.equal(APP_TITLE, 'Developer Tools v0.1.0 (build 18)');
+  assert.equal(APP_TITLE, 'Developer Tools v0.1.0 (build 19)');
   assert.equal(formatAppTitle(), APP_TITLE);
   assert.equal(formatAppTitle({
     name: 'Developer Tools',
@@ -35,6 +35,7 @@ test('keeps app metadata aligned with package and static shell files', () => {
 test('keeps the visible build stamp aligned with the offline cache version', () => {
   assert.match(serviceWorkerSource, new RegExp(`developer-tools-static-v${escapeRegExp(APP_BUILD)}`));
   assert.match(serviceWorkerSource, /'\.\/src\/app-metadata\.js'/);
+  assert.match(serviceWorkerSource, /'\.\/src\/app-transparency\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/file-preview-modal\.js'/);
 });
 

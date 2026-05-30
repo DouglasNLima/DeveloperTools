@@ -25,6 +25,16 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
   await expect(page.locator('[data-home-tool-id="json-formatter"]')).toBeVisible();
+  const transparency = page.locator('.home-transparency');
+  await expect(transparency.getByRole('heading', { name: 'Local-first by design' })).toBeVisible();
+  await expect(transparency).toContainText('The published app is plain HTML, CSS and JavaScript');
+  await expect(transparency).toContainText('All other tools use first-party code and built-in browser APIs.');
+  const pdfJsLink = transparency.getByRole('link', { name: 'PDF.js' });
+  await expect(pdfJsLink).toHaveAttribute('href', 'https://mozilla.github.io/pdf.js/');
+  await expect(pdfJsLink).toHaveAttribute('target', '_blank');
+  await expect(pdfJsLink).toHaveAttribute('rel', /noopener noreferrer/);
+  await expect(transparency.locator('[data-library-name="PDF.js"]')).toContainText('PDF Template Field Explorer');
+  await expect(transparency.locator('.home-library-card').filter({ hasText: 'Not loaded by published app' })).toHaveCount(3);
   expect(await page.locator('#activeToolStatus').evaluate(element => getComputedStyle(element).color))
     .toMatch(/rgb\((2, 122, 72|101, 217, 159)\)/);
   expect(await page.locator('[data-home-tool-id="json-formatter"] .home-tool-status').evaluate(element => getComputedStyle(element).color))
@@ -105,6 +115,7 @@ test('returns to home from the Developer Tools title link', async ({ page }) => 
   await expect(page).toHaveURL(/\/$/);
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.home-transparency')).toContainText('Library transparency');
 });
 
 test('collapses the desktop tool menu and persists compact navigation', async ({ page }) => {
