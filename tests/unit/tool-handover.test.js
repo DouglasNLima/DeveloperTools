@@ -46,6 +46,8 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'extract-fenced-fetch'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'url-codec' && route.transform === 'extract-odata-endpoint'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-web-api-snippets' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'safeajax-to-fetch'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-web-api-snippets' && route.targetToolId === 'url-codec' && route.transform === 'extract-webapi-endpoint'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'csv-tsv-helper' && route.transform === 'json-records-to-csv'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'data-explorer' && route.targetInputId === 'xml'));
@@ -104,6 +106,40 @@ test('transforms targeted handover payloads before suggestions are shown', () =>
   const endpoint = transformHandoverValue('Endpoint: /api/data/v9.2/accounts?$select=name&$top=5', 'extract-odata-endpoint');
   assert.equal(endpoint.valid, true);
   assert.equal(endpoint.rawValue, '/api/data/v9.2/accounts?$select=name&$top=5');
+
+  const webApiEndpoint = transformHandoverValue('// Endpoint: /_api/accounts?$select=name&$top=5', 'extract-webapi-endpoint');
+  assert.equal(webApiEndpoint.valid, true);
+  assert.equal(webApiEndpoint.rawValue, '/_api/accounts?$select=name&$top=5');
+
+  const safeAjax = transformHandoverValue([
+    '// Endpoint: /_api/accounts',
+    'webapi.safeAjax({',
+    '  type: "POST",',
+    '  url: "/_api/accounts",',
+    '  headers: {',
+    '    "Accept": "application/json",',
+    '    "OData-MaxVersion": "4.0",',
+    '    "OData-Version": "4.0"',
+    '  },',
+    '  contentType: "application/json",',
+    '  data: JSON.stringify({',
+    '    "name": "Contoso"',
+    '  }),',
+    '  success: function(data) {',
+    '    console.log(data);',
+    '  },',
+    '  error: function(xhr) {',
+    '    console.error(xhr);',
+    '  }',
+    '});'
+  ].join('\n'), 'safeajax-to-fetch');
+  assert.equal(safeAjax.valid, true);
+  assert.equal(safeAjax.kind, 'text');
+  assert.match(safeAjax.rawValue, /^const response = await fetch\("\/_api\/accounts"/);
+  assert.match(safeAjax.rawValue, /method: "POST"/);
+  assert.match(safeAjax.rawValue, /"Content-Type": "application\/json"/);
+  assert.match(safeAjax.rawValue, /body: JSON\.stringify\(\{/);
+  assert.match(safeAjax.rawValue, /"name": "Contoso"/);
 
   const csv = transformHandoverValue(JSON.stringify([
     { name: 'Ada Lovelace', status: 'active' },
@@ -292,6 +328,68 @@ test('resolves suggestions for API and Power Platform text sources', () => {
       availableTools
     }), []);
   }
+});
+
+test('resolves Power Pages Web API transformed handover sources', () => {
+  const root = createRoot([
+    createControl({
+      id: 'webApiSnippetOutput',
+      tagName: 'TEXTAREA',
+      value: [
+        '// Power Pages Web API setup checklist',
+        '// Endpoint: /_api/accounts?$select=name&$filter=statecode%20eq%200&$top=5',
+        'webapi.safeAjax = safeAjax;',
+        'webapi.safeAjax({',
+        '  type: "GET",',
+        '  url: "/_api/accounts?$select=name&$filter=statecode%20eq%200&$top=5",',
+        '  headers: {',
+        '    "Accept": "application/json",',
+        '    "OData-MaxVersion": "4.0",',
+        '    "OData-Version": "4.0"',
+        '  },',
+        '  success: function(data) {',
+        '    console.log(data);',
+        '  },',
+        '  error: function(xhr) {',
+        '    console.error(xhr);',
+        '  }',
+        '});'
+      ].join('\n')
+    })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'power-pages-web-api-snippets',
+    root,
+    availableTools: ['support-pack-sanitiser', 'curl-fetch-converter', 'url-codec']
+  });
+
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Sanitise snippet'));
+
+  const converterSuggestion = suggestions.find(suggestion => suggestion.label === 'Convert safeAjax to cURL');
+  assert.equal(converterSuggestion.kind, 'text');
+  assert.match(converterSuggestion.value, /^const response = await fetch/);
+  assert.match(converterSuggestion.value, /\/_api\/accounts/);
+  assert.ok(!converterSuggestion.value.includes('webapi.safeAjax'));
+  assert.deepEqual(converterSuggestion.setFields, [
+    {
+      selector: '#curlFetchMode',
+      value: 'fetch-to-curl'
+    }
+  ]);
+
+  const endpointSuggestion = suggestions.find(suggestion => suggestion.label === 'Inspect Web API endpoint');
+  assert.equal(endpointSuggestion.kind, 'text');
+  assert.equal(endpointSuggestion.value, '/_api/accounts?$select=name&$filter=statecode%20eq%200&$top=5');
+  assert.deepEqual(endpointSuggestion.setFields, [
+    {
+      selector: '#urlToolMode',
+      value: 'parse-query'
+    },
+    {
+      selector: '#urlOutputFormat',
+      value: 'json'
+    }
+  ]);
 });
 
 test('resolves XML and Data Explorer text handover sources', () => {

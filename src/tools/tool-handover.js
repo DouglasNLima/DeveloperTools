@@ -21,7 +21,15 @@ const HANDOVER_TRANSFORMS = {
   },
   'extract-odata-endpoint': {
     kind: 'text',
-    apply: extractODataEndpoint
+    apply: extractEndpointLine
+  },
+  'extract-webapi-endpoint': {
+    kind: 'text',
+    apply: extractEndpointLine
+  },
+  'safeajax-to-fetch': {
+    kind: 'text',
+    apply: transformSafeAjaxToFetch
   },
   'extract-liquid-fetchxml': {
     kind: 'xml',
@@ -567,10 +575,322 @@ function extractLiquidFetchXml(value) {
   return match ? match[1].trim() : '';
 }
 
-function extractODataEndpoint(value) {
+function extractEndpointLine(value) {
   const text = String(value ?? '');
-  const match = text.match(/^Endpoint:\s*(.+)$/im);
+  const match = text.match(/^(?:\/\/\s*)?Endpoint:\s*(.+)$/im);
   return match ? match[1].trim() : '';
+}
+
+function transformSafeAjaxToFetch(value) {
+  const safeAjaxObject = extractSafeAjaxObject(value);
+
+  if (!safeAjaxObject) {
+    return '';
+  }
+
+  const method = extractStringProperty(safeAjaxObject, 'type').toLocaleUpperCase('en-GB') || 'GET';
+  const url = extractStringProperty(safeAjaxObject, 'url');
+
+  if (!url) {
+    return '';
+  }
+
+  const headers = extractObjectStringPairs(safeAjaxObject, 'headers');
+  const contentType = extractStringProperty(safeAjaxObject, 'contentType');
+  const body = extractJsonStringifyPayload(safeAjaxObject, 'data');
+
+  if (contentType && !headers.some(header => header.name.toLocaleLowerCase('en-GB') === 'content-type')) {
+    headers.push({ name: 'Content-Type', value: contentType });
+  }
+
+  const optionBlocks = [`  method: ${quoteJavaScriptString(method)}`];
+
+  if (headers.length > 0) {
+    optionBlocks.push([
+      '  headers: {',
+      ...headers.map((header, index) => {
+        const suffix = index === headers.length - 1 ? '' : ',';
+        return `    ${quoteJavaScriptString(header.name)}: ${quoteJavaScriptString(header.value)}${suffix}`;
+      }),
+      '  }'
+    ].join('\n'));
+  }
+
+  if (body) {
+    optionBlocks.push(`  body: JSON.stringify(${body.replace(/\n/g, '\n  ')})`);
+  }
+
+  return [
+    `const response = await fetch(${quoteJavaScriptString(url)}, {`,
+    ...optionBlocks.flatMap((block, index) => {
+      const suffix = index === optionBlocks.length - 1 ? '' : ',';
+      const lines = block.split('\n');
+      lines[lines.length - 1] = `${lines[lines.length - 1]}${suffix}`;
+      return lines;
+    }),
+    '});'
+  ].join('\n');
+}
+
+function extractSafeAjaxObject(value) {
+  const text = String(value ?? '');
+
+  for (const match of text.matchAll(/webapi\.safeAjax\s*\(/g)) {
+    const openIndex = text.indexOf('(', match.index);
+    const argumentOffset = text.slice(openIndex + 1).search(/\S/);
+    const objectStart = argumentOffset >= 0 ? openIndex + 1 + argumentOffset : -1;
+
+    if (objectStart < 0 || text[objectStart] !== '{') {
+      continue;
+    }
+
+    const objectEnd = findMatchingCharacter(text, objectStart, '{', '}');
+
+    if (objectEnd >= 0) {
+      return text.slice(objectStart, objectEnd + 1);
+    }
+  }
+
+  return '';
+}
+
+function extractStringProperty(objectText, propertyName) {
+  const propertyIndex = findPropertyIndex(objectText, propertyName);
+
+  if (propertyIndex < 0) {
+    return '';
+  }
+
+  const afterColon = objectText.slice(objectText.indexOf(':', propertyIndex) + 1).trimStart();
+  return parseJavaScriptString(afterColon);
+}
+
+function extractObjectStringPairs(objectText, propertyName) {
+  const propertyIndex = findPropertyIndex(objectText, propertyName);
+
+  if (propertyIndex < 0) {
+    return [];
+  }
+
+  const objectStart = objectText.indexOf('{', propertyIndex);
+  const objectEnd = findMatchingCharacter(objectText, objectStart, '{', '}');
+
+  if (objectStart < 0 || objectEnd < 0) {
+    return [];
+  }
+
+  return splitTopLevel(objectText.slice(objectStart + 1, objectEnd), ',')
+    .map(part => {
+      const separatorIndex = part.indexOf(':');
+
+      if (separatorIndex < 0) {
+        return null;
+      }
+
+      const rawName = part.slice(0, separatorIndex).trim();
+      const rawValue = part.slice(separatorIndex + 1).trim();
+      const name = parseJavaScriptString(rawName) || rawName.replace(/^['"`]|['"`]$/g, '');
+      const headerValue = parseJavaScriptString(rawValue);
+
+      return name && headerValue ? { name, value: headerValue } : null;
+    })
+    .filter(Boolean);
+}
+
+function extractJsonStringifyPayload(objectText, propertyName) {
+  const propertyIndex = findPropertyIndex(objectText, propertyName);
+
+  if (propertyIndex < 0) {
+    return '';
+  }
+
+  const afterColon = objectText.slice(objectText.indexOf(':', propertyIndex) + 1).trimStart();
+
+  if (!afterColon.startsWith('JSON.stringify')) {
+    return '';
+  }
+
+  const openIndex = afterColon.indexOf('(');
+  const closeIndex = findMatchingCharacter(afterColon, openIndex, '(', ')');
+
+  if (openIndex < 0 || closeIndex < 0) {
+    return '';
+  }
+
+  const payload = afterColon.slice(openIndex + 1, closeIndex).trim();
+
+  try {
+    return JSON.stringify(JSON.parse(payload), null, 2);
+  } catch {
+    return payload;
+  }
+}
+
+function findPropertyIndex(objectText, propertyName) {
+  const pattern = new RegExp(`(?:^|[,{\\s])${escapeRegExp(propertyName)}\\s*:`, 'm');
+  const match = pattern.exec(objectText);
+  return match ? match.index + match[0].lastIndexOf(propertyName) : -1;
+}
+
+function splitTopLevel(text, separator) {
+  const parts = [];
+  let current = '';
+  let quote = null;
+  let escaped = false;
+  let depth = 0;
+
+  for (const character of String(text ?? '')) {
+    if (escaped) {
+      current += character;
+      escaped = false;
+      continue;
+    }
+
+    if (character === '\\' && quote) {
+      current += character;
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      current += character;
+
+      if (character === quote) {
+        quote = null;
+      }
+
+      continue;
+    }
+
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      current += character;
+      continue;
+    }
+
+    if (character === '{' || character === '(' || character === '[') {
+      depth += 1;
+    }
+
+    if (character === '}' || character === ')' || character === ']') {
+      depth -= 1;
+    }
+
+    if (character === separator && depth === 0) {
+      parts.push(current.trim());
+      current = '';
+      continue;
+    }
+
+    current += character;
+  }
+
+  if (current.trim()) {
+    parts.push(current.trim());
+  }
+
+  return parts;
+}
+
+function findMatchingCharacter(text, openIndex, openCharacter, closeCharacter) {
+  if (openIndex < 0 || text[openIndex] !== openCharacter) {
+    return -1;
+  }
+
+  let quote = null;
+  let escaped = false;
+  let depth = 0;
+
+  for (let index = openIndex; index < text.length; index += 1) {
+    const character = text[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (character === '\\' && quote) {
+      escaped = true;
+      continue;
+    }
+
+    if (quote) {
+      if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+
+    if (character === '"' || character === "'" || character === '`') {
+      quote = character;
+      continue;
+    }
+
+    if (character === openCharacter) {
+      depth += 1;
+    }
+
+    if (character === closeCharacter) {
+      depth -= 1;
+
+      if (depth === 0) {
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
+function parseJavaScriptString(value) {
+  const text = String(value ?? '').trim();
+  const quote = text[0];
+
+  if (!['"', "'", '`'].includes(quote)) {
+    return '';
+  }
+
+  let result = '';
+  let escaped = false;
+
+  for (let index = 1; index < text.length; index += 1) {
+    const character = text[index];
+
+    if (escaped) {
+      result += unescapeJavaScriptCharacter(character);
+      escaped = false;
+      continue;
+    }
+
+    if (character === '\\') {
+      escaped = true;
+      continue;
+    }
+
+    if (character === quote) {
+      return result;
+    }
+
+    result += character;
+  }
+
+  return '';
+}
+
+function unescapeJavaScriptCharacter(character) {
+  return {
+    n: '\n',
+    r: '\r',
+    t: '\t',
+    b: '\b',
+    f: '\f',
+    v: '\v',
+    0: '\0'
+  }[character] ?? character;
+}
+
+function quoteJavaScriptString(value) {
+  return `"${String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
 }
 
 function transformJsonRecordsToCsv(value) {
@@ -633,4 +953,8 @@ function formatCsvValue(value) {
 
 function escapeSelectorId(id) {
   return String(id).replace(/[^A-Za-z0-9_-]/g, character => `\\${character}`);
+}
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

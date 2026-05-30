@@ -28,7 +28,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - JSON shape/schema generation for payload contracts and draft 2020-12 schema output.
 - JSON Schema validator with local refs and path-level validation errors.
 - Session-based handovers between compatible JSON, XML, text and Base64 tools.
-- Status: JSON formatter/validator, JSON shape/schema generation, JSON diff, JSON Schema validator, CSV/TSV helper, JSON/XML data explorer and JSON/XML/text/Base64 handovers implemented, including transformed Data Explorer CSV, Dataverse OData and FetchXML/Liquid handovers.
+- Status: JSON formatter/validator, JSON shape/schema generation, JSON diff, JSON Schema validator, CSV/TSV helper, JSON/XML data explorer and JSON/XML/text/Base64 handovers implemented, including transformed Data Explorer CSV, Dataverse OData, Power Pages Web API and FetchXML/Liquid handovers.
 
 ## Phase 4: Documents
 

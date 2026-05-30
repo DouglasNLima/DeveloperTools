@@ -567,6 +567,44 @@ export const TOOL_HANDOVER_ROUTES = [
     ]
   },
   {
+    id: 'power-pages-web-api-snippets-output-to-curl-fetch-converter-input',
+    sourceToolId: 'power-pages-web-api-snippets',
+    sourceOutputId: 'output',
+    targetToolId: 'curl-fetch-converter',
+    targetInputId: 'input',
+    acceptKinds: ['text'],
+    label: 'Convert safeAjax to cURL',
+    description: 'Transform the generated safeAjax call into a fetch snippet for the cURL/fetch converter.',
+    transform: 'safeajax-to-fetch',
+    setFields: [
+      {
+        selector: '#curlFetchMode',
+        value: 'fetch-to-curl'
+      }
+    ]
+  },
+  {
+    id: 'power-pages-web-api-snippets-output-to-url-codec-input',
+    sourceToolId: 'power-pages-web-api-snippets',
+    sourceOutputId: 'output',
+    targetToolId: 'url-codec',
+    targetInputId: 'input',
+    acceptKinds: ['text'],
+    label: 'Inspect Web API endpoint',
+    description: 'Extract the generated Web API endpoint and open it in the URL and query string helper.',
+    transform: 'extract-webapi-endpoint',
+    setFields: [
+      {
+        selector: '#urlToolMode',
+        value: 'parse-query'
+      },
+      {
+        selector: '#urlOutputFormat',
+        value: 'json'
+      }
+    ]
+  },
+  {
     id: 'fetchxml-liquid-builder-output-to-data-explorer-xml',
     sourceToolId: 'fetchxml-liquid-builder',
     sourceOutputId: 'output',

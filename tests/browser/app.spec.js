@@ -1623,6 +1623,51 @@ test('hands Power Pages Web API snippets to the support sanitiser', async ({ pag
   await expect(page.getByLabel('Support pack input')).toHaveValue(/Webapi\/account\/enabled/);
 });
 
+test('hands Power Pages Web API snippets to the cURL/fetch converter', async ({ page }) => {
+  await page.goto('/#power-pages-web-api-snippets');
+
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByLabel('Columns / Web API fields').fill('name, accountnumber');
+  await page.getByLabel('$filter', { exact: true }).fill('statecode eq 0');
+  await page.getByLabel('$top').fill('5');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Convert safeAjax to cURL/ }).click();
+
+  await expect(page).toHaveURL(/#curl-fetch-converter$/);
+  await expect(page.getByLabel('Conversion mode')).toHaveValue('fetch-to-curl');
+  await expect(page.getByLabel('Request input')).toHaveValue(/^const response = await fetch/);
+  await expect(page.getByLabel('Request input')).toHaveValue(/\/_api\/accounts/);
+  await expect(page.getByLabel('Request input')).not.toHaveValue(/webapi\.safeAjax/);
+
+  await page.getByRole('button', { name: 'Convert request', exact: true }).click();
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/curl/);
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/\/_api\/accounts/);
+  await expect(page.locator('#curlFetchOutputTypeDetail')).toHaveText('cURL command');
+});
+
+test('hands Power Pages Web API endpoints to the URL helper', async ({ page }) => {
+  await page.goto('/#power-pages-web-api-snippets');
+
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Logical table name').fill('account');
+  await page.getByLabel('Columns / Web API fields').fill('name, accountnumber');
+  await page.getByLabel('$filter', { exact: true }).fill('statecode eq 0');
+  await page.getByLabel('$top').fill('5');
+  await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Inspect Web API endpoint/ }).click();
+
+  await expect(page).toHaveURL(/#url-codec$/);
+  await expect(page.getByLabel('Mode')).toHaveValue('parse-query');
+  await expect(page.getByLabel('Query parse output')).toHaveValue('json');
+  await expect(page.getByLabel('Input')).toHaveValue('/_api/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
+
+  await page.getByRole('button', { name: 'Process', exact: true }).click();
+  await expect(page.locator('#urlOutput')).toHaveValue(/"\$select"/);
+  await expect(page.locator('#urlOutput')).toHaveValue(/"name,accountnumber"/);
+  await expect(page.locator('#urlOutput')).toHaveValue(/"\$top"/);
+});
+
 test('generates Power Pages Web API POST and PATCH payload snippets', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
 
