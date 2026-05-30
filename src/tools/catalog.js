@@ -24,6 +24,38 @@ export const TOOL_CATALOGUE = [
     renderer: 'image-converter'
   },
   {
+    id: 'mermaid-editor',
+    title: 'Mermaid editor & exporter',
+    category: 'Charts & diagrams',
+    status: 'available',
+    summary: 'Validate, preview and export Mermaid diagrams locally as MMD, SVG or PNG.',
+    renderer: 'mermaid-editor'
+  },
+  {
+    id: 'mermaid-template-builder',
+    title: 'Mermaid template builder',
+    category: 'Charts & diagrams',
+    status: 'available',
+    summary: 'Generate starter Mermaid snippets for common charts and diagrams.',
+    renderer: 'mermaid-template-builder'
+  },
+  {
+    id: 'data-to-mermaid',
+    title: 'Data to Mermaid',
+    category: 'Charts & diagrams',
+    status: 'available',
+    summary: 'Turn JSON, CSV or TSV records into Mermaid tree, flowchart, ER, pie or XY diagrams.',
+    renderer: 'data-to-mermaid'
+  },
+  {
+    id: 'api-workflow-to-mermaid',
+    title: 'API/workflow to Mermaid',
+    category: 'Charts & diagrams',
+    status: 'available',
+    summary: 'Convert API requests, endpoint notes and step lists into Mermaid sequence diagrams or flowcharts.',
+    renderer: 'api-workflow-to-mermaid'
+  },
+  {
     id: 'fetchxml-liquid-builder',
     title: 'FetchXML Formatter & Liquid Builder',
     category: 'Power Platform',

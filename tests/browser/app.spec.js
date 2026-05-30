@@ -2364,6 +2364,118 @@ test('reports Image converter validation errors', async ({ page }) => {
   await expect(page.locator('.image-result-card.error')).toContainText('Choose SVG, PNG, JPEG or WebP');
 });
 
+test('renders Mermaid diagrams and exposes local exports', async ({ page }) => {
+  await page.goto('/#mermaid-editor');
+
+  await expect(page.getByRole('heading', { name: 'Mermaid editor & exporter' })).toBeVisible();
+  await page.getByLabel('File name').fill('checkout-flow');
+  await page.getByLabel('Mermaid source').fill([
+    'flowchart TD',
+    '  start([Start]) --> validate["Validate request"]',
+    '  validate --> done([Done])'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Render diagram', exact: true }).click();
+
+  await expect(page.locator('#mermaidPreview svg')).toBeVisible();
+  await expect(page.locator('#mermaidTypeDetail')).toHaveText(/flowchart/i);
+  await expect(page.locator('#downloadMermaidSourceButton')).toHaveAttribute('download', 'checkout-flow.mmd');
+  await expect(page.locator('#downloadMermaidSvgButton')).toHaveAttribute('download', 'checkout-flow.svg');
+  await expect(page.locator('#downloadMermaidPngButton')).toHaveAttribute('download', 'checkout-flow.png');
+  await expect(page.getByRole('status')).toContainText('Mermaid diagram rendered successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Render diagram', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Enter Mermaid source before rendering.');
+});
+
+test('hands Mermaid template output to the editor and text diff', async ({ page }) => {
+  await page.goto('/#mermaid-template-builder');
+
+  await page.getByLabel('Template type').selectOption('sequence');
+  await page.getByLabel('Title').fill('Checkout');
+  await page.getByLabel('Primary item').fill('Browser');
+  await page.getByLabel('Secondary item').fill('API');
+  await page.getByRole('button', { name: 'Use template', exact: true }).click();
+
+  await expect(page.locator('#mermaidTemplateOutput')).toHaveValue(/^sequenceDiagram/);
+  await expect(page.locator('#downloadMermaidTemplateButton')).toHaveAttribute('download', 'Checkout.mmd');
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this Mermaid');
+  await page.locator('#toolHandover').getByRole('button', { name: /Mermaid output: Preview and export/ }).click();
+
+  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^sequenceDiagram/);
+  await page.getByRole('button', { name: 'Render diagram', exact: true }).click();
+  await expect(page.locator('#mermaidPreview svg')).toBeVisible();
+
+  await page.locator('#toolHandover').getByRole('button', { name: /Mermaid source: Compare as left text/ }).click();
+  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/^sequenceDiagram/);
+});
+
+test('converts JSON data and API requests into Mermaid workflows', async ({ page }) => {
+  await page.goto('/#data-to-mermaid');
+
+  await page.getByLabel('Diagram').selectOption('pie');
+  await page.getByLabel('Label field').fill('status');
+  await page.getByLabel('Value field').fill('count');
+  await page.getByLabel('JSON, CSV or TSV input').fill('[{"status":"Active","count":12},{"status":"Paused","count":4}]');
+  await page.getByRole('button', { name: 'Generate Mermaid', exact: true }).click();
+
+  await expect(page.locator('#dataMermaidOutput')).toHaveValue(/^pie showData/);
+  await expect(page.locator('#dataMermaidInputDetail')).toHaveText('JSON');
+  await expect(page.locator('#dataMermaidWarningsDetail')).toHaveText('None');
+  await page.locator('#toolHandover').getByRole('button', { name: /Mermaid output: Preview and export/ }).click();
+  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^pie showData/);
+
+  await page.goto('/#api-workflow-to-mermaid');
+  await page.getByLabel('Request, endpoint note or step list').fill('curl -X POST https://api.example.test/orders -H "Content-Type: application/json" --data-raw "{\\"name\\":\\"Ada\\"}"');
+  await page.getByRole('button', { name: 'Generate Mermaid', exact: true }).click();
+
+  await expect(page.locator('#apiMermaidOutput')).toHaveValue(/^sequenceDiagram/);
+  await expect(page.locator('#apiMermaidMethodDetail')).toHaveText('POST');
+  await expect(page.locator('#downloadApiMermaidButton')).toHaveAttribute('download', 'api-workflow.mmd');
+});
+
+test('renders Mermaid from existing JSON and API handovers', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await page.getByLabel('JSON input').fill('{"account":{"name":"Contoso","active":true}}');
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Create Mermaid tree/ }).click();
+
+  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/account/);
+
+  await page.goto('/#curl-fetch-converter');
+  await page.getByLabel('Request input').fill('curl https://api.example.test/accounts');
+  await page.getByRole('button', { name: 'Convert request', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Create request diagram/ }).click();
+
+  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^sequenceDiagram/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/GET https:\/\/api.example.test\/accounts/);
+});
+
+test('loads the Mermaid renderer and chunks offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#mermaid-editor');
+
+    await expect(page.getByRole('heading', { name: 'Mermaid editor & exporter' })).toBeVisible();
+    await page.getByLabel('Mermaid source').fill('flowchart TD\n  A --> B');
+    await page.getByRole('button', { name: 'Render diagram', exact: true }).click();
+
+    await expect(page.locator('#mermaidPreview svg')).toBeVisible();
+    await expect(page.getByRole('status')).toContainText('Mermaid diagram rendered successfully.');
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
 test('formats FetchXML and builds a Power Pages Liquid block', async ({ page }) => {
   await page.goto('/#fetchxml-liquid-builder');
 

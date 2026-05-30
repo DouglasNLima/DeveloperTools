@@ -30,13 +30,22 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Session-based handovers between compatible JSON, XML, text and Base64 tools.
 - Status: JSON formatter/validator, JSON shape/schema generation, JSON diff, JSON Schema validator, CSV/TSV helper, JSON/XML data explorer and JSON/XML/text/Base64 handovers implemented, including transformed Data Explorer CSV, PDF field mapping, Dataverse OData, Power Pages Web API and FetchXML/Liquid handovers.
 
-## Phase 4: Documents
+## Phase 4: Charts & Diagrams
+
+- Mermaid editor and exporter for local validation, SVG preview and MMD/SVG/PNG downloads.
+- Mermaid template builder for common flowchart, sequence, ER, class, state, timeline, Gantt, pie and XY snippets.
+- Data to Mermaid converter for JSON, CSV and TSV tree, flowchart, ER-style, pie and XY diagrams.
+- API/workflow to Mermaid converter for request snippets, endpoint notes and step lists.
+- Mermaid handovers from JSON/data, API, Power Platform and text utilities into charting workflows.
+- Status: Mermaid editor/exporter, template builder, data converter, API/workflow converter and Mermaid handovers implemented with vendored Mermaid runtime assets.
+
+## Phase 5: Documents
 
 - PDF Template Field Explorer for local fillable PDF form inspection.
 - Future PDF helpers for field mapping review and template handover workflows.
 - Status: PDF Template Field Explorer implemented with vendored PDF.js assets and field mapping handovers.
 
-## Phase 5: Web/API
+## Phase 6: Web/API
 
 - JWT decoder with claims, expiry and header inspection.
 - Query string builder/parser is merged into the URL & query string helper.
@@ -44,7 +53,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Cron / RRULE Builder for recurring jobs, reminders and timezone-aware handover snippets.
 - Status: JWT Decoder & Claims Inspector, URL & query string helper, Cron / RRULE Builder and cURL/fetch converter implemented.
 
-## Phase 6: Power Platform
+## Phase 7: Power Platform
 
 - FetchXML Formatter & Liquid Builder for Power Pages.
 - Power Pages Web API Snippet Generator.
@@ -64,7 +73,7 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 - Expansion work is tracked in [EXPANSION-ROADMAP.md](./EXPANSION-ROADMAP.md).
 - Status: Dataverse OData advanced query mode, CSV/TSV advanced exports, PDF field handover reports, Power Fx review modes, JSON path search and Regex replacement preview implemented.
 
-## Phase 7: Text Utilities
+## Phase 8: Text Utilities
 
 - Regex tester with match group feedback.
 - SQL query formatter for formatting and linearising common SQL snippets.

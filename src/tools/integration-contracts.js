@@ -12,6 +12,23 @@ const JSON_SOURCE_PORTS = [
   { toolId: 'pdf-template-field-explorer', outputId: 'fields-json' }
 ];
 
+const MERMAID_GENERATOR_SOURCE_PORTS = [
+  { toolId: 'mermaid-template-builder', outputId: 'output' },
+  { toolId: 'data-to-mermaid', outputId: 'output' },
+  { toolId: 'api-workflow-to-mermaid', outputId: 'output' }
+];
+
+const MERMAID_SOURCE_PORTS = [
+  { toolId: 'mermaid-editor', outputId: 'source' },
+  ...MERMAID_GENERATOR_SOURCE_PORTS
+];
+
+const REQUEST_TEXT_SOURCE_PORTS = [
+  { toolId: 'curl-fetch-converter', outputId: 'output', label: 'Create request diagram', description: 'Convert this request output into a Mermaid sequence diagram.' },
+  { toolId: 'dataverse-odata-query-builder', outputId: 'output', label: 'Create Dataverse diagram', description: 'Convert this Dataverse endpoint or fetch snippet into a Mermaid sequence diagram.' },
+  { toolId: 'power-pages-web-api-snippets', outputId: 'output', label: 'Create Web API diagram', description: 'Convert this Power Pages Web API snippet into a Mermaid sequence diagram.' }
+];
+
 const TEXT_HANDOVER_ROUTES = [
   createTextRoute('support-pack-sanitiser', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('support-pack-sanitiser', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
@@ -39,7 +56,14 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
-  createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.')
+  createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('support-pack-sanitiser', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram workflow', 'Use this output as step or request input for the API/workflow Mermaid tool.'),
+  createTextRoute('curl-fetch-converter', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram request', 'Use this output as request input for the API/workflow Mermaid tool.'),
+  createTextRoute('dataverse-odata-query-builder', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram Dataverse call', 'Use this output as request input for the API/workflow Mermaid tool.'),
+  createTextRoute('power-pages-web-api-snippets', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram Web API call', 'Use this output as request input for the API/workflow Mermaid tool.'),
+  createTextRoute('power-platform-cli-command-builder', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram command steps', 'Use this output as step input for the API/workflow Mermaid tool.'),
+  createTextRoute('power-automate-expression-formatter', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram expression steps', 'Use this output as step input for the API/workflow Mermaid tool.'),
+  createTextRoute('power-fx-snippet-formatter', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram formula steps', 'Use this output as step input for the API/workflow Mermaid tool.')
 ];
 
 const GENERIC_JSON_TARGETS = [
@@ -100,6 +124,97 @@ export const TOOL_INTEGRATION_CONTRACTS = [
       }
     ],
     inputs: []
+  },
+  {
+    toolId: 'mermaid-editor',
+    outputs: [
+      {
+        id: 'source',
+        selector: '#mermaidSourceInput',
+        label: 'Mermaid source',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      }
+    ],
+    inputs: [
+      {
+        id: 'source',
+        selector: '#mermaidSourceInput',
+        label: 'Mermaid source',
+        kind: 'mermaid'
+      }
+    ]
+  },
+  {
+    toolId: 'mermaid-template-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#mermaidTemplateOutput',
+        label: 'Mermaid output',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'data-to-mermaid',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#dataMermaidOutput',
+        label: 'Mermaid output',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      }
+    ],
+    inputs: [
+      {
+        id: 'json',
+        selector: '#dataMermaidInput',
+        label: 'JSON input',
+        kind: 'json',
+        setFields: [
+          {
+            selector: '#dataMermaidInputFormat',
+            value: 'json'
+          }
+        ]
+      },
+      {
+        id: 'text',
+        selector: '#dataMermaidInput',
+        label: 'CSV/TSV input',
+        kind: 'text',
+        setFields: [
+          {
+            selector: '#dataMermaidInputFormat',
+            value: 'csv'
+          }
+        ]
+      }
+    ]
+  },
+  {
+    toolId: 'api-workflow-to-mermaid',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#apiMermaidOutput',
+        label: 'Mermaid output',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#apiMermaidInput',
+        label: 'Workflow input',
+        kind: 'text'
+      }
+    ]
   },
   {
     toolId: 'json-formatter',
@@ -541,6 +656,70 @@ export const TOOL_HANDOVER_ROUTES = [
     acceptKinds: ['json-schema'],
     label: 'Use as JSON Schema',
     description: 'Load this output as the schema for JSON validation.'
+  })),
+  ...JSON_SOURCE_PORTS.map(source => ({
+    id: `${source.toolId}-${source.outputId}-to-data-to-mermaid-json`,
+    sourceToolId: source.toolId,
+    sourceOutputId: source.outputId,
+    targetToolId: 'data-to-mermaid',
+    targetInputId: 'json',
+    acceptKinds: ['json', 'json-schema'],
+    label: 'Diagram JSON as Mermaid',
+    description: 'Load this JSON into the Data to Mermaid tool.'
+  })),
+  ...JSON_SOURCE_PORTS.map(source => ({
+    id: `${source.toolId}-${source.outputId}-to-mermaid-editor-tree`,
+    sourceToolId: source.toolId,
+    sourceOutputId: source.outputId,
+    targetToolId: 'mermaid-editor',
+    targetInputId: 'source',
+    acceptKinds: ['mermaid'],
+    label: 'Create Mermaid tree',
+    description: 'Transform this JSON into a Mermaid tree flowchart.',
+    transform: 'json-to-mermaid-tree'
+  })),
+  ...MERMAID_GENERATOR_SOURCE_PORTS.map(source => ({
+    id: `${source.toolId}-${source.outputId}-to-mermaid-editor-source`,
+    sourceToolId: source.toolId,
+    sourceOutputId: source.outputId,
+    targetToolId: 'mermaid-editor',
+    targetInputId: 'source',
+    acceptKinds: ['mermaid'],
+    label: 'Preview and export',
+    description: 'Open this Mermaid source in the editor/exporter.'
+  })),
+  ...MERMAID_SOURCE_PORTS.flatMap(source => ([
+    {
+      id: `${source.toolId}-${source.outputId}-to-text-diff-left-mermaid`,
+      sourceToolId: source.toolId,
+      sourceOutputId: source.outputId,
+      targetToolId: 'text-diff',
+      targetInputId: 'left',
+      acceptKinds: ['mermaid'],
+      label: 'Compare as left text',
+      description: 'Use this Mermaid source as the left side of a text diff.'
+    },
+    {
+      id: `${source.toolId}-${source.outputId}-to-text-diff-right-mermaid`,
+      sourceToolId: source.toolId,
+      sourceOutputId: source.outputId,
+      targetToolId: 'text-diff',
+      targetInputId: 'right',
+      acceptKinds: ['mermaid'],
+      label: 'Compare as right text',
+      description: 'Use this Mermaid source as the right side of a text diff.'
+    }
+  ])),
+  ...REQUEST_TEXT_SOURCE_PORTS.map(source => ({
+    id: `${source.toolId}-${source.outputId}-to-mermaid-editor-sequence`,
+    sourceToolId: source.toolId,
+    sourceOutputId: source.outputId,
+    targetToolId: 'mermaid-editor',
+    targetInputId: 'source',
+    acceptKinds: ['mermaid'],
+    label: source.label,
+    description: source.description,
+    transform: 'request-to-mermaid-sequence'
   })),
   {
     id: 'dataverse-odata-query-builder-output-to-curl-fetch-converter-input',

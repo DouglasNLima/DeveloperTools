@@ -24,6 +24,15 @@ export const TRANSPARENCY_LIBRARY_ENTRIES = [
     note: 'Bundled locally under src/vendor/pdfjs; no CDN request is made.'
   },
   {
+    name: 'Mermaid',
+    website: 'https://mermaid.js.org/',
+    scope: 'Runtime',
+    usage: 'Validates and renders local Mermaid diagrams as SVG for chart and diagram tools.',
+    usedBy: ['Mermaid editor & exporter'],
+    loadedByPublishedApp: true,
+    note: 'Bundled locally under src/vendor/mermaid; no CDN request is made.'
+  },
+  {
     name: 'Playwright',
     website: 'https://playwright.dev/',
     scope: 'Testing only',

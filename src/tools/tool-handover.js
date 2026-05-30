@@ -2,6 +2,13 @@ import {
   TOOL_HANDOVER_ROUTES,
   TOOL_INTEGRATION_CONTRACTS
 } from './integration-contracts.js';
+import {
+  convertCsvToMermaidChart,
+  convertJsonToMermaidTree,
+  convertRequestTextToMermaid,
+  extractMermaidSource,
+  isLikelyMermaidSource
+} from './mermaid.js';
 
 const JSON_SCHEMA_TYPES = new Set([
   'array',
@@ -13,7 +20,7 @@ const JSON_SCHEMA_TYPES = new Set([
   'string'
 ]);
 
-const HANDOVER_KINDS = new Set(['base64', 'json', 'json-schema', 'text', 'xml']);
+const HANDOVER_KINDS = new Set(['base64', 'json', 'json-schema', 'mermaid', 'text', 'xml']);
 const HANDOVER_TRANSFORMS = {
   'extract-fenced-fetch': {
     kind: 'text',
@@ -42,6 +49,22 @@ const HANDOVER_TRANSFORMS = {
   'pdf-fields-to-csv': {
     kind: 'text',
     apply: transformPdfFieldsToCsv
+  },
+  'extract-mermaid-fence': {
+    kind: 'mermaid',
+    apply: extractMermaidSource
+  },
+  'json-to-mermaid-tree': {
+    kind: 'mermaid',
+    apply: convertJsonToMermaidTree
+  },
+  'csv-to-mermaid-chart': {
+    kind: 'mermaid',
+    apply: convertCsvToMermaidChart
+  },
+  'request-to-mermaid-sequence': {
+    kind: 'mermaid',
+    apply: convertRequestTextToMermaid
   }
 };
 
@@ -142,6 +165,24 @@ export function analyseHandoverValue(value, expectedKind = 'text') {
     };
   }
 
+  if (expectedKind === 'mermaid') {
+    const mermaidSource = extractMermaidSource(trimmedValue);
+
+    if (!isLikelyMermaidSource(mermaidSource)) {
+      return {
+        valid: false,
+        reason: 'invalid-mermaid'
+      };
+    }
+
+    return {
+      valid: true,
+      rawValue: mermaidSource,
+      parsedValue: null,
+      kind: 'mermaid'
+    };
+  }
+
   return {
     valid: true,
     rawValue,
@@ -160,7 +201,16 @@ export function transformHandoverValue(value, transformId) {
     };
   }
 
-  const transformedValue = String(transform.apply(value) ?? '').trim();
+  let transformedValue = '';
+
+  try {
+    transformedValue = String(transform.apply(value) ?? '').trim();
+  } catch {
+    return {
+      valid: false,
+      reason: 'failed-transform'
+    };
+  }
 
   if (!transformedValue) {
     return {

@@ -364,7 +364,8 @@ a.button[hidden],
 .case-preview,
 .uuid-preview,
 .builder-preview,
-.curl-fetch-preview {
+.curl-fetch-preview,
+.mermaid-preview {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-panel);
   box-shadow: var(--panel-shadow);
@@ -1485,7 +1486,8 @@ label.button.secondary:hover {
 .case-preview,
 .uuid-preview,
 .builder-preview,
-.curl-fetch-preview {
+.curl-fetch-preview,
+.mermaid-preview {
   background: var(--preview-surface);
   box-shadow: none;
   color: var(--text);
@@ -1622,6 +1624,27 @@ label.button.secondary:hover {
   gap: 0.5rem;
   max-height: 420px;
   padding: 0.6rem;
+}
+
+.mermaid-preview {
+  align-items: center;
+  display: grid;
+  font-family: var(--font-body);
+  justify-items: center;
+  max-height: 620px;
+  min-height: 260px;
+  padding: 1rem;
+}
+
+.mermaid-preview svg {
+  background: #ffffff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: block;
+  height: auto;
+  max-height: 560px;
+  max-width: 100%;
+  padding: 0.5rem;
 }
 
 .uuid-result-card {

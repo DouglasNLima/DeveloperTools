@@ -21,7 +21,7 @@ test('defines concise local-first philosophy copy', () => {
 test('defines complete library transparency entries with official HTTPS links', () => {
   assert.deepEqual(
     TRANSPARENCY_LIBRARY_ENTRIES.map(entry => entry.name),
-    ['PDF.js', 'Playwright', 'pdf-lib', 'Node.js test runner']
+    ['PDF.js', 'Mermaid', 'Playwright', 'pdf-lib', 'Node.js test runner']
   );
 
   for (const entry of TRANSPARENCY_LIBRARY_ENTRIES) {
@@ -44,7 +44,7 @@ test('maps runtime libraries to available tools and keeps testing libraries out 
   );
 
   const runtimeEntries = TRANSPARENCY_LIBRARY_ENTRIES.filter(entry => entry.loadedByPublishedApp);
-  assert.deepEqual(runtimeEntries.map(entry => entry.name), ['PDF.js']);
+  assert.deepEqual(runtimeEntries.map(entry => entry.name), ['PDF.js', 'Mermaid']);
 
   for (const entry of runtimeEntries) {
     for (const toolTitle of entry.usedBy) {

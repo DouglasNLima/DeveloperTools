@@ -39,6 +39,10 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-automate-expression-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-fx-snippet-formatter'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-editor'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-template-builder'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'data-to-mermaid'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'api-workflow-to-mermaid'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
@@ -57,6 +61,11 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-cli-command-builder' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-automate-expression-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-fx-snippet-formatter' && route.targetToolId === 'text-diff'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'data-to-mermaid'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-editor' && route.transform === 'json-to-mermaid-tree'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-editor' && route.transform === 'request-to-mermaid-sequence'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-template-builder' && route.targetToolId === 'mermaid-editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-editor' && route.targetToolId === 'text-diff'));
 });
 
 test('transforms targeted handover payloads before suggestions are shown', () => {
@@ -200,6 +209,20 @@ test('transforms targeted handover payloads before suggestions are shown', () =>
     valid: false,
     reason: 'empty-transform'
   });
+
+  const mermaidTree = transformHandoverValue('{"name":"Ada"}', 'json-to-mermaid-tree');
+  assert.equal(mermaidTree.valid, true);
+  assert.equal(mermaidTree.kind, 'mermaid');
+  assert.match(mermaidTree.rawValue, /^flowchart TD/);
+
+  const mermaidSequence = transformHandoverValue('// Endpoint: /_api/accounts?$select=name', 'request-to-mermaid-sequence');
+  assert.equal(mermaidSequence.valid, true);
+  assert.equal(mermaidSequence.kind, 'mermaid');
+  assert.match(mermaidSequence.rawValue, /^sequenceDiagram/);
+
+  const mermaidFence = transformHandoverValue('```mermaid\nflowchart TD\n  A --> B\n```', 'extract-mermaid-fence');
+  assert.equal(mermaidFence.valid, true);
+  assert.equal(mermaidFence.rawValue, 'flowchart TD\n  A --> B');
 });
 
 test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
@@ -261,6 +284,16 @@ test('detects populated text, Base64 and XML handover values', () => {
   assert.deepEqual(analyseHandoverValue('<fetch><entity></fetch>', 'xml'), {
     valid: false,
     reason: 'invalid-xml'
+  });
+
+  const mermaid = analyseHandoverValue('```mermaid\nflowchart TD\n  A --> B\n```', 'mermaid');
+  assert.equal(mermaid.valid, true);
+  assert.equal(mermaid.kind, 'mermaid');
+  assert.equal(mermaid.rawValue, 'flowchart TD\n  A --> B');
+
+  assert.deepEqual(analyseHandoverValue('not a diagram', 'mermaid'), {
+    valid: false,
+    reason: 'invalid-mermaid'
   });
 });
 
@@ -646,6 +679,47 @@ test('resolves suggestions for Base64 handover sources', () => {
   }), []);
 });
 
+test('resolves Mermaid handover sources', () => {
+  const templateRoot = createRoot([
+    createControl({ id: 'mermaidTemplateOutput', tagName: 'TEXTAREA', value: 'flowchart TD\n  A --> B' })
+  ]);
+  const templateSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'mermaid-template-builder',
+    root: templateRoot,
+    availableTools: ['mermaid-editor', 'text-diff']
+  });
+
+  assert.ok(templateSuggestions.some(suggestion => suggestion.label === 'Preview and export'));
+  assert.ok(templateSuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
+  assert.ok(templateSuggestions.every(suggestion => suggestion.kind === 'mermaid'));
+
+  const jsonRoot = createRoot([
+    createControl({ id: 'jsonOutput', tagName: 'TEXTAREA', value: '{"name":"Ada"}' })
+  ]);
+  const jsonSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'json-formatter',
+    root: jsonRoot,
+    availableTools: ['data-to-mermaid', 'mermaid-editor']
+  });
+
+  assert.ok(jsonSuggestions.some(suggestion => suggestion.label === 'Diagram JSON as Mermaid'));
+  const treeSuggestion = jsonSuggestions.find(suggestion => suggestion.label === 'Create Mermaid tree');
+  assert.equal(treeSuggestion.kind, 'mermaid');
+  assert.match(treeSuggestion.value, /^flowchart TD/);
+
+  const requestRoot = createRoot([
+    createControl({ id: 'curlFetchOutput', tagName: 'TEXTAREA', value: 'const response = await fetch("/api/items", { method: "GET" });' })
+  ]);
+  const requestSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'curl-fetch-converter',
+    root: requestRoot,
+    availableTools: ['api-workflow-to-mermaid', 'mermaid-editor']
+  });
+
+  assert.ok(requestSuggestions.some(suggestion => suggestion.targetToolId === 'api-workflow-to-mermaid'));
+  assert.ok(requestSuggestions.some(suggestion => suggestion.transform === 'request-to-mermaid-sequence'));
+});
+
 test('resolves schema handovers for detected JSON Schema output', () => {
   const root = createRoot([
     createControl({
@@ -726,6 +800,12 @@ test('applies handover payloads and restores serialised form state', () => {
   ]);
   assert.equal(applyHandoverPayload(base64TargetRoot, 'base64-to-file', 'content', 'aGVsbG8='), true);
   assert.equal(base64TargetRoot.querySelector('#base64Input').value, 'aGVsbG8=');
+
+  const mermaidTargetRoot = createRoot([
+    createControl({ id: 'mermaidSourceInput', tagName: 'TEXTAREA', value: '' })
+  ]);
+  assert.equal(applyHandoverPayload(mermaidTargetRoot, 'mermaid-editor', 'source', 'flowchart TD\n  A --> B'), true);
+  assert.equal(mermaidTargetRoot.querySelector('#mermaidSourceInput').value, 'flowchart TD\n  A --> B');
 
   const csvTargetRoot = createRoot([
     createControl({ id: 'csvDelimiter', tagName: 'SELECT', value: 'auto' }),

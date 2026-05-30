@@ -27,6 +27,10 @@ import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJsonSchemaValidator } from './tools/json-schema-validator.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
+import { renderApiWorkflowToMermaid } from './tools/mermaid-api.ui.js';
+import { renderDataToMermaid } from './tools/mermaid-data.ui.js';
+import { renderMermaidEditor } from './tools/mermaid-editor.ui.js';
+import { renderMermaidTemplateBuilder } from './tools/mermaid-template-builder.ui.js';
 import { renderPdfTemplateFieldExplorer } from './tools/pdf-template-fields.ui.js';
 import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js';
 import { renderPowerAutomateExpressionFormatter } from './tools/power-automate-expression.ui.js';
@@ -59,6 +63,10 @@ const renderers = {
   'json-formatter': renderJsonFormatter,
   'json-schema-validator': renderJsonSchemaValidator,
   'jwt-decoder': renderJwtDecoder,
+  'api-workflow-to-mermaid': renderApiWorkflowToMermaid,
+  'data-to-mermaid': renderDataToMermaid,
+  'mermaid-editor': renderMermaidEditor,
+  'mermaid-template-builder': renderMermaidTemplateBuilder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
   'power-fx-snippet-formatter': renderPowerFxSnippetFormatter,
@@ -700,31 +708,36 @@ function renderHandoverSuggestions() {
   toolHandover.hidden = false;
 }
 
-function getHandoverSectionTitle(suggestions) {
-  const kinds = new Set(suggestions.map(suggestion => suggestion.kind));
+  function getHandoverSectionTitle(suggestions) {
+    const kinds = new Set(suggestions.map(suggestion => suggestion.kind));
+    const sourceKinds = new Set([...kinds].filter(kind => kind !== 'mermaid'));
 
-  if (kinds.has('base64') && kinds.size === 1) {
-    return 'Continue with this Base64';
+    if (sourceKinds.has('base64') && sourceKinds.size === 1) {
+      return 'Continue with this Base64';
+    }
+
+    if (sourceKinds.has('text') && sourceKinds.size === 1) {
+      return 'Continue with this text';
+    }
+
+    if (sourceKinds.has('xml') && sourceKinds.size === 1) {
+      return 'Continue with this XML';
+    }
+
+    if (sourceKinds.has('json-schema')) {
+      return 'Continue with this JSON or schema';
+    }
+
+    if (sourceKinds.has('json') && sourceKinds.size === 1) {
+      return 'Continue with this JSON';
+    }
+
+    if (kinds.has('mermaid') && kinds.size === 1) {
+      return 'Continue with this Mermaid';
+    }
+
+    return 'Continue with this output';
   }
-
-  if (kinds.has('text') && kinds.size === 1) {
-    return 'Continue with this text';
-  }
-
-  if (kinds.has('xml') && kinds.size === 1) {
-    return 'Continue with this XML';
-  }
-
-  if (kinds.has('json-schema')) {
-    return 'Continue with this JSON or schema';
-  }
-
-  if (kinds.has('json') && kinds.size === 1) {
-    return 'Continue with this JSON';
-  }
-
-  return 'Continue with this output';
-}
 
 function createHandoverSuggestionButton(suggestion) {
   const targetTool = getToolById(suggestion.targetToolId);
