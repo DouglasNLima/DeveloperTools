@@ -311,7 +311,7 @@ test('encodes and decodes URL components', async ({ page }) => {
   await expect(page.locator('#urlWarnings')).toHaveText('None');
   await expect(page.getByRole('status')).toContainText('Encoded component created successfully.');
 
-  await page.getByLabel('Mode').selectOption('decode-component');
+  await page.getByLabel('Mode', { exact: true }).selectOption('decode-component');
   await page.getByLabel('Input').fill('hello%20world%26x%3D1');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
@@ -440,7 +440,7 @@ test('accepts dropped files in every file-capable tool', async ({ page }) => {
 test('parses and builds query strings', async ({ page }) => {
   await page.goto('/#url-codec');
 
-  await page.getByLabel('Mode').selectOption('parse-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('parse-query');
   await page.getByLabel('Input').fill('https://example.test/search?q=hello+world&tag=alpha&tag=beta&empty=');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
@@ -449,7 +449,7 @@ test('parses and builds query strings', async ({ page }) => {
   await expect(page.locator('#urlOutput')).toHaveValue(/"hello world"/);
   await expect(page.locator('#urlOutput')).toHaveValue(/"empty"/);
 
-  await page.getByLabel('Mode').selectOption('build-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('build-query');
   await page.getByLabel('Input').fill('z=last\nq=hello world\ntag=alpha');
   await page.getByLabel('Sort keys when building a query string').check();
   await page.getByLabel('Prefix built query strings with ?').check();
@@ -463,13 +463,13 @@ test('parses and builds query strings', async ({ page }) => {
 test('reports URL helper validation errors', async ({ page }) => {
   await page.goto('/#url-codec');
 
-  await page.getByLabel('Mode').selectOption('decode-component');
+  await page.getByLabel('Mode', { exact: true }).selectOption('decode-component');
   await page.getByLabel('Input').fill('hello%ZZ');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
   await expect(page.getByRole('status')).toContainText('Invalid percent-encoding');
 
-  await page.getByLabel('Mode').selectOption('build-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('build-query');
   await page.getByLabel('Input').fill('not a row');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
@@ -479,7 +479,7 @@ test('reports URL helper validation errors', async ({ page }) => {
 test('hands parsed URL query JSON to Data Explorer', async ({ page }) => {
   await page.goto('/#url-codec');
 
-  await page.getByLabel('Mode').selectOption('parse-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('parse-query');
   await page.getByLabel('Input').fill('https://example.test/search?q=hello+world&tag=alpha');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
@@ -1933,7 +1933,7 @@ test('hands Power Pages Web API endpoints to the URL helper', async ({ page }) =
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Inspect Web API endpoint/ }).click();
 
   await expect(page).toHaveURL(/#url-codec$/);
-  await expect(page.getByLabel('Mode')).toHaveValue('parse-query');
+  await expect(page.getByLabel('Mode', { exact: true })).toHaveValue('parse-query');
   await expect(page.getByLabel('Query parse output')).toHaveValue('json');
   await expect(page.getByLabel('Input')).toHaveValue('/_api/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
 
@@ -2131,7 +2131,7 @@ test('hands Dataverse OData endpoints to the URL helper', async ({ page }) => {
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Inspect endpoint query/ }).click();
 
   await expect(page).toHaveURL(/#url-codec$/);
-  await expect(page.getByLabel('Mode')).toHaveValue('parse-query');
+  await expect(page.getByLabel('Mode', { exact: true })).toHaveValue('parse-query');
   await expect(page.getByLabel('Query parse output')).toHaveValue('json');
   await expect(page.getByLabel('Input')).toHaveValue('/api/data/v9.2/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
 
@@ -2451,6 +2451,100 @@ test('hands Power Fx output to text diff', async ({ page }) => {
   await expect(page.getByLabel('Left text')).toHaveValue(/Patch\(/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Accounts/);
   await expect(page.getByLabel('Right text')).toHaveValue('');
+});
+
+test('reviews model-driven JavaScript and builds migration reports', async ({ page }) => {
+  await page.goto('/#model-driven-javascript-reviewer');
+
+  await expect(page.getByRole('heading', { name: 'Model-driven JavaScript Reviewer' })).toBeVisible();
+  await page.getByLabel('JavaScript input').fill([
+    'function onLoad() {',
+    '  var name = Xrm.Page.getAttribute("name").getValue();',
+    '  Xrm.WebApi.retrieveRecord("account", "11111111-1111-4111-8111-111111111111");',
+    '}'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Analyse JavaScript' }).click();
+
+  await expect(page.locator('#modelDrivenJsReviewHighDetail')).toHaveText('2');
+  await expect(page.locator('#modelDrivenJsReviewOutput')).toHaveValue(/Deprecated Xrm.Page usage/);
+  await expect(page.locator('#toolHandover')).toContainText('Review report: Preview review');
+
+  await page.goto('/#client-api-migration-helper');
+  await page.getByLabel('Legacy JavaScript input').fill('function onLoad(){ var name = Xrm.Page.getAttribute("name").getValue(); }');
+  await page.getByRole('button', { name: 'Build migration report' }).click();
+
+  await expect(page.locator('#clientApiMigrationReplacementsDetail')).toHaveText('1');
+  await expect(page.locator('#clientApiMigrationOutput')).toHaveValue(/formContext.getAttribute\("name"\)/);
+  await expect(page.getByRole('status')).toContainText('Client API migration report built successfully.');
+});
+
+test('builds model-driven JavaScript snippets', async ({ page }) => {
+  await page.goto('/#form-event-handler-builder');
+
+  await page.getByLabel('Event type').selectOption('onchange');
+  await page.getByLabel('Namespace').fill('Contoso.Account');
+  await page.getByLabel('Function name').fill('onNameChange');
+  await page.getByLabel('Field logical name').fill('name');
+  await page.getByRole('button', { name: 'Generate handler' }).click();
+
+  await expect(page.locator('#formEventOutputTypeDetail')).toHaveText('OnChange handler');
+  await expect(page.locator('#formEventHandlerOutput')).toHaveValue(/Contoso.Account.onNameChange/);
+
+  await page.goto('/#xrm-webapi-snippet-builder');
+  await page.getByLabel('Operation').selectOption('retrieveMultipleRecords');
+  await page.getByLabel('Table logical name').fill('account');
+  await page.getByLabel('Function name').fill('retrieveAccounts');
+  await page.getByLabel('$select columns').fill('name,accountnumber');
+  await page.getByLabel('$filter').fill('statecode eq 0');
+  await page.getByRole('button', { name: 'Generate Web API snippet' }).click();
+
+  await expect(page.locator('#xrmWebApiSnippetOutput')).toHaveValue(/Xrm.WebApi.retrieveMultipleRecords/);
+  await expect(page.getByRole('status')).toContainText('Xrm.WebApi snippet generated successfully.');
+
+  await page.goto('/#form-notification-validation-builder');
+  await page.getByLabel('Validation rule').selectOption('maxLength');
+  await page.getByLabel('Field logical name').fill('name');
+  await page.getByLabel('Maximum length').fill('50');
+  await page.getByRole('button', { name: 'Generate validation snippet' }).click();
+
+  await expect(page.locator('#formValidationOutput')).toHaveValue(/setNotification/);
+  await expect(page.locator('#formValidationOutput')).toHaveValue(/preventDefault/);
+
+  await page.goto('/#command-bar-javascript-builder');
+  await page.getByLabel('Command context').selectOption('grid');
+  await page.getByLabel('Table logical name').fill('account');
+  await page.getByRole('button', { name: 'Generate command handler' }).click();
+
+  await expect(page.locator('#commandBarJavascriptOutput')).toHaveValue(/SelectedControl/);
+  await expect(page.locator('#commandBarJavascriptOutput')).toHaveValue(/Promise.all/);
+});
+
+test('inspects solution JavaScript events and maps web resource dependencies', async ({ page }) => {
+  await page.goto('/#solution-javascript-event-inspector');
+
+  await page.setInputFiles('#solutionJavascriptEventsFileInput', {
+    name: 'model-driven.zip',
+    mimeType: 'application/zip',
+    buffer: createModelDrivenJavascriptSolutionZip()
+  });
+  await page.getByRole('button', { name: 'Analyse JavaScript events' }).click();
+
+  await expect(page.locator('#solutionJavascriptEventsWebresourcesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionJavascriptEventsHandlersDetail')).toHaveText('2');
+  await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Model-driven JavaScript event inspection/);
+  await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Contoso.Account.onLoad/);
+
+  await page.goto('/#web-resource-dependency-mapper');
+  await page.setInputFiles('#webResourceDependencyFileInput', {
+    name: 'model-driven.zip',
+    mimeType: 'application/zip',
+    buffer: createModelDrivenJavascriptSolutionZip()
+  });
+  await page.getByRole('button', { name: 'Build dependency map' }).click();
+
+  await expect(page.locator('#webResourceDependencyMapOutput')).toHaveValue(/Web resource dependency map/);
+  await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/flowchart LR/);
+  await expect(page.locator('#toolHandover')).toContainText('Mermaid diagram: Preview and export');
 });
 
 test('opens and closes the mobile tool menu', async ({ page }) => {
@@ -3144,6 +3238,53 @@ function createSolutionZip() {
         }
       }
     }, null, 2)]
+  ];
+
+  return createStoredZip(files);
+}
+
+function createModelDrivenJavascriptSolutionZip() {
+  const files = [
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>model_driven_tools</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Model-driven Tools" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>2.0.0.0</Version>',
+      '    <Managed>0</Managed>',
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <WebResources>',
+      '    <WebResource Name="contoso_/account.js" DisplayName="Account script" WebResourceType="3" />',
+      '  </WebResources>',
+      '  <Entities>',
+      '    <Entity>',
+      '      <FormXml>',
+      '        <systemform name="Account main">',
+      '          <events>',
+      '            <event name="onload">',
+      '              <Handlers>',
+      '                <Handler functionName="Contoso.Account.onLoad" libraryName="$webresource:contoso_/account.js" enabled="true" passExecutionContext="true" rank="1" />',
+      '              </Handlers>',
+      '            </event>',
+      '            <event name="onsave">',
+      '              <Handlers>',
+      '                <Handler functionName="Contoso.Account.onSave" libraryName="$webresource:contoso_/account.js" enabled="true" passExecutionContext="false" rank="2" />',
+      '              </Handlers>',
+      '            </event>',
+      '          </events>',
+      '        </systemform>',
+      '      </FormXml>',
+      '    </Entity>',
+      '  </Entities>',
+      '</ImportExportXml>'
+    ].join('\n')]
   ];
 
   return createStoredZip(files);

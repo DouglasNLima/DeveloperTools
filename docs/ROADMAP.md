@@ -67,7 +67,11 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Power Platform Solution Documentation Generator for operational Markdown documentation from exported solution ZIP files.
 - Power Automate Expression Formatter for Workflow Definition Language expressions.
 - Power Fx Snippet Formatter for readable formula snippets and sharing warnings.
-- Status: initial Power Pages mini-roadmap, first wider Power Platform utility set, solution import preflight, solution-to-Mermaid workflow inspection, automation dependency mapping and solution documentation generation implemented.
+- Model-driven JavaScript Reviewer for local web resource risk reports.
+- Client API Migration Helper for `Xrm.Page` to `formContext` guidance.
+- Form Event Handler Builder, Xrm.WebApi Snippet Builder, Form Notification & Validation Builder and Command Bar JavaScript Builder for model-driven app client scripting.
+- Solution JavaScript Event Inspector and Web Resource Dependency Mapper for exported solution ZIP metadata.
+- Status: initial Power Pages mini-roadmap, first wider Power Platform utility set, solution import preflight, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation and model-driven JavaScript tools implemented.
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 

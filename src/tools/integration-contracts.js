@@ -16,7 +16,8 @@ const MERMAID_GENERATOR_SOURCE_PORTS = [
   { toolId: 'mermaid-template-builder', outputId: 'output' },
   { toolId: 'data-to-mermaid', outputId: 'output' },
   { toolId: 'api-workflow-to-mermaid', outputId: 'output' },
-  { toolId: 'power-platform-solution-mermaid', outputId: 'mermaid' }
+  { toolId: 'power-platform-solution-mermaid', outputId: 'mermaid' },
+  { toolId: 'web-resource-dependency-mapper', outputId: 'mermaid' }
 ];
 
 const MERMAID_SOURCE_PORTS = [
@@ -81,6 +82,24 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('model-driven-javascript-reviewer', 'report', 'markdown-preview-inspector', 'input', 'Preview review', 'Open this model-driven JavaScript review in the Markdown preview and inspector.'),
+  createTextRoute('model-driven-javascript-reviewer', 'report', 'support-pack-sanitiser', 'input', 'Sanitise review', 'Use this review as input for the support pack sanitiser.'),
+  createTextRoute('client-api-migration-helper', 'report', 'markdown-preview-inspector', 'input', 'Preview migration report', 'Open this migration report in the Markdown preview and inspector.'),
+  createTextRoute('client-api-migration-helper', 'report', 'text-diff', 'left', 'Compare migration as left text', 'Use this migration report as the left side of a text diff.'),
+  createTextRoute('client-api-migration-helper', 'report', 'text-diff', 'right', 'Compare migration as right text', 'Use this migration report as the right side of a text diff.'),
+  createTextRoute('form-event-handler-builder', 'output', 'text-diff', 'left', 'Compare handler as left text', 'Use this handler output as the left side of a text diff.'),
+  createTextRoute('form-event-handler-builder', 'output', 'text-diff', 'right', 'Compare handler as right text', 'Use this handler output as the right side of a text diff.'),
+  createTextRoute('xrm-webapi-snippet-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise snippet', 'Use this Xrm.WebApi snippet as input for the support pack sanitiser.'),
+  createTextRoute('xrm-webapi-snippet-builder', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram Web API call', 'Use this Xrm.WebApi snippet as request input for the API/workflow Mermaid tool.'),
+  createTextRoute('form-notification-validation-builder', 'output', 'text-diff', 'left', 'Compare validation as left text', 'Use this validation output as the left side of a text diff.'),
+  createTextRoute('form-notification-validation-builder', 'output', 'text-diff', 'right', 'Compare validation as right text', 'Use this validation output as the right side of a text diff.'),
+  createTextRoute('command-bar-javascript-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise command handler', 'Use this command handler as input for the support pack sanitiser.'),
+  createTextRoute('solution-javascript-event-inspector', 'events', 'markdown-preview-inspector', 'input', 'Preview event report', 'Open this JavaScript event report in the Markdown preview and inspector.'),
+  createTextRoute('solution-javascript-event-inspector', 'events', 'text-diff', 'left', 'Compare event report as left text', 'Use this event report as the left side of a text diff.'),
+  createTextRoute('solution-javascript-event-inspector', 'events', 'text-diff', 'right', 'Compare event report as right text', 'Use this event report as the right side of a text diff.'),
+  createTextRoute('web-resource-dependency-mapper', 'report', 'markdown-preview-inspector', 'input', 'Preview dependency report', 'Open this dependency report in the Markdown preview and inspector.'),
+  createTextRoute('web-resource-dependency-mapper', 'report', 'text-diff', 'left', 'Compare dependency report as left text', 'Use this dependency report as the left side of a text diff.'),
+  createTextRoute('web-resource-dependency-mapper', 'report', 'text-diff', 'right', 'Compare dependency report as right text', 'Use this dependency report as the right side of a text diff.'),
   createTextRoute('support-pack-sanitiser', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram workflow', 'Use this output as step or request input for the API/workflow Mermaid tool.'),
   createTextRoute('curl-fetch-converter', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram request', 'Use this output as request input for the API/workflow Mermaid tool.'),
   createTextRoute('dataverse-odata-query-builder', 'output', 'api-workflow-to-mermaid', 'input', 'Diagram Dataverse call', 'Use this output as request input for the API/workflow Mermaid tool.'),
@@ -764,6 +783,131 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         label: 'Output',
         mediaType: 'text/plain',
         kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'model-driven-javascript-reviewer',
+    outputs: [
+      {
+        id: 'report',
+        selector: '#modelDrivenJsReviewOutput',
+        label: 'Review report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'source',
+        selector: '#modelDrivenJsReviewInput',
+        label: 'JavaScript input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
+    toolId: 'client-api-migration-helper',
+    outputs: [
+      {
+        id: 'report',
+        selector: '#clientApiMigrationOutput',
+        label: 'Migration report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'source',
+        selector: '#clientApiMigrationInput',
+        label: 'Legacy JavaScript input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
+    toolId: 'form-event-handler-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#formEventHandlerOutput',
+        label: 'Generated handler',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'xrm-webapi-snippet-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#xrmWebApiSnippetOutput',
+        label: 'Generated snippet',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'form-notification-validation-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#formValidationOutput',
+        label: 'Generated validation',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'command-bar-javascript-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#commandBarJavascriptOutput',
+        label: 'Generated command handler',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'solution-javascript-event-inspector',
+    outputs: [
+      {
+        id: 'events',
+        selector: '#solutionJavascriptEventsOutput',
+        label: 'JavaScript event report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'web-resource-dependency-mapper',
+    outputs: [
+      {
+        id: 'report',
+        selector: '#webResourceDependencyMapOutput',
+        label: 'Dependency report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'mermaid',
+        selector: '#webResourceDependencyMermaidOutput',
+        label: 'Mermaid diagram',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
       }
     ],
     inputs: []

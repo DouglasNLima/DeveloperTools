@@ -34,6 +34,18 @@ import { renderApiWorkflowToMermaid } from './tools/mermaid-api.ui.js';
 import { renderDataToMermaid } from './tools/mermaid-data.ui.js';
 import { renderMermaidEditor } from './tools/mermaid-editor.ui.js';
 import { renderMermaidTemplateBuilder } from './tools/mermaid-template-builder.ui.js';
+import {
+  renderClientApiMigrationHelper,
+  renderCommandBarJavaScriptBuilder,
+  renderFormEventHandlerBuilder,
+  renderFormNotificationValidationBuilder,
+  renderModelDrivenJavaScriptReviewer,
+  renderXrmWebApiSnippetBuilder
+} from './tools/model-driven-javascript.ui.js';
+import {
+  renderSolutionJavaScriptEventInspector,
+  renderWebResourceDependencyMapper
+} from './tools/model-driven-solution-javascript.ui.js';
 import { renderPdfTemplateFieldExplorer } from './tools/pdf-template-fields.ui.js';
 import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js';
 import { renderPowerAutomateExpressionFormatter } from './tools/power-automate-expression.ui.js';
@@ -72,6 +84,11 @@ const renderers = {
   'jwt-decoder': renderJwtDecoder,
   'markdown-preview-inspector': renderMarkdownPreviewInspector,
   'markdown-table-formatter': renderMarkdownTableFormatter,
+  'client-api-migration-helper': renderClientApiMigrationHelper,
+  'command-bar-javascript-builder': renderCommandBarJavaScriptBuilder,
+  'form-event-handler-builder': renderFormEventHandlerBuilder,
+  'form-notification-validation-builder': renderFormNotificationValidationBuilder,
+  'model-driven-javascript-reviewer': renderModelDrivenJavaScriptReviewer,
   'api-workflow-to-mermaid': renderApiWorkflowToMermaid,
   'data-to-mermaid': renderDataToMermaid,
   'mermaid-editor': renderMermaidEditor,
@@ -82,6 +99,7 @@ const renderers = {
   'power-platform-solution-docs': renderPowerPlatformSolutionDocs,
   'power-platform-solution-mermaid': renderPowerPlatformSolutionMermaid,
   'power-fx-snippet-formatter': renderPowerFxSnippetFormatter,
+  'solution-javascript-event-inspector': renderSolutionJavaScriptEventInspector,
   'fetchxml-liquid-builder': renderFetchXmlLiquidBuilder,
   'power-platform-cli-command-builder': renderPowerPlatformCliCommandBuilder,
   'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator,
@@ -92,7 +110,9 @@ const renderers = {
   'support-pack-sanitiser': renderSupportPackSanitiser,
   'text-diff': renderTextDiff,
   'url-codec': renderUrlCodec,
-  'uuid-generator': renderUuidGenerator
+  'uuid-generator': renderUuidGenerator,
+  'web-resource-dependency-mapper': renderWebResourceDependencyMapper,
+  'xrm-webapi-snippet-builder': renderXrmWebApiSnippetBuilder
 };
 
 const toolNav = document.getElementById('toolNav');
