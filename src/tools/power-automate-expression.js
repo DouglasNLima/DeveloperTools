@@ -70,6 +70,37 @@ const knownFunctions = new Set([
   'workflow'
 ]);
 
+export const POWER_AUTOMATE_OUTPUT_WRAPPERS = [
+  { value: 'plain', label: 'Plain expression' },
+  { value: 'expression', label: '@ expression' },
+  { value: 'interpolation', label: '@{ } interpolation' }
+];
+
+export const POWER_AUTOMATE_EXPRESSION_TEMPLATES = [
+  {
+    value: 'trigger-field',
+    label: 'Trigger field',
+    requiredFields: ['fieldPath']
+  },
+  {
+    value: 'action-body-field',
+    label: 'Action body field',
+    requiredFields: ['actionName', 'fieldPath']
+  },
+  {
+    value: 'trigger-field-default',
+    label: 'Trigger field with default',
+    requiredFields: ['fieldPath', 'defaultValue']
+  },
+  {
+    value: 'variable-default',
+    label: 'Variable with default',
+    requiredFields: ['variableName', 'defaultValue']
+  }
+];
+
+const templateByValue = new Map(POWER_AUTOMATE_EXPRESSION_TEMPLATES.map(template => [template.value, template]));
+
 export function formatPowerAutomateExpression(options = {}) {
   const normalised = normaliseExpression(options.input);
   const validation = validateExpressionSyntax(normalised.expression);
@@ -79,31 +110,70 @@ export function formatPowerAutomateExpression(options = {}) {
   }
 
   const formatted = formatExpressionSegment(normalised.expression, 0);
+  const outputWrapper = normaliseOutputWrapper(options.outputWrapper);
+  const output = wrapPowerAutomateExpression(formatted, outputWrapper);
   const functions = extractFunctionNames(normalised.expression);
+  const referenceDetails = extractReferenceDetails(normalised.expression);
   const references = extractReferences(normalised.expression);
   const warnings = buildWarnings({
     wrapperType: normalised.wrapperType,
-    functions
+    functions,
+    outputWrapper
   });
-  const outputBytes = new TextEncoder().encode(formatted).length;
+  const outputBytes = new TextEncoder().encode(output).length;
 
   return {
     expression: normalised.expression,
     formatted,
-    output: formatted,
+    output,
     outputType: 'Power Automate expression',
     outputBytes,
     outputSizeLabel: formatBytes(outputBytes),
     wrapperType: normalised.wrapperType,
+    outputWrapper,
+    outputWrapperLabel: POWER_AUTOMATE_OUTPUT_WRAPPERS.find(wrapper => wrapper.value === outputWrapper).label,
     functions,
     references,
+    referenceDetails,
     warnings,
     summary: {
       functionCount: functions.length,
-      referenceCount: references.length,
+      referenceCount: referenceDetails.length,
       unknownFunctionCount: functions.filter(name => !knownFunctions.has(name.toLowerCase())).length
     }
   };
+}
+
+export function buildPowerAutomateExpressionTemplate(options = {}) {
+  const template = getTemplate(options.template || options.templateId);
+  const context = normaliseTemplateContext(options);
+
+  validateTemplateContext(template, context);
+
+  const expression = buildTemplateExpression(template.value, context);
+
+  return {
+    template,
+    templateId: template.value,
+    templateLabel: template.label,
+    expression,
+    output: expression
+  };
+}
+
+export function wrapPowerAutomateExpression(expression, wrapperMode = 'plain') {
+  const value = String(expression ?? '').trim();
+  const mode = normaliseOutputWrapper(wrapperMode);
+
+  if (mode === 'expression') {
+    return `@${value}`;
+  }
+
+  if (mode === 'interpolation') {
+    return `@{${value}}`;
+  }
+
+  return value;
 }
 
 export function normaliseExpression(input) {
@@ -222,16 +292,44 @@ export function extractFunctionNames(expression) {
 }
 
 export function extractReferences(expression) {
-  const references = [];
-  const pattern = /\b(?:variables|outputs|body|items|parameters)\s*\(\s*'([^']+)'\s*\)/gi;
-  let match = pattern.exec(expression);
+  const references = extractReferenceDetails(expression).map(detail => detail.value);
+  return [...new Set(references)];
+}
+
+export function extractReferenceDetails(expression) {
+  const source = String(expression ?? '');
+  const details = [];
+  const namedCallPattern = /\b(variables|outputs|body|items|parameters)\s*\(\s*'((?:''|[^'])*)'\s*\)/gi;
+  const triggerPattern = /\b(triggerOutputs|triggerBody)\s*\(\s*\)/gi;
+  let match = namedCallPattern.exec(source);
 
   while (match) {
-    references.push(match[1]);
-    match = pattern.exec(expression);
+    addReferenceDetail(details, {
+      index: match.index,
+      type: canonicalReferenceType(match[1]),
+      label: referenceLabel(match[1]),
+      name: unescapeExpressionLiteral(match[2]),
+      path: readAccessPath(source, match.index + match[0].length)
+    });
+    match = namedCallPattern.exec(source);
   }
 
-  return [...new Set(references)];
+  match = triggerPattern.exec(source);
+
+  while (match) {
+    addReferenceDetail(details, {
+      index: match.index,
+      type: canonicalReferenceType(match[1]),
+      label: referenceLabel(match[1]),
+      name: '',
+      path: readAccessPath(source, match.index + match[0].length)
+    });
+    match = triggerPattern.exec(source);
+  }
+
+  return details
+    .sort((left, right) => left.index - right.index)
+    .map(({ index, ...detail }) => detail);
 }
 
 export function splitTopLevelArguments(value) {
@@ -285,12 +383,87 @@ export function splitTopLevelArguments(value) {
   return args;
 }
 
+function getTemplate(value) {
+  const template = templateByValue.get(value || POWER_AUTOMATE_EXPRESSION_TEMPLATES[0].value);
+
+  if (!template) {
+    throw new Error('Choose a supported Power Automate expression template.');
+  }
+
+  return template;
+}
+
+function normaliseTemplateContext(options) {
+  return {
+    actionName: normaliseTemplateText(options.actionName),
+    fieldPath: normaliseTemplateText(options.fieldPath),
+    variableName: normaliseTemplateText(options.variableName),
+    defaultValue: normaliseTemplateText(options.defaultValue)
+  };
+}
+
+function validateTemplateContext(template, context) {
+  const missing = template.requiredFields.filter(field => !context[field]);
+
+  if (missing.length > 0) {
+    throw new Error(`Enter ${formatTemplateFieldList(missing)} before using the ${template.label} template.`);
+  }
+}
+
+function buildTemplateExpression(templateValue, context) {
+  switch (templateValue) {
+    case 'trigger-field':
+      return `triggerOutputs()?['body/${escapeExpressionLiteral(normaliseTriggerFieldPath(context.fieldPath))}']`;
+    case 'action-body-field':
+      return `body('${escapeExpressionLiteral(context.actionName)}')?['${escapeExpressionLiteral(context.fieldPath)}']`;
+    case 'trigger-field-default':
+      return `coalesce(triggerOutputs()?['body/${escapeExpressionLiteral(normaliseTriggerFieldPath(context.fieldPath))}'], '${escapeExpressionLiteral(context.defaultValue)}')`;
+    case 'variable-default':
+      return `coalesce(variables('${escapeExpressionLiteral(context.variableName)}'), '${escapeExpressionLiteral(context.defaultValue)}')`;
+    default:
+      throw new Error('Choose a supported Power Automate expression template.');
+  }
+}
+
+function normaliseTriggerFieldPath(value) {
+  return String(value ?? '').trim().replace(/^body[/.]/i, '');
+}
+
+function normaliseTemplateText(value) {
+  return String(value ?? '').trim();
+}
+
+function formatTemplateFieldList(fields) {
+  const labels = fields.map(field => {
+    const fieldLabels = {
+      actionName: 'an action name',
+      fieldPath: 'a field path',
+      variableName: 'a variable name',
+      defaultValue: 'a default value'
+    };
+
+    return fieldLabels[field] || field;
+  });
+
+  if (labels.length === 1) {
+    return labels[0];
+  }
+
+  return `${labels.slice(0, -1).join(', ')} and ${labels.at(-1)}`;
+}
+
+function normaliseOutputWrapper(value) {
+  return POWER_AUTOMATE_OUTPUT_WRAPPERS.some(wrapper => wrapper.value === value) ? value : 'plain';
+}
+
 function buildWarnings(options) {
   const warnings = [];
   const unknownFunctions = options.functions.filter(name => !knownFunctions.has(name.toLowerCase()));
 
-  if (options.wrapperType !== 'Plain expression') {
+  if (options.wrapperType !== 'Plain expression' && options.outputWrapper === 'plain') {
     warnings.push(`${options.wrapperType} wrapper was removed so the expression can be edited cleanly.`);
+  } else if (options.wrapperType !== 'Plain expression') {
+    warnings.push(`${options.wrapperType} wrapper was normalised before formatting.`);
   }
 
   if (unknownFunctions.length > 0) {
@@ -298,6 +471,152 @@ function buildWarnings(options) {
   }
 
   return warnings;
+}
+
+function addReferenceDetail(details, detail) {
+  const normalised = {
+    index: detail.index,
+    type: detail.type,
+    label: detail.label,
+    name: detail.name,
+    path: detail.path,
+    value: formatReferenceValue(detail)
+  };
+  const key = [normalised.type.toLowerCase(), normalised.name, normalised.path].join('\u0000');
+
+  if (!details.some(item => [item.type.toLowerCase(), item.name, item.path].join('\u0000') === key)) {
+    details.push(normalised);
+  }
+}
+
+function referenceLabel(type) {
+  const labels = {
+    body: 'Action body',
+    items: 'Loop item',
+    outputs: 'Action output',
+    parameters: 'Parameter',
+    triggerBody: 'Trigger body',
+    triggerOutputs: 'Trigger output',
+    variables: 'Variable'
+  };
+
+  return labels[canonicalReferenceType(type)] || type;
+}
+
+function canonicalReferenceType(type) {
+  const types = {
+    body: 'body',
+    items: 'items',
+    outputs: 'outputs',
+    parameters: 'parameters',
+    triggerbody: 'triggerBody',
+    triggeroutputs: 'triggerOutputs',
+    variables: 'variables'
+  };
+
+  return types[String(type ?? '').toLowerCase()] || String(type ?? '');
+}
+
+function formatReferenceValue(detail) {
+  if (detail.name && detail.path) {
+    return `${detail.name}.${detail.path}`;
+  }
+
+  if (detail.name) {
+    return detail.name;
+  }
+
+  if (detail.path) {
+    return detail.path;
+  }
+
+  return detail.type;
+}
+
+function readAccessPath(source, startIndex) {
+  const segments = [];
+  let cursor = startIndex;
+
+  while (cursor < source.length) {
+    cursor = skipWhitespace(source, cursor);
+
+    if (source[cursor] === '?') {
+      cursor += 1;
+      cursor = skipWhitespace(source, cursor);
+    }
+
+    if (source[cursor] !== '[') {
+      break;
+    }
+
+    cursor += 1;
+    cursor = skipWhitespace(source, cursor);
+
+    if (source[cursor] !== '\'') {
+      break;
+    }
+
+    const literal = readSingleQuotedLiteral(source, cursor);
+
+    if (!literal) {
+      break;
+    }
+
+    cursor = skipWhitespace(source, literal.endIndex);
+
+    if (source[cursor] !== ']') {
+      break;
+    }
+
+    segments.push(literal.value);
+    cursor += 1;
+  }
+
+  return segments.join('.');
+}
+
+function readSingleQuotedLiteral(source, quoteIndex) {
+  let value = '';
+
+  for (let index = quoteIndex + 1; index < source.length; index += 1) {
+    const character = source[index];
+    const next = source[index + 1];
+
+    if (character === '\'' && next === '\'') {
+      value += '\'';
+      index += 1;
+      continue;
+    }
+
+    if (character === '\'') {
+      return {
+        value,
+        endIndex: index + 1
+      };
+    }
+
+    value += character;
+  }
+
+  return null;
+}
+
+function skipWhitespace(source, startIndex) {
+  let index = startIndex;
+
+  while (/\s/.test(source[index] || '')) {
+    index += 1;
+  }
+
+  return index;
+}
+
+function escapeExpressionLiteral(value) {
+  return String(value ?? '').replace(/'/g, '\'\'');
+}
+
+function unescapeExpressionLiteral(value) {
+  return String(value ?? '').replace(/''/g, '\'');
 }
 
 function formatExpressionSegment(segment, level) {

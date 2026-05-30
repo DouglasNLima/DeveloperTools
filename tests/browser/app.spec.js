@@ -1455,10 +1455,28 @@ test('formats Power Automate expressions and reports syntax errors', async ({ pa
 
   await expect(page.locator('#flowExpressionWrapperDetail')).toHaveText('@{ } interpolation');
   await expect(page.locator('#flowExpressionFunctionsDetail')).toHaveText('3');
-  await expect(page.locator('#flowExpressionReferencesDetail')).toHaveText('1');
+  await expect(page.locator('#flowExpressionReferencesDetail')).toHaveText('2');
   await expect(page.locator('#flowExpressionWarningsDetail')).toHaveText('1 warning');
   await expect(page.locator('#flowExpressionOutput')).toHaveValue(/concat\(\n  triggerOutputs\(\)\?\['body\/name'\],\n  ' - ',\n  variables\('suffix'\)\n\)/);
   await expect(page.getByRole('status')).toContainText('Power Automate expression formatted successfully.');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByLabel('Template', { exact: true }).selectOption('trigger-field-default');
+  await page.getByLabel('Field path').fill('customer/name');
+  await page.getByLabel('Default value').fill('Unknown');
+  await page.getByLabel('Output wrapper').selectOption('interpolation');
+  await page.getByRole('button', { name: 'Use template', exact: true }).click();
+  await expect(page.getByLabel('Expression input')).toHaveValue("coalesce(triggerOutputs()?['body/customer/name'], 'Unknown')");
+  await page.getByRole('button', { name: 'Format expression', exact: true }).click();
+  await expect(page.locator('#flowExpressionOutputWrapperDetail')).toHaveText('@{ } interpolation');
+  await expect(page.locator('#flowExpressionReferencesDetail')).toHaveText('1');
+  await expect(page.locator('#flowExpressionOutput')).toHaveValue("@{coalesce(triggerOutputs()?['body/customer/name'], 'Unknown')}");
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByLabel('Template', { exact: true }).selectOption('action-body-field');
+  await page.getByLabel('Action name').fill('Get contact');
+  await page.getByRole('button', { name: 'Use template', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Enter a field path');
 
   await page.getByRole('button', { name: 'Clear', exact: true }).click();
   await page.getByLabel('Expression input').fill("concat('a'");

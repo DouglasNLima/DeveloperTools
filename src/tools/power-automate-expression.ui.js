@@ -1,9 +1,56 @@
-import { formatPowerAutomateExpression } from './power-automate-expression.js';
+import {
+  buildPowerAutomateExpressionTemplate,
+  formatPowerAutomateExpression,
+  POWER_AUTOMATE_EXPRESSION_TEMPLATES,
+  POWER_AUTOMATE_OUTPUT_WRAPPERS
+} from './power-automate-expression.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderPowerAutomateExpressionFormatter(container) {
   container.innerHTML = `
     <form class="tool-board" data-tool-form>
+      <div class="form-grid form-grid--split">
+        <div class="field-stack">
+          <label for="flowExpressionTemplate">Template</label>
+          <select id="flowExpressionTemplate">
+            ${POWER_AUTOMATE_EXPRESSION_TEMPLATES.map(template => `<option value="${template.value}">${template.label}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field-stack">
+          <label for="flowExpressionOutputWrapper">Output wrapper</label>
+          <select id="flowExpressionOutputWrapper">
+            ${POWER_AUTOMATE_OUTPUT_WRAPPERS.map(wrapper => `<option value="${wrapper.value}">${wrapper.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--split" id="flowExpressionTemplateFields">
+        <div class="field-stack" data-template-field="actionName" hidden>
+          <label for="flowExpressionActionName">Action name</label>
+          <input id="flowExpressionActionName" type="text" autocomplete="off" placeholder="Get contact">
+        </div>
+
+        <div class="field-stack" data-template-field="fieldPath">
+          <label for="flowExpressionFieldPath">Field path</label>
+          <input id="flowExpressionFieldPath" type="text" autocomplete="off" placeholder="name">
+        </div>
+
+        <div class="field-stack" data-template-field="variableName" hidden>
+          <label for="flowExpressionVariableName">Variable name</label>
+          <input id="flowExpressionVariableName" type="text" autocomplete="off" placeholder="suffix">
+        </div>
+
+        <div class="field-stack" data-template-field="defaultValue" hidden>
+          <label for="flowExpressionDefaultValue">Default value</label>
+          <input id="flowExpressionDefaultValue" type="text" autocomplete="off" placeholder="Unknown">
+        </div>
+      </div>
+
+      <div class="button-row">
+        <button id="useFlowExpressionTemplateButton" class="secondary" type="button">Use template</button>
+      </div>
+
       <div class="field-stack">
         <label for="flowExpressionInput">Expression input</label>
         <textarea id="flowExpressionInput" spellcheck="false" placeholder="@{concat(triggerOutputs()?['body/name'], ' - ', variables('suffix'))}"></textarea>
@@ -35,6 +82,10 @@ export function renderPowerAutomateExpressionFormatter(container) {
           <strong id="flowExpressionWrapperDetail">-</strong>
         </div>
         <div class="detail-card">
+          <span>Output wrapper</span>
+          <strong id="flowExpressionOutputWrapperDetail">-</strong>
+        </div>
+        <div class="detail-card">
           <span>Functions</span>
           <strong id="flowExpressionFunctionsDetail">-</strong>
         </div>
@@ -60,6 +111,16 @@ export function renderPowerAutomateExpressionFormatter(container) {
     </form>
   `;
 
+  const templateSelect = container.querySelector('#flowExpressionTemplate');
+  const outputWrapperSelect = container.querySelector('#flowExpressionOutputWrapper');
+  const useTemplateButton = container.querySelector('#useFlowExpressionTemplateButton');
+  const templateFieldGroups = [...container.querySelectorAll('[data-template-field]')];
+  const templateFields = {
+    actionName: container.querySelector('#flowExpressionActionName'),
+    fieldPath: container.querySelector('#flowExpressionFieldPath'),
+    variableName: container.querySelector('#flowExpressionVariableName'),
+    defaultValue: container.querySelector('#flowExpressionDefaultValue')
+  };
   const input = container.querySelector('#flowExpressionInput');
   const preview = container.querySelector('#flowExpressionPreview');
   const output = container.querySelector('#flowExpressionOutput');
@@ -69,6 +130,7 @@ export function renderPowerAutomateExpressionFormatter(container) {
   const downloadButton = container.querySelector('#downloadFlowExpressionButton');
   const details = {
     wrapper: container.querySelector('#flowExpressionWrapperDetail'),
+    outputWrapper: container.querySelector('#flowExpressionOutputWrapperDetail'),
     functions: container.querySelector('#flowExpressionFunctionsDetail'),
     references: container.querySelector('#flowExpressionReferencesDetail'),
     unknown: container.querySelector('#flowExpressionUnknownDetail'),
@@ -103,8 +165,27 @@ export function renderPowerAutomateExpressionFormatter(container) {
     preview.innerHTML = '';
   }
 
+  function updateTemplateFields() {
+    const template = POWER_AUTOMATE_EXPRESSION_TEMPLATES.find(item => item.value === templateSelect.value)
+      || POWER_AUTOMATE_EXPRESSION_TEMPLATES[0];
+    const requiredFields = new Set(template.requiredFields);
+
+    templateFieldGroups.forEach(group => {
+      const fieldName = group.dataset.templateField;
+      const field = templateFields[fieldName];
+      const required = requiredFields.has(fieldName);
+
+      group.hidden = !required;
+
+      if (field) {
+        field.required = required;
+      }
+    });
+  }
+
   function setDetails(result) {
     details.wrapper.textContent = result.wrapperType;
+    details.outputWrapper.textContent = result.outputWrapperLabel;
     details.functions.textContent = result.summary.functionCount.toLocaleString('en-GB');
     details.references.textContent = result.summary.referenceCount.toLocaleString('en-GB');
     details.unknown.textContent = result.summary.unknownFunctionCount.toLocaleString('en-GB');
@@ -118,7 +199,7 @@ export function renderPowerAutomateExpressionFormatter(container) {
     [
       ['Formatted expression', result.formatted],
       ['Functions', result.functions.join(', ') || 'None'],
-      ['References', result.references.join(', ') || 'None']
+      ['References', result.referenceDetails.map(formatReferenceDetail).join('\n') || 'None']
     ].forEach(([label, value]) => {
       const card = document.createElement('article');
       card.className = 'builder-card';
@@ -129,6 +210,24 @@ export function renderPowerAutomateExpressionFormatter(container) {
       card.append(title, content);
       preview.append(card);
     });
+  }
+
+  function useTemplate() {
+    try {
+      const result = buildPowerAutomateExpressionTemplate({
+        template: templateSelect.value,
+        actionName: templateFields.actionName.value,
+        fieldPath: templateFields.fieldPath.value,
+        variableName: templateFields.variableName.value,
+        defaultValue: templateFields.defaultValue.value
+      });
+
+      input.value = result.expression;
+      input.focus();
+      setStatus(`${result.templateLabel} template added to the expression input.`, 'success');
+    } catch (error) {
+      setStatus(error.message || 'Unable to build this Power Automate expression template.', 'error');
+    }
   }
 
   function setOutput(result) {
@@ -149,7 +248,10 @@ export function renderPowerAutomateExpressionFormatter(container) {
 
   function formatExpression() {
     try {
-      const result = formatPowerAutomateExpression({ input: input.value });
+      const result = formatPowerAutomateExpression({
+        input: input.value,
+        outputWrapper: outputWrapperSelect.value
+      });
       setOutput(result);
       setStatus(buildSuccessMessage(result), 'success');
     } catch (error) {
@@ -180,9 +282,17 @@ export function renderPowerAutomateExpressionFormatter(container) {
     }
   }
 
+  templateSelect.addEventListener('change', updateTemplateFields);
+  useTemplateButton.addEventListener('click', useTemplate);
   formatButton.addEventListener('click', formatExpression);
   copyButton.addEventListener('click', copyOutput);
   clearButton.addEventListener('click', () => {
+    templateSelect.value = POWER_AUTOMATE_EXPRESSION_TEMPLATES[0].value;
+    outputWrapperSelect.value = 'plain';
+    Object.values(templateFields).forEach(field => {
+      field.value = '';
+    });
+    updateTemplateFields();
     input.value = '';
     outputHighlight.setLanguage('expression');
     output.value = '';
@@ -193,11 +303,29 @@ export function renderPowerAutomateExpressionFormatter(container) {
     input.focus();
   });
 
+  updateTemplateFields();
+
   return () => {
     inputHighlight.destroy();
     outputHighlight.destroy();
     revokeObjectUrl();
   };
+}
+
+function formatReferenceDetail(detail) {
+  if (detail.name && detail.path) {
+    return `${detail.label}: ${detail.name} / ${detail.path}`;
+  }
+
+  if (detail.name) {
+    return `${detail.label}: ${detail.name}`;
+  }
+
+  if (detail.path) {
+    return `${detail.label}: ${detail.path}`;
+  }
+
+  return detail.label;
 }
 
 function buildSuccessMessage(result) {

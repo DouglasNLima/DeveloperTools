@@ -28,10 +28,11 @@ This roadmap expands the current suite before adding many new standalone tools. 
 
 ## Phase 3: Power Automate Expression Formatter
 
-- Add templates for null-safe field reads, `coalesce`, `formatDateTime`, `contains`, `equals`, `length` and trigger conditions.
+- Add templates for null-safe field reads and `coalesce` defaults.
 - Add wrapper conversion between raw expressions, `@...` and `@{...}`.
-- Improve reference extraction for `triggerOutputs`, `outputs`, `items`, `variables` and `body`.
-- Status: planned.
+- Improve reference extraction for `triggerOutputs`, `triggerBody`, `outputs`, `items`, `variables`, `parameters` and `body`.
+- Keep `formatDateTime`, `contains`, `equals`, `length` and trigger condition templates as later candidates.
+- Status: safe field templates, wrapper conversion and richer reference extraction implemented.
 
 ## Phase 4: Power Fx Snippet Formatter
 
