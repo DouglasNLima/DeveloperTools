@@ -216,6 +216,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'regex-tester'
   },
   {
+    id: 'markdown-preview-inspector',
+    title: 'Markdown preview & inspector',
+    category: 'Text utilities',
+    status: 'available',
+    summary: 'Preview Markdown locally, inspect headings and references, and extract Mermaid diagram blocks.',
+    renderer: 'markdown-preview-inspector'
+  },
+  {
     id: 'sql-query-formatter',
     title: 'SQL query formatter',
     category: 'Text utilities',

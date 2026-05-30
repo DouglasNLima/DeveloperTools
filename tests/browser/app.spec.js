@@ -1247,6 +1247,7 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="markdown-preview-inspector"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toBeEnabled();
   await page.locator('[data-tool-id="text-diff"]').click();
 
@@ -1335,6 +1336,66 @@ test('hands cleaned HTML output to a text diff input', async ({ page }) => {
   await expect(page.getByLabel('Left text')).toHaveValue(/Release notes/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Alpha/);
   await expect(page.getByLabel('Right text')).toHaveValue('');
+});
+
+test('previews Markdown with inspection details and Mermaid handover', async ({ page }) => {
+  await page.goto('/#markdown-preview-inspector');
+
+  await expect(page.getByRole('heading', { name: 'Markdown preview & inspector' })).toBeVisible();
+  await page.getByLabel('Markdown input').fill([
+    '# Release notes',
+    '',
+    'Read the [deployment guide](docs/deploy.md).',
+    '',
+    '## Diagram',
+    '',
+    '| Step | Owner |',
+    '| --- | --- |',
+    '| Review | Ada |',
+    '',
+    '```mermaid',
+    'flowchart TD',
+    '  Draft --> Review',
+    '```'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
+
+  await expect(page.locator('#markdownPreview h1')).toHaveText('Release notes');
+  await expect(page.locator('#markdownPreview h2')).toHaveText('Diagram');
+  await expect(page.locator('#markdownPreview table')).toContainText('Review');
+  await expect(page.locator('#markdownPreview .markdown-mermaid-block svg')).toBeVisible();
+  await expect(page.locator('#markdownHeadingDetail')).toHaveText('2');
+  await expect(page.locator('#markdownLinkDetail')).toHaveText('1');
+  await expect(page.locator('#markdownFenceDetail')).toHaveText('1');
+  await expect(page.locator('#markdownMermaidDetail')).toHaveText('1');
+  await expect(page.locator('#markdownOutline')).toContainText('Release notes');
+  await expect(page.locator('#markdownReferences')).toContainText('docs/deploy.md');
+  await expect(page.locator('#downloadMarkdownButton')).toHaveAttribute('download', 'markdown-preview.md');
+  await expect(page.getByRole('status')).toContainText('Markdown rendered with 2 headings.');
+
+  await page.locator('#toolHandover').getByRole('button', { name: /First Mermaid block: Preview Mermaid block/ }).click();
+
+  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
+});
+
+test('hands HTML Markdown output into the Markdown preview inspector', async ({ page }) => {
+  await page.goto('/#markdown-preview-inspector');
+
+  await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Enter Markdown input before rendering.');
+
+  await page.goto('/#html-cleaner-converter');
+  await page.getByLabel('Output format').selectOption('markdown');
+  await page.getByLabel('HTML input').fill('<article><h1>Guide</h1><p>Read <a href="./setup.md">setup</a>.</p></article>');
+  await page.getByRole('button', { name: 'Convert HTML', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Preview Markdown/ }).click();
+
+  await expect(page).toHaveURL(/#markdown-preview-inspector$/);
+  await expect(page.getByLabel('Markdown input')).toHaveValue(/^# Guide/);
+  await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
+  await expect(page.locator('#markdownPreview h1')).toHaveText('Guide');
+  await expect(page.locator('#markdownReferences')).toContainText('./setup.md');
 });
 
 test('finds the HTML cleaner from sidebar search', async ({ page }) => {
@@ -2471,6 +2532,31 @@ test('loads the Mermaid renderer and chunks offline', async ({ page }) => {
 
     await expect(page.locator('#mermaidPreview svg')).toBeVisible();
     await expect(page.getByRole('status')).toContainText('Mermaid diagram rendered successfully.');
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
+test('loads the Markdown preview inspector offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#markdown-preview-inspector');
+
+    await expect(page.getByRole('heading', { name: 'Markdown preview & inspector' })).toBeVisible();
+    await page.getByLabel('Markdown input').fill([
+      '# Offline notes',
+      '',
+      '```mermaid',
+      'flowchart TD',
+      '  Cached --> Preview',
+      '```'
+    ].join('\n'));
+    await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
+
+    await expect(page.locator('#markdownPreview h1')).toHaveText('Offline notes');
+    await expect(page.locator('#markdownPreview .markdown-mermaid-block svg')).toBeVisible();
   } finally {
     await page.context().setOffline(false);
   }

@@ -43,6 +43,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-template-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'data-to-mermaid'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'api-workflow-to-mermaid'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'markdown-preview-inspector'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
@@ -66,6 +67,8 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-editor' && route.transform === 'request-to-mermaid-sequence'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-template-builder' && route.targetToolId === 'mermaid-editor'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-editor' && route.targetToolId === 'text-diff'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'markdown-preview-inspector'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-preview-inspector' && route.targetToolId === 'mermaid-editor'));
 });
 
 test('transforms targeted handover payloads before suggestions are shown', () => {
@@ -458,11 +461,12 @@ test('resolves suggestions for text handover sources', () => {
   const suggestions = resolveHandoverSuggestions({
     sourceToolId: 'support-pack-sanitiser',
     root,
-    availableTools: ['regex-tester', 'text-diff', 'case-converter', 'html-cleaner-converter']
+    availableTools: ['regex-tester', 'markdown-preview-inspector', 'text-diff', 'case-converter', 'html-cleaner-converter']
   });
 
   assert.ok(suggestions.every(suggestion => suggestion.kind === 'text'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Test with regex'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Preview Markdown'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as left text'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as right text'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Convert case'));
@@ -472,16 +476,16 @@ test('resolves suggestions for text handover sources', () => {
   assert.deepEqual(resolveHandoverSuggestions({
     sourceToolId: 'support-pack-sanitiser',
     root,
-    availableTools: ['regex-tester', 'text-diff', 'case-converter', 'html-cleaner-converter']
+    availableTools: ['regex-tester', 'markdown-preview-inspector', 'text-diff', 'case-converter', 'html-cleaner-converter']
   }), []);
 });
 
 test('resolves suggestions for API and Power Platform text sources', () => {
   for (const [toolId, outputId, availableTools, expectedLabels] of [
     ['curl-fetch-converter', 'curlFetchOutput', ['support-pack-sanitiser', 'regex-tester', 'text-diff'], ['Sanitise request', 'Test with regex', 'Compare as left text']],
-    ['dataverse-odata-query-builder', 'odataOutput', ['support-pack-sanitiser', 'text-diff'], ['Sanitise query', 'Compare as left text']],
+    ['dataverse-odata-query-builder', 'odataOutput', ['support-pack-sanitiser', 'markdown-preview-inspector', 'text-diff'], ['Sanitise query', 'Preview Markdown', 'Compare as left text']],
     ['power-pages-web-api-snippets', 'webApiSnippetOutput', ['support-pack-sanitiser'], ['Sanitise snippet']],
-    ['power-platform-cli-command-builder', 'pacOutput', ['support-pack-sanitiser', 'text-diff'], ['Sanitise command', 'Compare as left text']],
+    ['power-platform-cli-command-builder', 'pacOutput', ['support-pack-sanitiser', 'markdown-preview-inspector', 'text-diff'], ['Sanitise command', 'Preview Markdown', 'Compare as left text']],
     ['power-automate-expression-formatter', 'flowExpressionOutput', ['text-diff'], ['Compare as left text', 'Compare as right text']],
     ['power-fx-snippet-formatter', 'powerFxOutput', ['text-diff'], ['Compare as left text', 'Compare as right text']]
   ]) {
@@ -506,6 +510,51 @@ test('resolves suggestions for API and Power Platform text sources', () => {
       availableTools
     }), []);
   }
+});
+
+test('resolves Markdown preview handovers to Mermaid and text tools', () => {
+  const root = createRoot([
+    createControl({
+      id: 'markdownInput',
+      tagName: 'TEXTAREA',
+      value: [
+        '# Release notes',
+        '',
+        '```mermaid',
+        'flowchart TD',
+        '  Draft --> Review',
+        '```'
+      ].join('\n')
+    }),
+    createControl({
+      id: 'markdownMermaidOutput',
+      tagName: 'TEXTAREA',
+      value: [
+        'flowchart TD',
+        '  Draft --> Review'
+      ].join('\n')
+    })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'markdown-preview-inspector',
+    root,
+    availableTools: ['mermaid-editor', 'text-diff']
+  });
+
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Preview Mermaid block'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as left text'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as right text'));
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Preview Mermaid block').kind, 'mermaid');
+
+  root.controls[1].value = '';
+  const textOnlySuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'markdown-preview-inspector',
+    root,
+    availableTools: ['mermaid-editor', 'text-diff']
+  });
+
+  assert.ok(!textOnlySuggestions.some(suggestion => suggestion.label === 'Preview Mermaid block'));
+  assert.ok(textOnlySuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
 });
 
 test('resolves Power Pages Web API transformed handover sources', () => {

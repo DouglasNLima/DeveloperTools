@@ -24,6 +24,7 @@ The current foundation includes:
 - Cron / RRULE Builder
 - cURL/fetch converter
 - Regex Tester
+- Markdown preview & inspector
 - SQL query formatter
 - Support Pack Sanitiser
 - Text diff
@@ -64,7 +65,7 @@ npm run test:unit
 npm run test:browser
 ```
 
-Tools that produce compatible JSON, XML, Mermaid, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff, JWT, PDF field mappings and Data Explorer tools can move into compatible JSON, Mermaid or text tools; PDF field mappings and Data Explorer JSON can be transformed into CSV input; formatted FetchXML and FetchXML embedded in Liquid blocks can move into the JSON/XML data explorer; generated Dataverse OData and Power Pages Web API reports can extract their endpoints into the URL helper, their request snippets into the cURL/fetch converter, or their request flow into Mermaid; generated Mermaid can move into the Mermaid editor/exporter or Text diff; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the file creator. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
+Tools that produce compatible JSON, XML, Mermaid, Markdown, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff, JWT, PDF field mappings and Data Explorer tools can move into compatible JSON, Mermaid or text tools; PDF field mappings and Data Explorer JSON can be transformed into CSV input; formatted FetchXML and FetchXML embedded in Liquid blocks can move into the JSON/XML data explorer; generated Dataverse OData and Power Pages Web API reports can extract their endpoints into the URL helper, their request snippets into the cURL/fetch converter, or their request flow into Mermaid; generated Mermaid can move into the Mermaid editor/exporter or Text diff; Markdown-like reports can move into the Markdown preview and inspector, Mermaid blocks found in Markdown can move into the Mermaid editor/exporter, and Markdown source can move into Text diff; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the file creator. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -126,6 +127,8 @@ src/
     mermaid-editor.ui.js
     mermaid-runtime.js
     mermaid-template-builder.ui.js
+    markdown.js
+    markdown-preview.ui.js
     pdf-template-fields.js
     pdf-template-fields.ui.js
     dataverse-odata.js

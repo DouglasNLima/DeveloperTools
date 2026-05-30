@@ -27,6 +27,7 @@ import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJsonSchemaValidator } from './tools/json-schema-validator.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
+import { renderMarkdownPreviewInspector } from './tools/markdown-preview.ui.js';
 import { renderApiWorkflowToMermaid } from './tools/mermaid-api.ui.js';
 import { renderDataToMermaid } from './tools/mermaid-data.ui.js';
 import { renderMermaidEditor } from './tools/mermaid-editor.ui.js';
@@ -63,6 +64,7 @@ const renderers = {
   'json-formatter': renderJsonFormatter,
   'json-schema-validator': renderJsonSchemaValidator,
   'jwt-decoder': renderJwtDecoder,
+  'markdown-preview-inspector': renderMarkdownPreviewInspector,
   'api-workflow-to-mermaid': renderApiWorkflowToMermaid,
   'data-to-mermaid': renderDataToMermaid,
   'mermaid-editor': renderMermaidEditor,

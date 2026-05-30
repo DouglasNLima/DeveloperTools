@@ -31,11 +31,13 @@ const REQUEST_TEXT_SOURCE_PORTS = [
 
 const TEXT_HANDOVER_ROUTES = [
   createTextRoute('support-pack-sanitiser', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
+  createTextRoute('support-pack-sanitiser', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
   createTextRoute('support-pack-sanitiser', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('support-pack-sanitiser', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('support-pack-sanitiser', 'output', 'case-converter', 'input', 'Convert case', 'Use this output as the input for the case converter.'),
   createTextRoute('support-pack-sanitiser', 'output', 'html-cleaner-converter', 'input', 'Clean as HTML', 'Use this output as HTML input for the cleaner/converter.'),
   createTextRoute('html-cleaner-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
+  createTextRoute('html-cleaner-converter', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
   createTextRoute('html-cleaner-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('html-cleaner-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('html-cleaner-converter', 'output', 'support-pack-sanitiser', 'input', 'Sanitise text', 'Use this output as input for the support pack sanitiser.'),
@@ -47,10 +49,12 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('curl-fetch-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('curl-fetch-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('dataverse-odata-query-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise query', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('dataverse-odata-query-builder', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
   createTextRoute('dataverse-odata-query-builder', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('dataverse-odata-query-builder', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('power-pages-web-api-snippets', 'output', 'support-pack-sanitiser', 'input', 'Sanitise snippet', 'Use this output as input for the support pack sanitiser.'),
   createTextRoute('power-platform-cli-command-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise command', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('power-platform-cli-command-builder', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
   createTextRoute('power-platform-cli-command-builder', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('power-platform-cli-command-builder', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
@@ -212,6 +216,33 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         id: 'input',
         selector: '#apiMermaidInput',
         label: 'Workflow input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
+    toolId: 'markdown-preview-inspector',
+    outputs: [
+      {
+        id: 'source',
+        selector: '#markdownInput',
+        label: 'Markdown source',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'mermaid',
+        selector: '#markdownMermaidOutput',
+        label: 'First Mermaid block',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#markdownInput',
+        label: 'Markdown input',
         kind: 'text'
       }
     ]
@@ -688,6 +719,16 @@ export const TOOL_HANDOVER_ROUTES = [
     label: 'Preview and export',
     description: 'Open this Mermaid source in the editor/exporter.'
   })),
+  {
+    id: 'markdown-preview-inspector-mermaid-to-mermaid-editor-source',
+    sourceToolId: 'markdown-preview-inspector',
+    sourceOutputId: 'mermaid',
+    targetToolId: 'mermaid-editor',
+    targetInputId: 'source',
+    acceptKinds: ['mermaid'],
+    label: 'Preview Mermaid block',
+    description: 'Open the first Mermaid code fence in the editor/exporter.'
+  },
   ...MERMAID_SOURCE_PORTS.flatMap(source => ([
     {
       id: `${source.toolId}-${source.outputId}-to-text-diff-left-mermaid`,
@@ -848,6 +889,26 @@ export const TOOL_HANDOVER_ROUTES = [
     label: 'Convert to CSV',
     description: 'Transform this JSON output into CSV input for the CSV/TSV helper.',
     transform: 'json-records-to-csv'
+  },
+  {
+    id: 'markdown-preview-inspector-source-to-text-diff-left',
+    sourceToolId: 'markdown-preview-inspector',
+    sourceOutputId: 'source',
+    targetToolId: 'text-diff',
+    targetInputId: 'left',
+    acceptKinds: ['text'],
+    label: 'Compare as left text',
+    description: 'Use this Markdown source as the left side of a text diff.'
+  },
+  {
+    id: 'markdown-preview-inspector-source-to-text-diff-right',
+    sourceToolId: 'markdown-preview-inspector',
+    sourceOutputId: 'source',
+    targetToolId: 'text-diff',
+    targetInputId: 'right',
+    acceptKinds: ['text'],
+    label: 'Compare as right text',
+    description: 'Use this Markdown source as the right side of a text diff.'
   },
   {
     id: 'pdf-template-field-explorer-fields-json-to-csv-tsv-helper-input',

@@ -365,6 +365,7 @@ a.button[hidden],
 .uuid-preview,
 .builder-preview,
 .curl-fetch-preview,
+.markdown-preview,
 .mermaid-preview {
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-panel);
@@ -1487,6 +1488,7 @@ label.button.secondary:hover {
 .uuid-preview,
 .builder-preview,
 .curl-fetch-preview,
+.markdown-preview,
 .mermaid-preview {
   background: var(--preview-surface);
   box-shadow: none;
@@ -1624,6 +1626,196 @@ label.button.secondary:hover {
   gap: 0.5rem;
   max-height: 420px;
   padding: 0.6rem;
+}
+
+.markdown-preview {
+  display: block;
+  font-family: var(--font-body);
+  line-height: 1.65;
+  max-height: 620px;
+  min-height: 260px;
+  padding: 1rem;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  color: var(--text);
+  line-height: 1.25;
+  margin: 1.1rem 0 0.5rem;
+}
+
+.markdown-preview h1:first-child,
+.markdown-preview h2:first-child,
+.markdown-preview h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-preview p,
+.markdown-preview ul,
+.markdown-preview ol,
+.markdown-preview blockquote,
+.markdown-preview table,
+.markdown-preview pre {
+  margin: 0 0 0.9rem;
+}
+
+.markdown-preview a {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.markdown-preview img {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: block;
+  max-height: 280px;
+  max-width: 100%;
+}
+
+.markdown-preview blockquote {
+  border-left: 4px solid var(--accent);
+  color: var(--text-soft);
+  padding-left: 0.85rem;
+}
+
+.markdown-preview pre {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  overflow: auto;
+  padding: 0.75rem;
+}
+
+.markdown-preview code {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.markdown-preview table {
+  border-collapse: collapse;
+  display: block;
+  overflow: auto;
+  width: 100%;
+}
+
+.markdown-preview th,
+.markdown-preview td {
+  border: 1px solid var(--border-soft);
+  padding: 0.45rem 0.55rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.markdown-preview th {
+  background: var(--surface-strong);
+  font-weight: 800;
+}
+
+.markdown-mermaid-block {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-panel);
+  display: grid;
+  gap: 0.6rem;
+  justify-items: center;
+  margin: 1rem 0;
+  padding: 0.75rem;
+}
+
+.markdown-mermaid-block figcaption {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  justify-self: start;
+}
+
+.markdown-mermaid-block svg {
+  background: #ffffff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: block;
+  height: auto;
+  max-height: 520px;
+  max-width: 100%;
+  padding: 0.5rem;
+}
+
+.markdown-inspector-grid {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.markdown-inspector-panel {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-panel);
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+}
+
+.markdown-inspector-panel h2 {
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.markdown-inspector-list {
+  min-height: 90px;
+}
+
+.markdown-outline-list,
+.markdown-reference-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0;
+}
+
+.markdown-outline-list {
+  list-style: none;
+}
+
+.markdown-outline-list li,
+.markdown-reference-item {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.55rem;
+}
+
+.markdown-outline-list li {
+  margin-left: calc((var(--heading-level) - 1) * 0.75rem);
+}
+
+.markdown-outline-list strong {
+  color: var(--text);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.markdown-outline-list span,
+.markdown-reference-item span {
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.markdown-reference-item strong,
+.markdown-reference-item code {
+  overflow-wrap: anywhere;
+}
+
+.markdown-reference-item code {
+  color: var(--text-soft);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
 }
 
 .mermaid-preview {
@@ -2385,14 +2577,15 @@ label.button.secondary:hover {
 
   .form-grid--actions,
   .form-grid--split,
-    .form-grid--triple,
-    .home-summary,
-    .home-philosophy-grid,
-    .home-library-grid,
-    .home-tool-grid,
-    .option-grid,
+  .form-grid--triple,
+  .home-summary,
+  .home-philosophy-grid,
+  .home-library-grid,
+  .home-tool-grid,
+  .option-grid,
   .data-filter-row,
   .detail-grid,
+  .markdown-inspector-grid,
   .pdf-template-layout {
     grid-template-columns: 1fr;
   }

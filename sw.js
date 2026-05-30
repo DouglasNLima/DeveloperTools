@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v20';
+const CACHE_NAME = 'developer-tools-static-v21';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -45,6 +45,8 @@ const PRECACHE_URLS = [
   './src/tools/json-schema-validator.ui.js',
   './src/tools/jwt-decoder.js',
   './src/tools/jwt-decoder.ui.js',
+  './src/tools/markdown.js',
+  './src/tools/markdown-preview.ui.js',
   './src/tools/mermaid.js',
   './src/tools/mermaid-api.ui.js',
   './src/tools/mermaid-data.ui.js',
