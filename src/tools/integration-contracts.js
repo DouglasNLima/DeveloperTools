@@ -71,6 +71,9 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('power-platform-solution-mermaid', 'inventory', 'markdown-preview-inspector', 'input', 'Preview inventory', 'Open this generated inventory in the Markdown preview and inspector.'),
   createTextRoute('power-platform-solution-mermaid', 'inventory', 'text-diff', 'left', 'Compare inventory as left text', 'Use this inventory as the left side of a text diff.'),
   createTextRoute('power-platform-solution-mermaid', 'inventory', 'text-diff', 'right', 'Compare inventory as right text', 'Use this inventory as the right side of a text diff.'),
+  createTextRoute('power-platform-solution-import-preflight', 'preflight', 'markdown-preview-inspector', 'input', 'Preview preflight report', 'Open this generated preflight report in the Markdown preview and inspector.'),
+  createTextRoute('power-platform-solution-import-preflight', 'preflight', 'text-diff', 'left', 'Compare preflight as left text', 'Use this preflight report as the left side of a text diff.'),
+  createTextRoute('power-platform-solution-import-preflight', 'preflight', 'text-diff', 'right', 'Compare preflight as right text', 'Use this preflight report as the right side of a text diff.'),
   createTextRoute('power-platform-solution-docs', 'documentation', 'markdown-preview-inspector', 'input', 'Preview documentation', 'Open this generated documentation in the Markdown preview and inspector.'),
   createTextRoute('power-platform-solution-docs', 'documentation', 'text-diff', 'left', 'Compare documentation as left text', 'Use this documentation as the left side of a text diff.'),
   createTextRoute('power-platform-solution-docs', 'documentation', 'text-diff', 'right', 'Compare documentation as right text', 'Use this documentation as the right side of a text diff.'),
@@ -264,6 +267,19 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         id: 'documentation',
         selector: '#solutionDocsOutput',
         label: 'Documentation Markdown',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'power-platform-solution-import-preflight',
+    outputs: [
+      {
+        id: 'preflight',
+        selector: '#solutionImportPreflightOutput',
+        label: 'Preflight Markdown',
         mediaType: 'text/markdown',
         kind: 'text'
       }

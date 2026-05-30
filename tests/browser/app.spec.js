@@ -292,6 +292,7 @@ test('finds Power Platform tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="dataverse-odata-query-builder"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-cli-command-builder"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-platform-solution-import-preflight"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-solution-mermaid"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-solution-docs"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
@@ -2315,6 +2316,43 @@ test('reports Power Platform solution documentation validation errors', async ({
   await expect(page.getByRole('status')).toContainText('The ZIP central directory could not be found.');
 });
 
+test('generates an import preflight report from an exported Power Platform solution ZIP', async ({ page }) => {
+  await page.goto('/#power-platform-solution-import-preflight');
+
+  await expect(page.getByRole('heading', { name: 'Power Platform Solution Import Preflight' })).toBeVisible();
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP file before analysing the solution.');
+
+  await page.setInputFiles('#solutionImportFileInput', {
+    name: 'ops-toolkit.zip',
+    mimeType: 'application/zip',
+    buffer: createImportPreflightSolutionZip()
+  });
+  await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
+  await page.getByLabel('Suggested ZIP path').fill('dist/ops toolkit.zip');
+  await page.getByLabel('Target environment note').fill('Test environment before production');
+  await page.getByLabel('Run asynchronously').check();
+  await page.getByLabel('Force overwrite on import').check();
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Power Platform solution import preflight generated successfully.');
+  await expect(page.locator('#solutionImportNameDetail')).toHaveText('Operations Toolkit');
+  await expect(page.locator('#solutionImportPackageDetail')).toHaveText('Unmanaged');
+  await expect(page.locator('#solutionImportComponentsDetail')).toHaveText('4');
+  await expect(page.locator('#solutionImportDependenciesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionImportVariablesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionImportConnectionsDetail')).toHaveText('1');
+  await expect(page.locator('#solutionImportWarningsDetail')).toHaveText('4 warnings');
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/^# Power Platform solution import preflight/);
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/pac solution import --path "dist\/ops toolkit\.zip" --async --force-overwrite/);
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/Exported missing dependencies/);
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/exported solution metadata only/);
+  await expect(page.locator('#solutionImportPreflightOutput')).not.toHaveValue(/https:\/\/api\.example\.test\/current/);
+  await expect(page.locator('#copySolutionImportButton')).toBeEnabled();
+  await expect(page.locator('#downloadSolutionImportButton')).toHaveAttribute('download', 'Operations-Toolkit-import-preflight.md');
+  await expect(page.locator('#toolHandover')).toContainText('Preflight Markdown: Preview preflight report');
+});
+
 test('formats Power Automate expressions and reports syntax errors', async ({ page }) => {
   await page.goto('/#power-automate-expression-formatter');
 
@@ -2828,6 +2866,28 @@ test('loads the Power Platform solution documentation generator offline', async 
   }
 });
 
+test('loads the Power Platform solution import preflight offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#power-platform-solution-import-preflight');
+
+    await expect(page.getByRole('heading', { name: 'Power Platform Solution Import Preflight' })).toBeVisible();
+    await page.setInputFiles('#solutionImportFileInput', {
+      name: 'offline-solution.zip',
+      mimeType: 'application/zip',
+      buffer: createImportPreflightSolutionZip()
+    });
+    await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+    await expect(page.getByRole('status')).toContainText('Power Platform solution import preflight generated successfully.');
+    await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/^# Power Platform solution import preflight/);
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
 test('loads the Markdown preview inspector offline', async ({ page }) => {
   await primeOfflineApp(page);
   await page.context().setOffline(true);
@@ -2952,6 +3012,65 @@ test('extracts FetchXML from generated Liquid blocks for Data Explorer', async (
   ].join('\n'));
   await expect(page.getByLabel('JSON or XML input')).not.toHaveValue(/{% fetchxml/);
 });
+
+function createImportPreflightSolutionZip() {
+  const files = [
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>ops_toolkit</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Operations Toolkit" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>1.2.3.4</Version>',
+      '    <Managed>0</Managed>',
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '    <RootComponents>',
+      '      <RootComponent type="1" schemaName="contoso_account" id="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" behavior="0" />',
+      '      <RootComponent type="29" schemaName="Account approval" id="{11111111-1111-1111-1111-111111111111}" behavior="1" />',
+      '      <RootComponent type="150" schemaName="contoso_api_url" id="{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}" behavior="1" />',
+      '      <RootComponent type="372" schemaName="contoso_dataverse" id="{cccccccc-cccc-cccc-cccc-cccccccccccc}" behavior="1" />',
+      '    </RootComponents>',
+      '    <MissingDependencies>',
+      '      <MissingDependency>',
+      '        <Required type="1" schemaName="Account custom table" id="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" solution="Base solution" />',
+      '        <Dependent type="29" schemaName="Account approval" id="{11111111-1111-1111-1111-111111111111}" />',
+      '      </MissingDependency>',
+      '    </MissingDependencies>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <Workflows>',
+      '    <Workflow WorkflowId="{11111111-1111-1111-1111-111111111111}" Name="Account approval" Category="5" />',
+      '  </Workflows>',
+      '  <EnvironmentVariableDefinition schemaName="contoso_api_url" displayName="API URL" type="100000000" defaultValue="https://api.example.test/default" />',
+      '  <EnvironmentVariableValue schemaName="contoso_api_url">',
+      '    <Value>https://api.example.test/current</Value>',
+      '  </EnvironmentVariableValue>',
+      '  <ConnectionReference connectionreferencelogicalname="contoso_dataverse" displayname="Dataverse connection" connectorid="/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps" />',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['Workflows/11111111-1111-1111-1111-111111111111.json', JSON.stringify({
+      properties: {
+        displayName: 'Account approval',
+        workflowEntityId: '11111111-1111-1111-1111-111111111111',
+        definition: {
+          triggers: {
+            manual: {
+              type: 'Request',
+              description: 'When an account is selected'
+            }
+          },
+          actions: {}
+        }
+      }
+    }, null, 2)]
+  ];
+
+  return createStoredZip(files);
+}
 
 function createSolutionZip() {
   const files = [

@@ -1848,11 +1848,13 @@ label.button.secondary:hover {
   gap: 0.75rem;
 }
 
-.power-solution-docs-tool {
+.power-solution-docs-tool,
+.power-solution-import-tool {
   gap: 0.75rem;
 }
 
-.power-solution-docs-tool textarea {
+.power-solution-docs-tool textarea,
+.power-solution-import-tool textarea {
   min-height: 430px;
 }
 

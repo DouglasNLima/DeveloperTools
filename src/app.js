@@ -39,6 +39,7 @@ import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js'
 import { renderPowerAutomateExpressionFormatter } from './tools/power-automate-expression.ui.js';
 import { renderPowerFxSnippetFormatter } from './tools/power-fx-formatter.ui.js';
 import { renderPowerPlatformCliCommandBuilder } from './tools/power-platform-cli.ui.js';
+import { renderPowerPlatformSolutionImportPreflight } from './tools/power-platform-solution-import-preflight.ui.js';
 import { renderPowerPlatformSolutionDocs } from './tools/power-platform-solution-docs.ui.js';
 import { renderPowerPlatformSolutionMermaid } from './tools/power-platform-solution-mermaid.ui.js';
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
@@ -77,6 +78,7 @@ const renderers = {
   'mermaid-template-builder': renderMermaidTemplateBuilder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
+  'power-platform-solution-import-preflight': renderPowerPlatformSolutionImportPreflight,
   'power-platform-solution-docs': renderPowerPlatformSolutionDocs,
   'power-platform-solution-mermaid': renderPowerPlatformSolutionMermaid,
   'power-fx-snippet-formatter': renderPowerFxSnippetFormatter,

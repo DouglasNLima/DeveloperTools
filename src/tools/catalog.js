@@ -112,6 +112,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'power-platform-cli-command-builder'
   },
   {
+    id: 'power-platform-solution-import-preflight',
+    title: 'Power Platform Solution Import Preflight',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Inspect exported solution ZIP files and generate local import preflight reports.',
+    renderer: 'power-platform-solution-import-preflight'
+  },
+  {
     id: 'power-platform-solution-mermaid',
     title: 'Power Platform Solution Mermaid Generator',
     category: 'Power Platform',

@@ -69,10 +69,17 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - Hand generated documentation to the Markdown preview and Text diff tools.
 - Status: implemented with unit and browser coverage.
 
+## Phase 7: Power Platform Solution Import Preflight
+
+- Read exported solution ZIP files locally in the browser.
+- Generate a local import preflight report with package metadata, root component mix, process inventory, environment variable value states, connection references, exported missing dependency metadata and post-import checks.
+- Build a suggested `pac solution import --path ...` command with async and force-overwrite options.
+- Label dependency findings as exported metadata only, not a live target-environment dependency check.
+- Status: implemented with unit and browser coverage.
+
 ## Candidate Next Tools
 
 - Dataverse FetchXML to OData helper.
-- Environment variable and connection reference deployment checklist.
 - Solution settings file helper.
 - Power Automate trigger condition builder.
 - Power Fx delegation risk checklist.

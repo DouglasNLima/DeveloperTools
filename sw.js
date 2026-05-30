@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v25';
+const CACHE_NAME = 'developer-tools-static-v26';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -66,6 +66,8 @@ const PRECACHE_URLS = [
   './src/tools/power-platform-solution.js',
   './src/tools/power-platform-solution-docs.js',
   './src/tools/power-platform-solution-docs.ui.js',
+  './src/tools/power-platform-solution-import-preflight.js',
+  './src/tools/power-platform-solution-import-preflight.ui.js',
   './src/tools/power-platform-solution-mermaid.js',
   './src/tools/power-platform-solution-mermaid.ui.js',
   './src/tools/power-pages-site-settings.js',
