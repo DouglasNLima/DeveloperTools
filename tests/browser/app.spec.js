@@ -2214,6 +2214,13 @@ test('converts multiple local images to PNG outputs', async ({ page }) => {
   await expect(page.locator('.image-result-card.success')).toHaveCount(2);
   await expect(page.locator('.image-download-link[download="mark.png"]')).toBeVisible();
   await expect(page.locator('.image-download-link[download="pixel.png"]')).toBeVisible();
+
+  await page.locator('.image-result-card.success').filter({ hasText: 'mark.png' }).getByRole('button', { name: 'Preview image' }).click();
+  const previewDialog = page.getByRole('dialog', { name: 'mark.png' });
+  await expect(previewDialog).toBeVisible();
+  await expect(previewDialog.locator('.file-preview-media')).toHaveAttribute('src', /^blob:/);
+  await page.getByRole('button', { name: 'Close preview' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
 test('wraps raster images in SVG output with a clear warning', async ({ page }) => {

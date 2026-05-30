@@ -99,6 +99,7 @@ src/
     cron-rrule-builder.ui.js
     csv-tsv-helper.js
     csv-tsv-helper.ui.js
+    file-preview-modal.js
     hash-checksums.js
     hash-checksums.ui.js
     image-converter.js

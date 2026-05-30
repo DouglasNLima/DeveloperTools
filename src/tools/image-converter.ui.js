@@ -1,5 +1,6 @@
 import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { openFilePreviewModal } from './file-preview-modal.js';
 import {
   IMAGE_FILE_ACCEPT,
   IMAGE_FORMATS,
@@ -136,6 +137,12 @@ export function renderImageConverter(container) {
     runId: 0
   };
   let unbindDropZone = null;
+  let closePreviewDialog = null;
+
+  function closeOpenPreviewDialog() {
+    closePreviewDialog?.();
+    closePreviewDialog = null;
+  }
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -143,6 +150,7 @@ export function renderImageConverter(container) {
   }
 
   function revokeObjectUrls() {
+    closeOpenPreviewDialog();
     state.objectUrls.forEach(url => URL.revokeObjectURL(url));
     state.objectUrls = [];
   }
@@ -362,11 +370,34 @@ export function renderImageConverter(container) {
         </div>
         <p>${escapeHtml(result.sourceFormat.label)} to ${escapeHtml(result.targetFormat.label)} · ${escapeHtml(result.outputDimensionsLabel)} · ${escapeHtml(formatBytes(result.blob.size))}</p>
         ${result.warnings.length ? `<ul class="image-warning-list">${result.warnings.map(warning => `<li>${escapeHtml(warning)}</li>`).join('')}</ul>` : ''}
-        <div class="button-row">
+        <div class="button-row image-result-actions">
           <a class="button primary image-download-link" href="${result.objectUrl}" download="${escapeHtml(result.outputName)}">Download ${escapeHtml(result.outputName)}</a>
         </div>
       </div>
     `;
+
+    const actions = card.element.querySelector('.image-result-actions');
+    const previewButton = document.createElement('button');
+    previewButton.className = 'secondary image-preview-button';
+    previewButton.type = 'button';
+    previewButton.textContent = 'Preview image';
+    previewButton.title = `Preview ${result.outputName}`;
+    previewButton.addEventListener('click', () => {
+      closeOpenPreviewDialog();
+      closePreviewDialog = openFilePreviewModal(container, {
+        blob: result.blob,
+        downloadUrl: result.objectUrl,
+        fileInfo: {
+          label: `${result.targetFormat.label} image`,
+          mimeType: result.targetFormat.mimeType
+        },
+        fileName: result.outputName,
+        objectUrl: result.objectUrl,
+        previewKind: 'image',
+        trigger: previewButton
+      });
+    });
+    actions.append(previewButton);
   }
 
   function renderErrorCard(card, file, error) {
@@ -423,6 +454,7 @@ export function renderImageConverter(container) {
 
   return () => {
     state.runId += 1;
+    closeOpenPreviewDialog();
     unbindDropZone?.();
     revokeObjectUrls();
   };
