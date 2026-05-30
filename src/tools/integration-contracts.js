@@ -417,6 +417,13 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         label: 'Output',
         mediaType: 'application/xml',
         kind: 'xml'
+      },
+      {
+        id: 'text-output',
+        selector: '#powerPagesOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
       }
     ],
     inputs: [
@@ -494,6 +501,23 @@ export const TOOL_HANDOVER_ROUTES = [
     description: 'Load this output as the schema for JSON validation.'
   })),
   {
+    id: 'dataverse-odata-query-builder-output-to-curl-fetch-converter-input',
+    sourceToolId: 'dataverse-odata-query-builder',
+    sourceOutputId: 'output',
+    targetToolId: 'curl-fetch-converter',
+    targetInputId: 'input',
+    acceptKinds: ['text'],
+    label: 'Convert fetch to cURL',
+    description: 'Extract the generated fetch snippet and open it in the cURL/fetch converter.',
+    transform: 'extract-fenced-fetch',
+    setFields: [
+      {
+        selector: '#curlFetchMode',
+        value: 'fetch-to-curl'
+      }
+    ]
+  },
+  {
     id: 'fetchxml-liquid-builder-output-to-data-explorer-xml',
     sourceToolId: 'fetchxml-liquid-builder',
     sourceOutputId: 'output',
@@ -502,6 +526,17 @@ export const TOOL_HANDOVER_ROUTES = [
     acceptKinds: ['xml'],
     label: 'Explore XML data',
     description: 'Load this output into the JSON/XML data explorer.'
+  },
+  {
+    id: 'fetchxml-liquid-builder-text-output-to-data-explorer-xml',
+    sourceToolId: 'fetchxml-liquid-builder',
+    sourceOutputId: 'text-output',
+    targetToolId: 'data-explorer',
+    targetInputId: 'xml',
+    acceptKinds: ['xml'],
+    label: 'Explore embedded FetchXML',
+    description: 'Extract the FetchXML from this Liquid block and load it into the JSON/XML data explorer.',
+    transform: 'extract-liquid-fetchxml'
   },
   {
     id: 'data-explorer-output-to-text-diff-left',

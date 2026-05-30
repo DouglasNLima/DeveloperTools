@@ -1753,6 +1753,26 @@ test('hands Dataverse OData reports to the support sanitiser', async ({ page }) 
   await expect(page.getByLabel('Support pack input')).toHaveValue(/\/api\/data\/v9\.2\/accounts/);
 });
 
+test('extracts Dataverse OData fetch snippets into the cURL/fetch converter', async ({ page }) => {
+  await page.goto('/#dataverse-odata-query-builder');
+
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Columns / $select').fill('name');
+  await page.getByLabel('$filter', { exact: true }).fill('statecode eq 0');
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Convert fetch to cURL/ }).click();
+
+  await expect(page).toHaveURL(/#curl-fetch-converter$/);
+  await expect(page.getByLabel('Conversion mode')).toHaveValue('fetch-to-curl');
+  await expect(page.getByLabel('Request input')).toHaveValue(/^const response = await fetch/);
+  await expect(page.getByLabel('Request input')).not.toHaveValue(/# Dataverse OData query/);
+
+  await page.getByRole('button', { name: 'Convert request', exact: true }).click();
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/curl/);
+  await expect(page.locator('#curlFetchOutput')).toHaveValue(/\/api\/data\/v9\.2\/accounts/);
+  await expect(page.locator('#curlFetchOutputTypeDetail')).toHaveText('cURL command');
+});
+
 test('uses Dataverse OData presets, guided expands and advanced warnings', async ({ page }) => {
   await page.goto('/#dataverse-odata-query-builder');
 
@@ -2108,14 +2128,24 @@ test('hands formatted FetchXML to Data Explorer as XML', async ({ page }) => {
   await expect(page.locator('#dataExplorerOutput')).toHaveValue(/"entity\.@name": "account"/);
 });
 
-test('does not offer XML handover for generated Liquid FetchXML blocks', async ({ page }) => {
+test('extracts FetchXML from generated Liquid blocks for Data Explorer', async ({ page }) => {
   await page.goto('/#fetchxml-liquid-builder');
 
   await page.getByLabel('FetchXML input').fill('<fetch><entity name="account" /></fetch>');
   await page.getByRole('button', { name: 'Build Liquid', exact: true }).click();
 
   await expect(page.locator('#powerPagesOutputType')).toHaveText('Liquid');
-  await expect(page.locator('#toolHandover')).toBeHidden();
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this XML');
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore embedded FetchXML/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('xml');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue([
+    '<fetch>',
+    '  <entity name="account"/>',
+    '</fetch>'
+  ].join('\n'));
+  await expect(page.getByLabel('JSON or XML input')).not.toHaveValue(/{% fetchxml/);
 });
 
 async function createFillablePdf() {

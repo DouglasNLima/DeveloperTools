@@ -13,6 +13,7 @@ import {
   resolveHandoverSuggestions,
   restoreToolState,
   serialiseToolState,
+  transformHandoverValue,
   validateIntegrationContracts
 } from '../../src/tools/tool-handover.js';
 
@@ -41,12 +42,61 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'file-to-base64' && route.targetToolId === 'base64-to-file'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'curl-fetch-converter' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'extract-fenced-fetch'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'data-explorer' && route.targetInputId === 'xml'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.transform === 'extract-liquid-fetchxml'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-cli-command-builder' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-automate-expression-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-fx-snippet-formatter' && route.targetToolId === 'text-diff'));
+});
+
+test('transforms targeted handover payloads before suggestions are shown', () => {
+  const fetchReport = [
+    '# Dataverse OData query',
+    '',
+    '```js',
+    'const response = await fetch("/api/data/v9.2/accounts", {',
+    '  method: "GET"',
+    '});',
+    '```'
+  ].join('\n');
+  const fetch = transformHandoverValue(fetchReport, 'extract-fenced-fetch');
+
+  assert.equal(fetch.valid, true);
+  assert.equal(fetch.kind, 'text');
+  assert.equal(fetch.rawValue, [
+    'const response = await fetch("/api/data/v9.2/accounts", {',
+    '  method: "GET"',
+    '});'
+  ].join('\n'));
+
+  const liquid = [
+    '{% fetchxml accounts %}',
+    '<fetch>',
+    '  <entity name="account"/>',
+    '</fetch>',
+    '{% endfetchxml %}'
+  ].join('\n');
+  const fetchXml = transformHandoverValue(liquid, 'extract-liquid-fetchxml');
+
+  assert.equal(fetchXml.valid, true);
+  assert.equal(fetchXml.kind, 'xml');
+  assert.equal(fetchXml.rawValue, [
+    '<fetch>',
+    '  <entity name="account"/>',
+    '</fetch>'
+  ].join('\n'));
+
+  assert.deepEqual(transformHandoverValue('# no code block', 'extract-fenced-fetch'), {
+    valid: false,
+    reason: 'empty-transform'
+  });
+  assert.deepEqual(transformHandoverValue(liquid, 'missing-transform'), {
+    valid: false,
+    reason: 'unsupported-transform'
+  });
 });
 
 test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
@@ -237,11 +287,45 @@ test('resolves XML and Data Explorer text handover sources', () => {
   assert.equal(xmlSuggestions[0].label, 'Explore XML data');
 
   fetchXmlRoot.controls[0].value = '{% fetchxml accounts %}\n<fetch />\n{% endfetchxml %}';
-  assert.deepEqual(resolveHandoverSuggestions({
+  const liquidSuggestions = resolveHandoverSuggestions({
     sourceToolId: 'fetchxml-liquid-builder',
     root: fetchXmlRoot,
     availableTools: ['data-explorer']
-  }), []);
+  });
+
+  assert.equal(liquidSuggestions.length, 1);
+  assert.equal(liquidSuggestions[0].kind, 'xml');
+  assert.equal(liquidSuggestions[0].label, 'Explore embedded FetchXML');
+  assert.equal(liquidSuggestions[0].value, '<fetch />');
+
+  const dataverseRoot = createRoot([
+    createControl({
+      id: 'odataOutput',
+      tagName: 'TEXTAREA',
+      value: [
+        '# Dataverse OData query',
+        '',
+        '```js',
+        'const response = await fetch("/api/data/v9.2/accounts", { method: "GET" });',
+        '```'
+      ].join('\n')
+    })
+  ]);
+  const dataverseSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'dataverse-odata-query-builder',
+    root: dataverseRoot,
+    availableTools: ['curl-fetch-converter', 'support-pack-sanitiser', 'text-diff']
+  });
+
+  const converterSuggestion = dataverseSuggestions.find(suggestion => suggestion.label === 'Convert fetch to cURL');
+  assert.equal(converterSuggestion.kind, 'text');
+  assert.equal(converterSuggestion.value, 'const response = await fetch("/api/data/v9.2/accounts", { method: "GET" });');
+  assert.deepEqual(converterSuggestion.setFields, [
+    {
+      selector: '#curlFetchMode',
+      value: 'fetch-to-curl'
+    }
+  ]);
 
   const dataExplorerRoot = createRoot([
     createControl({ id: 'dataExplorerOutput', tagName: 'TEXTAREA', value: '[{"name":"Ada"}]' })

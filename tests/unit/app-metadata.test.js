@@ -16,7 +16,7 @@ const devtoolsHtml = await readFile(new URL('../../devtools.html', import.meta.u
 const serviceWorkerSource = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
 
 test('formats the versioned app title consistently', () => {
-  assert.equal(APP_TITLE, 'Developer Tools v0.1.0 (build 13)');
+  assert.equal(APP_TITLE, 'Developer Tools v0.1.0 (build 14)');
   assert.equal(formatAppTitle(), APP_TITLE);
   assert.equal(formatAppTitle({
     name: 'Developer Tools',
