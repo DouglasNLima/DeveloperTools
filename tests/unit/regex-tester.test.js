@@ -1,10 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  REGEX_LOCAL_EXAMPLES,
+  buildRegexReplacementPreview,
   buildHighlightSegments,
   collectRegexMatches,
   compileRegex,
   formatRegexReportAsMarkdown,
+  getRegexExample,
   normaliseFlags,
   processRegexTest
 } from '../../src/tools/regex-tester.js';
@@ -101,4 +104,22 @@ test('limits very broad match sets', () => {
 test('reports empty and invalid patterns', () => {
   assert.throws(() => processRegexTest({ pattern: '', text: 'abc' }), /Enter a regular expression pattern/);
   assert.throws(() => processRegexTest({ pattern: '(', text: 'abc' }), /Invalid regular expression/);
+});
+
+test('builds replacement previews and exposes local examples', () => {
+  const example = getRegexExample('email-contacts');
+  const result = buildRegexReplacementPreview({
+    pattern: example.pattern,
+    flags: example.flags,
+    text: example.text,
+    replacement: example.replacement
+  });
+
+  assert.equal(REGEX_LOCAL_EXAMPLES.length >= 3, true);
+  assert.equal(example.label, 'Email contacts');
+  assert.equal(result.outputType, 'Replacement preview');
+  assert.equal(result.matchCount, 2);
+  assert.equal(result.replacedText, 'ada@example.test\ngrace@example.test');
+  assert.match(result.output, /Regex replacement preview/);
+  assert.equal(getRegexExample('missing'), null);
 });

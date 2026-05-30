@@ -542,6 +542,29 @@ test('generates JSON shape and schema output from the JSON formatter', async ({ 
   await expect(page.locator('#downloadJsonButton')).toHaveAttribute('download', 'json-schema.json');
 });
 
+test('searches JSON paths from the JSON formatter', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await page.getByLabel('JSON input', { exact: true }).fill(JSON.stringify({
+    items: [
+      { id: 1, status: 'Active' },
+      { id: 2, status: 'Inactive' }
+    ],
+    meta: {
+      statusCode: 200
+    }
+  }));
+  await page.getByLabel('Path search').fill('status');
+  await page.getByRole('button', { name: 'Search paths', exact: true }).click();
+
+  await expect(page.locator('#jsonStatusDetail')).toHaveText('Valid');
+  await expect(page.locator('#jsonOutput')).toHaveValue(/# JSON path search/);
+  await expect(page.locator('#jsonOutput')).toHaveValue(/\$\.items\[0\]\.status/);
+  await expect(page.locator('#jsonOutput')).toHaveValue(/\$\.meta\.statusCode/);
+  await expect(page.locator('#downloadJsonButton')).toHaveAttribute('download', 'json-path-search.md');
+  await expect(page.getByRole('status')).toContainText('3 matches found.');
+});
+
 test('syntax highlights structured text areas without changing textarea values', async ({ page }) => {
   await page.goto('/#json-formatter');
 
@@ -997,12 +1020,28 @@ test('loads a delimited file and reports header and row issues', async ({ page }
   await expect(page.locator('#csvDelimiterDetail')).toHaveText('Comma (,) detected');
   await expect(page.locator('#csvEmptyCellsDetail')).toHaveText('2');
   await expect(page.locator('#csvInconsistentRowsDetail')).toHaveText('1');
-  await expect(page.locator('#csvWarningsDetail')).toHaveText('3 warnings');
+  await expect(page.locator('#csvWarningsDetail')).toHaveText('4 warnings');
   await expect(page.locator('#csvIssueList')).toContainText('unexpected column count');
   await expect(page.locator('#csvIssueList')).toContainText('Duplicate headers found: name.');
+  await expect(page.locator('#csvIssueList')).toContainText('name_2');
   await expect(page.locator('#csvOutputTypeDetail')).toHaveText('TSV');
   await expect(page.locator('#csvOutput')).toHaveValue(/name\tname\t/);
   await expect(page.locator('#downloadCsvButton')).toHaveAttribute('download', 'contacts.tsv');
+});
+
+test('exports CSV data as a renamed Markdown table', async ({ page }) => {
+  await page.goto('/#csv-tsv-helper');
+
+  await page.getByLabel('Output format').selectOption('markdown');
+  await page.getByLabel('Column rename mapping').fill('name=Full name\nemail=Email address');
+  await page.getByLabel('CSV/TSV input').fill('name,email,unused\nAda,ada@example.test,\nGrace,grace@example.test,');
+  await page.getByRole('button', { name: 'Process data', exact: true }).click();
+
+  await expect(page.locator('#csvOutputTypeDetail')).toHaveText('Markdown table');
+  await expect(page.locator('#csvWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('#csvIssueList')).toContainText('unused');
+  await expect(page.locator('#csvOutput')).toHaveValue(/\| Full name \| Email address \| unused \|/);
+  await expect(page.locator('#downloadCsvButton')).toHaveAttribute('download', 'delimited-output.md');
 });
 
 test('runs regex matches with numbered and named groups', async ({ page }) => {
@@ -1049,6 +1088,23 @@ test('reports regex warnings and invalid patterns', async ({ page }) => {
 
   await expect(page.locator('#regexStatusDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('Invalid regular expression');
+});
+
+test('loads regex examples and previews replacements', async ({ page }) => {
+  await page.goto('/#regex-tester');
+
+  await page.getByLabel('Local example').selectOption('email-contacts');
+  await page.getByRole('button', { name: 'Load example', exact: true }).click();
+  await expect(page.getByLabel('Pattern')).toHaveValue('(?<name>[A-Z][a-z]+)\\s+(?<email>[^\\s]+@[^\\s]+)');
+  await expect(page.getByLabel('Replacement preview')).toHaveValue('$<email>');
+  await expect(page.getByRole('status')).toContainText('Email contacts example loaded.');
+
+  await page.getByRole('button', { name: 'Preview replacement', exact: true }).click();
+  await expect(page.locator('#regexOutputTypeDetail')).toHaveText('Replacement preview');
+  await expect(page.locator('#regexMatchCountDetail')).toHaveText('2');
+  await expect(page.locator('#regexPreview')).toContainText('ada@example.test');
+  await expect(page.locator('#regexOutput')).toHaveValue(/Regex replacement preview/);
+  await expect(page.locator('#downloadRegexButton')).toHaveAttribute('download', 'regex-replacement-preview.md');
 });
 
 test('hands regex JSON reports to Data Explorer', async ({ page }) => {
@@ -1444,7 +1500,30 @@ test('loads a fillable PDF template and exports field mappings', async ({ page }
   await expect(page.locator('#pdfSelectedFieldDetail')).toHaveText('newsletter_opt_in');
   await expect(page.locator('#copyPdfSelectedJsonButton')).toBeEnabled();
   await expect(page.locator('#exportPdfFieldsJsonButton')).toBeEnabled();
+  await expect(page.locator('#exportPdfFieldsReportButton')).toBeEnabled();
   await expect(page.locator('#toolHandover').getByRole('button', { name: /Field mapping JSON: Explore JSON records/ })).toBeVisible();
+});
+
+test('tags PDF fields and exports a handover report', async ({ page }) => {
+  await page.goto('/#pdf-template-field-explorer');
+
+  await page.setInputFiles('#pdfTemplateFileInput', {
+    name: 'template.pdf',
+    mimeType: 'application/pdf',
+    buffer: await createFillablePdf()
+  });
+  await expect(page.getByRole('status')).toContainText('PDF loaded successfully.');
+
+  await page.locator('#pdfFieldList').getByText('customer_name').click();
+  await page.getByLabel('Review tag').selectOption('required');
+  await page.getByLabel('Review notes').fill('Maps to the Dataverse contact name.');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export report', exact: true }).click();
+  const download = await downloadPromise;
+
+  expect(download.suggestedFilename()).toBe('template-pdf-field-handover.md');
+  await expect(page.getByRole('status')).toContainText('Field handover report exported as Markdown.');
 });
 
 test('hands PDF field mappings to Data Explorer', async ({ page }) => {
@@ -2058,6 +2137,21 @@ test('formats Power Fx snippets and reports syntax errors', async ({ page }) => 
   await page.getByRole('button', { name: 'Format formula', exact: true }).click();
   await expect(page.locator('#powerFxOutputTypeDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('Formula has an unclosed');
+});
+
+test('builds Power Fx review reports with delegation warnings', async ({ page }) => {
+  await page.goto('/#power-fx-snippet-formatter');
+
+  await page.getByLabel('Output mode').selectOption('review');
+  await page.getByLabel('Formula input').fill('ClearCollect(colAccounts, Filter(Accounts, "A" in Name))');
+  await page.getByRole('button', { name: 'Format formula', exact: true }).click();
+
+  await expect(page.locator('#powerFxOutputTypeDetail')).toHaveText('Review report');
+  await expect(page.locator('#powerFxDelegationDetail')).toHaveText('2');
+  await expect(page.locator('#powerFxWarningsDetail')).toHaveText('1 warning');
+  await expect(page.locator('#powerFxOutput')).toHaveValue(/## Delegation Checklist/);
+  await expect(page.locator('#powerFxOutput')).toHaveValue(/Collections are loaded client-side/);
+  await expect(page.locator('#downloadPowerFxButton')).toHaveAttribute('download', 'power-fx-review.md');
 });
 
 test('hands Power Fx output to text diff', async ({ page }) => {

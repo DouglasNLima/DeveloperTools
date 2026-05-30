@@ -8,6 +8,7 @@ import {
   getJsonParseErrorDetails,
   parseJsonInput,
   processJson,
+  searchJsonPaths,
   sortJsonKeys
 } from '../../src/tools/json-formatter.js';
 
@@ -161,4 +162,38 @@ test('builds permissive JSON schema without inferred enums or constants', () => 
   assert.equal(schema.properties.status.enum, undefined);
   assert.equal(schema.properties.status.const, undefined);
   assert.deepEqual(schema.required, ['child', 'status']);
+});
+
+test('searches JSON paths by keys and primitive values', () => {
+  const result = searchJsonPaths(JSON.stringify({
+    items: [
+      { id: 1, status: 'Active' },
+      { id: 2, status: 'Inactive' }
+    ],
+    meta: {
+      statusCode: 200
+    }
+  }), {
+    query: 'status'
+  });
+
+  assert.equal(result.outputType, 'JSON path search');
+  assert.equal(result.matches.length, 3);
+  assert.deepEqual(result.matches.map(match => match.path), ['$.items[0].status', '$.items[1].status', '$.meta.statusCode']);
+  assert.match(result.output, /JSON path search/);
+  assert.match(result.output, /\$\.meta\.statusCode/);
+});
+
+test('searches JSON values only and reports empty search terms', () => {
+  const result = searchJsonPaths('{"name":"Ada","active":true}', {
+    query: 'ada',
+    target: 'values'
+  });
+
+  assert.equal(result.matches.length, 1);
+  assert.equal(result.matches[0].matchType, 'value');
+  assert.throws(
+    () => searchJsonPaths('{"name":"Ada"}', { query: '' }),
+    /Enter a key or value search term/
+  );
 });

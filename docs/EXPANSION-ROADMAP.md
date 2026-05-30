@@ -39,21 +39,21 @@ This roadmap expands the current suite before adding many new standalone tools. 
 - Add a delegation risk checklist for common functions and operators.
 - Add output modes for formatted formula, review report and commented snippet.
 - Warn for locale-sensitive separators, chained statements and risky `Patch` or `Collect` patterns.
-- Status: planned.
+- Status: implemented with review and commented output modes.
 
 ## Phase 5: JSON Formatter/Validator
 
 - Add a schema-light shape summary for objects, arrays, keys and primitive types.
 - Add path search for keys and values.
 - Add downloadable formatted, minified and summary outputs.
-- Status: shape summary, contract Markdown and JSON Schema output implemented; path search remains planned.
+- Status: shape summary, contract Markdown, JSON Schema output, path search and downloadable outputs implemented.
 
 ## Phase 6: CSV/TSV Helper
 
 - Add column rename mapping.
 - Add duplicate header detection and empty-column warnings.
 - Add export modes for cleaned CSV, TSV and Markdown table.
-- Status: planned.
+- Status: implemented with Markdown table export and cleaned renamed headers when a mapping is supplied.
 
 ## Phase 7: PDF Template Field Explorer
 
@@ -61,11 +61,11 @@ This roadmap expands the current suite before adding many new standalone tools. 
 - Add an exportable handover Markdown report.
 - Warn for duplicate labels, unnamed fields and suspicious field types.
 - Keep all PDF processing local with vendored assets.
-- Status: planned.
+- Status: implemented with local field review notes, required/optional tagging and Markdown handover export.
 
 ## Phase 8: Text Utilities Polish Pack
 
 - Add saved local examples and replacement preview to Regex Tester.
 - Add whitespace and case-insensitive modes to Text diff.
 - Add UUID version/variant filters and batch validation summary export.
-- Status: planned.
+- Status: Regex Tester examples and replacement preview implemented; Text diff comparison modes and UUID validation summary are already implemented.

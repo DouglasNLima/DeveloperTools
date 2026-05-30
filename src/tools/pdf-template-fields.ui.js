@@ -3,8 +3,10 @@ import {
   buildFieldsCsvExport,
   buildFieldsJsonExport,
   buildPdfFieldOutputFileName,
+  buildPdfFieldHandoverMarkdown,
   createPdfFieldModel,
   filterPdfFields,
+  analysePdfFields,
   isPdfFieldAnnotation
 } from './pdf-template-fields.js';
 import { bindFileDropZone } from './file-drop-zone.js';
@@ -43,6 +45,7 @@ export function renderPdfTemplateFieldExplorer(container) {
         <button id="copyPdfFieldNamesButton" class="secondary" type="button" disabled>Copy names</button>
         <button id="exportPdfFieldsJsonButton" class="secondary" type="button" disabled>Export JSON</button>
         <button id="exportPdfFieldsCsvButton" class="secondary" type="button" disabled>Export CSV</button>
+        <button id="exportPdfFieldsReportButton" class="secondary" type="button" disabled>Export report</button>
       </div>
 
       <div class="pdf-template-layout">
@@ -95,6 +98,20 @@ export function renderPdfTemplateFieldExplorer(container) {
             </div>
           </div>
 
+          <div class="field-stack">
+            <label for="pdfFieldRequirement">Review tag</label>
+            <select id="pdfFieldRequirement" disabled>
+              <option value="unreviewed">Unreviewed</option>
+              <option value="required">Required</option>
+              <option value="optional">Optional</option>
+            </select>
+          </div>
+
+          <div class="field-stack">
+            <label for="pdfFieldNotes">Review notes</label>
+            <textarea id="pdfFieldNotes" spellcheck="false" placeholder="Add mapping notes for this field." disabled></textarea>
+          </div>
+
           <div class="button-row">
             <button id="copyPdfSelectedNameButton" class="primary" type="button" disabled>Copy name</button>
             <button id="copyPdfSelectedJsonButton" class="secondary" type="button" disabled>Copy JSON</button>
@@ -120,6 +137,10 @@ export function renderPdfTemplateFieldExplorer(container) {
           <span>Selected</span>
           <strong id="pdfSelectedFieldDetail">None</strong>
         </div>
+        <div class="detail-card">
+          <span>Warnings</span>
+          <strong id="pdfWarningsDetail">-</strong>
+        </div>
       </div>
 
       <div id="pdfTemplateStatus" class="status-message" role="status" aria-live="polite">Ready.</div>
@@ -133,6 +154,7 @@ export function renderPdfTemplateFieldExplorer(container) {
   const copyNamesButton = container.querySelector('#copyPdfFieldNamesButton');
   const exportJsonButton = container.querySelector('#exportPdfFieldsJsonButton');
   const exportCsvButton = container.querySelector('#exportPdfFieldsCsvButton');
+  const exportReportButton = container.querySelector('#exportPdfFieldsReportButton');
   const search = container.querySelector('#pdfFieldSearch');
   const showOverlays = container.querySelector('#pdfShowOverlays');
   const showLabels = container.querySelector('#pdfShowLabels');
@@ -142,6 +164,8 @@ export function renderPdfTemplateFieldExplorer(container) {
   const selectedFieldTitle = container.querySelector('#pdfSelectedFieldTitle');
   const selectedFieldSummary = container.querySelector('#pdfSelectedFieldSummary');
   const fieldDetails = container.querySelector('#pdfFieldDetails');
+  const fieldRequirement = container.querySelector('#pdfFieldRequirement');
+  const fieldNotes = container.querySelector('#pdfFieldNotes');
   const copySelectedNameButton = container.querySelector('#copyPdfSelectedNameButton');
   const copySelectedJsonButton = container.querySelector('#copyPdfSelectedJsonButton');
   const goToSelectedButton = container.querySelector('#goToPdfSelectedFieldButton');
@@ -149,6 +173,7 @@ export function renderPdfTemplateFieldExplorer(container) {
   const pageCount = container.querySelector('#pdfPageCount');
   const fieldCount = container.querySelector('#pdfFieldCount');
   const selectedFieldDetail = container.querySelector('#pdfSelectedFieldDetail');
+  const warningsDetail = container.querySelector('#pdfWarningsDetail');
   const status = container.querySelector('#pdfTemplateStatus');
   const handoverOutput = container.querySelector('#pdfFieldsJsonOutput');
 
@@ -156,6 +181,7 @@ export function renderPdfTemplateFieldExplorer(container) {
     pdf: null,
     fileName: '',
     fields: [],
+    reviews: {},
     selectedFieldId: null,
     renderVersion: 0,
     objectUrls: []
@@ -192,6 +218,7 @@ export function renderPdfTemplateFieldExplorer(container) {
     copyNamesButton.disabled = !hasFields;
     exportJsonButton.disabled = !hasFields;
     exportCsvButton.disabled = !hasFields;
+    exportReportButton.disabled = !hasFields;
   }
 
   function updateSummary() {
@@ -199,6 +226,8 @@ export function renderPdfTemplateFieldExplorer(container) {
     pageCount.textContent = state.pdf ? state.pdf.numPages.toLocaleString('en-GB') : '-';
     fieldCount.textContent = state.pdf ? state.fields.length.toLocaleString('en-GB') : '-';
     selectedFieldDetail.textContent = getSelectedField()?.name || 'None';
+    const warningCount = analysePdfFields(state.fields).warnings.length;
+    warningsDetail.textContent = state.pdf ? (warningCount === 0 ? 'None' : `${warningCount} warning${warningCount === 1 ? '' : 's'}`) : '-';
   }
 
   function renderFieldList() {
@@ -232,8 +261,8 @@ export function renderPdfTemplateFieldExplorer(container) {
       button.className = `pdf-field-item${field.id === state.selectedFieldId ? ' selected' : ''}`;
       button.dataset.fieldId = field.id;
       button.innerHTML = `
-        <span class="pdf-field-name">${escapeHtml(field.name)}</span>
-        <span class="pdf-field-meta">Page ${field.page} · ${escapeHtml(field.type || 'Unknown')}${field.value ? ` · ${escapeHtml(field.value)}` : ''}</span>
+        <span class="pdf-field-name">${escapeHtml(field.name || '(unnamed)')}</span>
+        <span class="pdf-field-meta">Page ${field.page} · ${escapeHtml(field.type || 'Unknown')}${field.required ? ' · Required' : ''}${field.value ? ` · ${escapeHtml(field.value)}` : ''}</span>
       `;
       button.addEventListener('click', () => selectField(field.id, true));
       fragment.append(button);
@@ -252,15 +281,20 @@ export function renderPdfTemplateFieldExplorer(container) {
     state.selectedFieldId = fieldId;
     container.querySelectorAll('.pdf-field-overlay.selected, .pdf-field-item.selected').forEach(item => item.classList.remove('selected'));
     container.querySelector(`.pdf-field-overlay[data-field-id="${cssEscape(fieldId)}"]`)?.classList.add('selected');
-    selectedFieldTitle.textContent = field.name;
+    selectedFieldTitle.textContent = field.name || '(unnamed)';
     selectedFieldSummary.textContent = `Page ${field.page} · ${field.type || 'Unknown type'}`;
-    selectedFieldDetail.textContent = field.name;
+    selectedFieldDetail.textContent = field.name || '(unnamed)';
+    fieldRequirement.disabled = false;
+    fieldNotes.disabled = false;
+    fieldRequirement.value = getFieldReview(field).requirement;
+    fieldNotes.value = getFieldReview(field).notes;
     copySelectedNameButton.disabled = false;
     copySelectedJsonButton.disabled = false;
     goToSelectedButton.disabled = false;
     fieldDetails.innerHTML = [
       detailCard('Name', field.name),
       detailCard('Type', field.type || 'Unknown'),
+      detailCard('Required flag', field.required ? 'Yes' : 'No'),
       detailCard('Page', String(field.page)),
       detailCard('Value', field.value || '(empty)'),
       detailCard('Default value', field.defaultValue || '(empty)'),
@@ -290,6 +324,10 @@ export function renderPdfTemplateFieldExplorer(container) {
     copySelectedNameButton.disabled = true;
     copySelectedJsonButton.disabled = true;
     goToSelectedButton.disabled = true;
+    fieldRequirement.value = 'unreviewed';
+    fieldRequirement.disabled = true;
+    fieldNotes.value = '';
+    fieldNotes.disabled = true;
     selectedFieldDetail.textContent = 'None';
 
     if (renderList) {
@@ -323,12 +361,14 @@ export function renderPdfTemplateFieldExplorer(container) {
       const bytes = new Uint8Array(await file.arrayBuffer());
       state.pdf = await pdfjs.getDocument({ data: bytes }).promise;
       state.fileName = file.name;
+      state.reviews = {};
       await renderPdf();
       setStatus(`PDF loaded successfully. ${state.fields.length.toLocaleString('en-GB')} field${state.fields.length === 1 ? '' : 's'} found.`, 'success');
     } catch (error) {
       state.pdf = null;
       state.fileName = '';
       state.fields = [];
+      state.reviews = {};
       viewer.innerHTML = emptyState('Unable to read this PDF', 'The file may not be a valid PDF or may use unsupported form features.');
       syncHandoverOutput();
       setStatus(error.message || 'Unable to load this PDF.', 'error');
@@ -408,8 +448,8 @@ export function renderPdfTemplateFieldExplorer(container) {
     overlay.type = 'button';
     overlay.className = 'pdf-field-overlay';
     overlay.dataset.fieldId = field.id;
-    overlay.title = field.name;
-    overlay.setAttribute('aria-label', `Field ${field.name}`);
+    overlay.title = field.name || '(unnamed)';
+    overlay.setAttribute('aria-label', `Field ${field.name || 'unnamed'}`);
     overlay.style.left = `${field.rect.viewport.x}px`;
     overlay.style.top = `${field.rect.viewport.y}px`;
     overlay.style.width = `${field.rect.viewport.width}px`;
@@ -417,14 +457,14 @@ export function renderPdfTemplateFieldExplorer(container) {
 
     const label = document.createElement('span');
     label.className = 'pdf-field-label';
-    label.textContent = field.name;
+    label.textContent = field.name || '(unnamed)';
     overlay.append(label);
 
     overlay.addEventListener('click', async event => {
       event.stopPropagation();
       selectField(field.id, false);
       await copyText(field.name);
-      setStatus(`Copied field name: ${field.name}`, 'success');
+      setStatus(`Copied field name: ${field.name || '(unnamed)'}`, 'success');
     });
 
     return overlay;
@@ -457,6 +497,28 @@ export function renderPdfTemplateFieldExplorer(container) {
       document.execCommand('copy');
       textarea.remove();
     }
+  }
+
+  function getFieldReview(field) {
+    const review = state.reviews[field.id] || {};
+
+    return {
+      requirement: review.requirement || (field.required ? 'required' : 'unreviewed'),
+      notes: review.notes || ''
+    };
+  }
+
+  function updateSelectedReview() {
+    const field = getSelectedField();
+
+    if (!field) {
+      return;
+    }
+
+    state.reviews[field.id] = {
+      requirement: fieldRequirement.value,
+      notes: fieldNotes.value.trim()
+    };
   }
 
   fileInput.addEventListener('change', () => handleFile(fileInput.files?.[0]));
@@ -502,11 +564,26 @@ export function renderPdfTemplateFieldExplorer(container) {
     );
     setStatus('Field mapping exported as CSV.', 'success');
   });
+  exportReportButton.addEventListener('click', () => {
+    exportText(
+      buildPdfFieldOutputFileName(state.fileName, 'pdf-field-handover', 'md'),
+      buildPdfFieldHandoverMarkdown({
+        fields: state.fields,
+        fileName: state.fileName,
+        pageCount: state.pdf?.numPages || 0,
+        reviews: state.reviews
+      }),
+      'text/markdown;charset=utf-8'
+    );
+    setStatus('Field handover report exported as Markdown.', 'success');
+  });
+  fieldRequirement.addEventListener('change', updateSelectedReview);
+  fieldNotes.addEventListener('input', updateSelectedReview);
   copySelectedNameButton.addEventListener('click', async () => {
     const field = getSelectedField();
     if (field) {
       await copyText(field.name);
-      setStatus(`Copied field name: ${field.name}`, 'success');
+      setStatus(`Copied field name: ${field.name || '(unnamed)'}`, 'success');
     }
   });
   copySelectedJsonButton.addEventListener('click', async () => {

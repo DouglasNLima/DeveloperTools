@@ -1,4 +1,4 @@
-import { formatPowerFxSnippet } from './power-fx-formatter.js';
+import { POWER_FX_OUTPUT_MODES, formatPowerFxSnippet } from './power-fx-formatter.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderPowerFxSnippetFormatter(container) {
@@ -7,6 +7,13 @@ export function renderPowerFxSnippetFormatter(container) {
       <div class="field-stack">
         <label for="powerFxInput">Formula input</label>
         <textarea id="powerFxInput" spellcheck="false" placeholder="If(IsBlank(TextInput1.Text), Notify(&quot;Missing&quot;), Patch(Accounts, Defaults(Accounts), { Name: TextInput1.Text }))"></textarea>
+      </div>
+
+      <div class="field-stack">
+        <label for="powerFxOutputMode">Output mode</label>
+        <select id="powerFxOutputMode">
+          ${POWER_FX_OUTPUT_MODES.map(mode => `<option value="${mode.value}">${mode.label}</option>`).join('')}
+        </select>
       </div>
 
       <div class="button-row">
@@ -43,6 +50,10 @@ export function renderPowerFxSnippetFormatter(container) {
           <strong id="powerFxUnknownDetail">-</strong>
         </div>
         <div class="detail-card">
+          <span>Delegation risks</span>
+          <strong id="powerFxDelegationDetail">-</strong>
+        </div>
+        <div class="detail-card">
           <span>Output type</span>
           <strong id="powerFxOutputTypeDetail">-</strong>
         </div>
@@ -61,6 +72,7 @@ export function renderPowerFxSnippetFormatter(container) {
   `;
 
   const input = container.querySelector('#powerFxInput');
+  const outputMode = container.querySelector('#powerFxOutputMode');
   const preview = container.querySelector('#powerFxPreview');
   const output = container.querySelector('#powerFxOutput');
   const formatButton = container.querySelector('#formatPowerFxButton');
@@ -71,6 +83,7 @@ export function renderPowerFxSnippetFormatter(container) {
     functions: container.querySelector('#powerFxFunctionsDetail'),
     lines: container.querySelector('#powerFxLinesDetail'),
     unknown: container.querySelector('#powerFxUnknownDetail'),
+    delegation: container.querySelector('#powerFxDelegationDetail'),
     outputType: container.querySelector('#powerFxOutputTypeDetail'),
     outputSize: container.querySelector('#powerFxOutputSizeDetail'),
     warnings: container.querySelector('#powerFxWarningsDetail')
@@ -107,6 +120,7 @@ export function renderPowerFxSnippetFormatter(container) {
     details.functions.textContent = result.summary.functionCount.toLocaleString('en-GB');
     details.lines.textContent = result.summary.lineCount.toLocaleString('en-GB');
     details.unknown.textContent = result.summary.unknownFunctionCount.toLocaleString('en-GB');
+    details.delegation.textContent = result.summary.delegationRiskCount.toLocaleString('en-GB');
     details.outputType.textContent = result.outputType;
     details.outputSize.textContent = result.outputSizeLabel;
     details.warnings.textContent = result.warnings.length === 0 ? 'None' : `${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'}`;
@@ -118,6 +132,7 @@ export function renderPowerFxSnippetFormatter(container) {
     [
       ['Formatted formula', result.formatted],
       ['Functions', result.functions.join(', ') || 'None'],
+      ['Delegation checklist', result.delegationRisks.map(risk => risk.message).join('\n') || 'None'],
       ['Warnings', result.warnings.join('\n') || 'None']
     ].forEach(([label, value]) => {
       const card = document.createElement('article');
@@ -132,24 +147,28 @@ export function renderPowerFxSnippetFormatter(container) {
   }
 
   function setOutput(result) {
-    outputHighlight.setLanguage('expression');
+    outputHighlight.setLanguage(result.outputMode === 'review' ? 'markdown' : 'expression');
     output.value = result.output;
     copyButton.disabled = false;
     setDetails(result);
     renderPreview(result);
     revokeObjectUrl();
 
-    const blob = new Blob([result.output], { type: 'text/plain;charset=utf-8' });
+    const download = resolvePowerFxDownload(result);
+    const blob = new Blob([result.output], { type: download.mimeType });
     currentObjectUrl = URL.createObjectURL(blob);
     downloadButton.href = currentObjectUrl;
-    downloadButton.download = 'power-fx-formula.txt';
-    downloadButton.textContent = 'Download power-fx-formula.txt';
+    downloadButton.download = download.fileName;
+    downloadButton.textContent = `Download ${download.fileName}`;
     downloadButton.hidden = false;
   }
 
   function formatFormula() {
     try {
-      const result = formatPowerFxSnippet({ input: input.value });
+      const result = formatPowerFxSnippet({
+        input: input.value,
+        outputMode: outputMode.value
+      });
       setOutput(result);
       setStatus(buildSuccessMessage(result), 'success');
     } catch (error) {
@@ -184,6 +203,7 @@ export function renderPowerFxSnippetFormatter(container) {
   copyButton.addEventListener('click', copyOutput);
   clearButton.addEventListener('click', () => {
     input.value = '';
+    outputMode.value = 'formatted';
     outputHighlight.setLanguage('expression');
     output.value = '';
     copyButton.disabled = true;
@@ -208,4 +228,25 @@ function buildSuccessMessage(result) {
   }
 
   return `${message} ${result.warnings[0]}`;
+}
+
+function resolvePowerFxDownload(result) {
+  if (result.outputMode === 'review') {
+    return {
+      fileName: 'power-fx-review.md',
+      mimeType: 'text/markdown;charset=utf-8'
+    };
+  }
+
+  if (result.outputMode === 'commented') {
+    return {
+      fileName: 'power-fx-commented.txt',
+      mimeType: 'text/plain;charset=utf-8'
+    };
+  }
+
+  return {
+    fileName: 'power-fx-formula.txt',
+    mimeType: 'text/plain;charset=utf-8'
+  };
 }

@@ -62,7 +62,7 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 
 - Existing tools will be expanded with advanced modes, presets, review helpers and additional export options before many new standalone tools are added.
 - Expansion work is tracked in [EXPANSION-ROADMAP.md](./EXPANSION-ROADMAP.md).
-- Status: Dataverse OData Query Builder advanced query mode implemented.
+- Status: Dataverse OData advanced query mode, CSV/TSV advanced exports, PDF field handover reports, Power Fx review modes, JSON path search and Regex replacement preview implemented.
 
 ## Phase 7: Text Utilities
 

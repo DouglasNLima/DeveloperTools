@@ -10,7 +10,8 @@ export const DELIMITER_OPTIONS = [
 export const OUTPUT_FORMATS = [
   { value: 'json', label: 'JSON array' },
   { value: 'csv', label: 'CSV' },
-  { value: 'tsv', label: 'TSV' }
+  { value: 'tsv', label: 'TSV' },
+  { value: 'markdown', label: 'Markdown table' }
 ];
 
 const DELIMITERS = {
@@ -25,11 +26,13 @@ export function processDelimitedData(options = {}) {
   const rows = parseDelimitedText(input, delimiter.character);
   const firstRowHeaders = options.firstRowHeaders !== false;
   const outputFormat = normaliseOutputFormat(options.outputFormat);
+  const columnRenameMap = parseColumnRenameMapping(options.columnRenameMapping);
   const analysis = analyseDelimitedRows(rows, { firstRowHeaders });
   const output = buildDelimitedOutput(rows, {
     outputFormat,
     firstRowHeaders,
-    sourceDelimiter: delimiter.character
+    sourceDelimiter: delimiter.character,
+    columnRenameMap
   });
   const outputBytes = new TextEncoder().encode(output).length;
 
@@ -37,6 +40,7 @@ export function processDelimitedData(options = {}) {
     delimiter,
     rows,
     firstRowHeaders,
+    columnRenameMap,
     outputFormat,
     outputType: OUTPUT_FORMATS.find(format => format.value === outputFormat).label,
     output,
@@ -191,10 +195,12 @@ export function analyseDelimitedRows(rows, options = {}) {
         duplicateHeaders: [],
         safeHeaders: buildGeneratedHeaders(expectedColumns)
       };
+  const emptyColumns = findEmptyColumns(dataRows, expectedColumns, headerAnalysis);
   const warnings = buildWarnings({
     firstRowHeaders,
     inconsistentRows,
     headerAnalysis,
+    emptyColumns,
     multilineCellCount
   });
 
@@ -204,6 +210,7 @@ export function analyseDelimitedRows(rows, options = {}) {
     columns: expectedColumns,
     emptyCellCount,
     multilineCellCount,
+    emptyColumns,
     inconsistentRows,
     headerAnalysis,
     warnings
@@ -217,14 +224,18 @@ export function buildDelimitedOutput(rows, options = {}) {
     return JSON.stringify(rowsToObjects(rows, options), null, 2);
   }
 
+  if (outputFormat === 'markdown') {
+    return rowsToMarkdownTable(rows, options);
+  }
+
   const delimiter = outputFormat === 'tsv' ? '\t' : ',';
-  return serialiseDelimitedRows(rows, delimiter);
+  return serialiseDelimitedRows(buildDelimitedOutputRows(rows, options), delimiter);
 }
 
 export function rowsToObjects(rows, options = {}) {
   const firstRowHeaders = options.firstRowHeaders !== false;
   const analysis = analyseDelimitedRows(rows, { firstRowHeaders });
-  const headers = analysis.headerAnalysis.safeHeaders;
+  const headers = applyColumnRenameMapping(analysis.headerAnalysis.safeHeaders, options.columnRenameMap);
   const dataRows = firstRowHeaders ? rows.slice(1) : rows;
 
   return dataRows.map(row => {
@@ -243,14 +254,93 @@ export function serialiseDelimitedRows(rows, delimiter = ',') {
 }
 
 export function buildDelimitedOutputFileName(format, sourceName = '') {
-  const extension = format === 'json' ? 'json' : format === 'tsv' ? 'tsv' : 'csv';
+  const extension = format === 'json' ? 'json' : format === 'tsv' ? 'tsv' : format === 'markdown' ? 'md' : 'csv';
   const fallback = `delimited-output.${extension}`;
   const base = String(sourceName || fallback)
     .trim()
     .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
-    .replace(/\.(csv|tsv|txt|json)$/i, '') || 'delimited-output';
+    .replace(/\.(csv|tsv|txt|json|md)$/i, '') || 'delimited-output';
 
   return `${base}.${extension}`;
+}
+
+export function parseColumnRenameMapping(value) {
+  if (value instanceof Map) {
+    return new Map([...value.entries()].map(([key, mappedValue]) => [normaliseHeaderKey(key), String(mappedValue ?? '').trim()]).filter(([, mappedValue]) => mappedValue));
+  }
+
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return new Map(Object.entries(value).map(([key, mappedValue]) => [normaliseHeaderKey(key), String(mappedValue ?? '').trim()]).filter(([, mappedValue]) => mappedValue));
+  }
+
+  const input = String(value ?? '').trim();
+
+  if (!input) {
+    return new Map();
+  }
+
+  const mappings = new Map();
+
+  input.split(/\r?\n/).forEach((line, index) => {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    const separator = trimmed.includes('=>') ? '=>' : '=';
+    const separatorIndex = trimmed.indexOf(separator);
+
+    if (separatorIndex <= 0) {
+      throw new Error(`Column rename mapping line ${index + 1} must use current=new.`);
+    }
+
+    const source = trimmed.slice(0, separatorIndex).trim();
+    const target = trimmed.slice(separatorIndex + separator.length).trim();
+
+    if (!source || !target) {
+      throw new Error(`Column rename mapping line ${index + 1} must include both current and new names.`);
+    }
+
+    mappings.set(normaliseHeaderKey(source), target);
+  });
+
+  return mappings;
+}
+
+export function applyColumnRenameMapping(headers, mapping = new Map()) {
+  const renameMap = parseColumnRenameMapping(mapping);
+
+  if (renameMap.size === 0) {
+    return [...headers];
+  }
+
+  const seen = new Map();
+
+  return headers.map((header, index) => {
+    const key = normaliseHeaderKey(header);
+    const mapped = renameMap.get(key) || renameMap.get(String(index + 1)) || header;
+    const fallback = String(mapped || `column_${index + 1}`).trim() || `column_${index + 1}`;
+    const count = seen.get(fallback) || 0;
+    seen.set(fallback, count + 1);
+
+    return count === 0 ? fallback : `${fallback}_${count + 1}`;
+  });
+}
+
+export function rowsToMarkdownTable(rows, options = {}) {
+  const firstRowHeaders = options.firstRowHeaders !== false;
+  const analysis = analyseDelimitedRows(rows, { firstRowHeaders });
+  const headers = applyColumnRenameMapping(analysis.headerAnalysis.safeHeaders, options.columnRenameMap);
+  const dataRows = firstRowHeaders ? rows.slice(1) : rows;
+  const expectedColumns = headers.length;
+  const normalisedRows = dataRows.map(row => normaliseRowLength(row, expectedColumns));
+
+  return [
+    `| ${headers.map(toMarkdownTableCell).join(' | ')} |`,
+    `| ${headers.map(() => '---').join(' | ')} |`,
+    ...normalisedRows.map(row => `| ${row.map(toMarkdownTableCell).join(' | ')} |`)
+  ].join('\n');
 }
 
 function resolveDelimiter(input, option) {
@@ -354,6 +444,38 @@ function analyseHeaders(headers) {
   };
 }
 
+function buildDelimitedOutputRows(rows, options = {}) {
+  const firstRowHeaders = options.firstRowHeaders !== false;
+  const renameMap = parseColumnRenameMapping(options.columnRenameMap);
+
+  if (!firstRowHeaders || renameMap.size === 0) {
+    return rows;
+  }
+
+  const analysis = analyseDelimitedRows(rows, { firstRowHeaders });
+  const headers = applyColumnRenameMapping(analysis.headerAnalysis.safeHeaders, renameMap);
+
+  return [
+    headers,
+    ...rows.slice(1)
+  ];
+}
+
+function findEmptyColumns(dataRows, expectedColumns, headerAnalysis) {
+  return Array.from({ length: expectedColumns }, (_, index) => {
+    const empty = dataRows.every(row => !String(row[index] ?? '').trim());
+
+    if (!empty) {
+      return null;
+    }
+
+    return {
+      index: index + 1,
+      header: headerAnalysis.safeHeaders[index] || `column_${index + 1}`
+    };
+  }).filter(Boolean);
+}
+
 function buildGeneratedHeaders(count) {
   return Array.from({ length: count }, (_, index) => `column_${index + 1}`);
 }
@@ -387,6 +509,11 @@ function buildWarnings(options) {
     warnings.push(`${options.multilineCellCount.toLocaleString('en-GB')} cell${options.multilineCellCount === 1 ? ' contains' : 's contain'} a line break.`);
   }
 
+  if (options.emptyColumns.length > 0) {
+    const columns = options.emptyColumns.map(column => column.header).slice(0, 5).join(', ');
+    warnings.push(`${options.emptyColumns.length.toLocaleString('en-GB')} column${options.emptyColumns.length === 1 ? ' is' : 's are'} empty across all data rows: ${columns}.`);
+  }
+
   return warnings;
 }
 
@@ -400,4 +527,21 @@ function serialiseDelimitedCell(value, delimiter) {
 
 function delimiterLabel(key) {
   return DELIMITER_OPTIONS.find(option => option.value === key)?.label || key;
+}
+
+function normaliseHeaderKey(value) {
+  return String(value ?? '').trim().toLowerCase();
+}
+
+function normaliseRowLength(row, expectedColumns) {
+  return Array.from({ length: expectedColumns }, (_, index) => row[index] ?? '');
+}
+
+function toMarkdownTableCell(value) {
+  const text = String(value ?? '')
+    .replace(/\|/g, '\\|')
+    .replace(/\r?\n/g, '<br>')
+    .trim();
+
+  return text || ' ';
 }

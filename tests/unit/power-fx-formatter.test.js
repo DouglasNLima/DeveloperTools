@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  analysePowerFxDelegationRisks,
   extractPowerFxFunctionNames,
   formatFormula,
   formatPowerFxSnippet,
@@ -81,4 +82,24 @@ test('warns for unknown Power Fx functions', () => {
 
   assert.equal(result.summary.unknownFunctionCount, 1);
   assert.match(result.warnings[0], /CustomFxThing/);
+});
+
+test('builds Power Fx review and commented output modes', () => {
+  const review = formatPowerFxSnippet({
+    input: 'ClearCollect(colAccounts, Filter(Accounts, "A" in Name))',
+    outputMode: 'review'
+  });
+  const commented = formatPowerFxSnippet({
+    input: 'ClearCollect(colAccounts, Filter(Accounts, "A" in Name))',
+    outputMode: 'commented'
+  });
+
+  assert.equal(review.outputType, 'Review report');
+  assert.match(review.output, /## Delegation Checklist/);
+  assert.match(review.output, /Collections are loaded client-side/);
+  assert.equal(review.summary.delegationRiskCount, 2);
+  assert.equal(commented.outputType, 'Commented snippet');
+  assert.match(commented.output, /^\/\/ Power Fx review/);
+  assert.match(commented.output, /ClearCollect/);
+  assert.equal(analysePowerFxDelegationRisks({ formula: 'ForAll(Accounts, Collect(col, ThisRecord))' }).length, 2);
 });

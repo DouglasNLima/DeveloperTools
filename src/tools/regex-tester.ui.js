@@ -1,4 +1,10 @@
-import { REGEX_OUTPUT_FORMATS, processRegexTest } from './regex-tester.js';
+import {
+  REGEX_LOCAL_EXAMPLES,
+  REGEX_OUTPUT_FORMATS,
+  buildRegexReplacementPreview,
+  getRegexExample,
+  processRegexTest
+} from './regex-tester.js';
 
 export function renderRegexTester(container) {
   container.innerHTML = `
@@ -22,8 +28,25 @@ export function renderRegexTester(container) {
         </div>
       </div>
 
+      <div class="form-grid">
+        <div class="field-stack">
+          <label for="regexExample">Local example</label>
+          <select id="regexExample">
+            <option value="">Choose an example</option>
+            ${REGEX_LOCAL_EXAMPLES.map(example => `<option value="${example.value}">${example.label}</option>`).join('')}
+          </select>
+        </div>
+
+        <div class="field-stack">
+          <label for="regexReplacement">Replacement preview</label>
+          <input id="regexReplacement" type="text" spellcheck="false" placeholder="$<email> or [redacted]" />
+        </div>
+      </div>
+
       <div class="button-row">
         <button id="runRegexButton" class="primary" type="button">Run test</button>
+        <button id="previewRegexReplacementButton" class="secondary" type="button">Preview replacement</button>
+        <button id="loadRegexExampleButton" class="secondary" type="button">Load example</button>
         <button id="clearRegexButton" class="secondary" type="button">Clear</button>
       </div>
 
@@ -91,10 +114,14 @@ export function renderRegexTester(container) {
   const pattern = container.querySelector('#regexPattern');
   const flags = container.querySelector('#regexFlags');
   const outputFormat = container.querySelector('#regexOutputFormat');
+  const example = container.querySelector('#regexExample');
+  const replacement = container.querySelector('#regexReplacement');
   const text = container.querySelector('#regexText');
   const preview = container.querySelector('#regexPreview');
   const matchList = container.querySelector('#regexMatchList');
   const runButton = container.querySelector('#runRegexButton');
+  const previewReplacementButton = container.querySelector('#previewRegexReplacementButton');
+  const loadExampleButton = container.querySelector('#loadRegexExampleButton');
   const clearButton = container.querySelector('#clearRegexButton');
   const copyButton = container.querySelector('#copyRegexButton');
   const downloadButton = container.querySelector('#downloadRegexButton');
@@ -150,6 +177,17 @@ export function renderRegexTester(container) {
     warningsDetail.textContent = result.warnings.length === 0 ? 'None' : `${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'}`;
   }
 
+  function setReplacementDetails(result) {
+    statusDetail.textContent = 'Valid';
+    flagsDetail.textContent = result.flags || '(none)';
+    matchCountDetail.textContent = result.matchCount.toLocaleString('en-GB');
+    groupCountDetail.textContent = '-';
+    namedGroupCountDetail.textContent = '-';
+    outputTypeDetail.textContent = result.outputType;
+    outputSizeDetail.textContent = result.outputSizeLabel;
+    warningsDetail.textContent = result.warnings.length === 0 ? 'None' : `${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'}`;
+  }
+
   function setInvalidDetails() {
     statusDetail.textContent = 'Invalid';
     flagsDetail.textContent = '-';
@@ -180,6 +218,24 @@ export function renderRegexTester(container) {
     downloadButton.href = currentObjectUrl;
     downloadButton.download = fileName;
     downloadButton.textContent = `Download ${fileName}`;
+    downloadButton.hidden = false;
+  }
+
+  function setReplacementOutput(result) {
+    output.value = result.output;
+    copyButton.disabled = false;
+    setReplacementDetails(result);
+    preview.textContent = result.replacedText;
+    matchList.innerHTML = '';
+    revokeObjectUrl();
+
+    const blob = new Blob([result.output], {
+      type: 'text/markdown;charset=utf-8'
+    });
+    currentObjectUrl = URL.createObjectURL(blob);
+    downloadButton.href = currentObjectUrl;
+    downloadButton.download = 'regex-replacement-preview.md';
+    downloadButton.textContent = 'Download regex-replacement-preview.md';
     downloadButton.hidden = false;
   }
 
@@ -255,6 +311,45 @@ export function renderRegexTester(container) {
     }
   }
 
+  function handleReplacementPreview() {
+    try {
+      const result = buildRegexReplacementPreview({
+        pattern: pattern.value,
+        flags: flags.value,
+        text: text.value,
+        replacement: replacement.value
+      });
+
+      setReplacementOutput(result);
+      setStatus(buildSuccessMessage('Regex replacement preview created successfully.', result), 'success');
+    } catch (error) {
+      output.value = '';
+      copyButton.disabled = true;
+      revokeObjectUrl();
+      setInvalidDetails();
+      setStatus(error.message || 'Unable to preview this replacement.', 'error');
+    }
+  }
+
+  function loadSelectedExample() {
+    const selected = getRegexExample(example.value);
+
+    if (!selected) {
+      setStatus('Choose a local regex example to load.', 'error');
+      return;
+    }
+
+    pattern.value = selected.pattern;
+    flags.value = selected.flags;
+    text.value = selected.text;
+    replacement.value = selected.replacement;
+    output.value = '';
+    copyButton.disabled = true;
+    revokeObjectUrl();
+    resetDetails();
+    setStatus(`${selected.label} example loaded.`, 'success');
+  }
+
   async function copyOutput() {
     if (!output.value || copyButton.disabled) {
       setStatus('There is no regex output to copy.', 'error');
@@ -273,12 +368,16 @@ export function renderRegexTester(container) {
   }
 
   runButton.addEventListener('click', handleRun);
+  previewReplacementButton.addEventListener('click', handleReplacementPreview);
+  loadExampleButton.addEventListener('click', loadSelectedExample);
   copyButton.addEventListener('click', copyOutput);
 
   clearButton.addEventListener('click', () => {
     pattern.value = '';
     flags.value = '';
     outputFormat.value = 'json';
+    example.value = '';
+    replacement.value = '';
     text.value = '';
     output.value = '';
     copyButton.disabled = true;

@@ -1,4 +1,10 @@
-import { generateJsonShape, JSON_SCHEMA_OUTPUT_FORMATS, processJson } from './json-formatter.js';
+import {
+  JSON_SCHEMA_OUTPUT_FORMATS,
+  JSON_SEARCH_TARGETS,
+  generateJsonShape,
+  processJson,
+  searchJsonPaths
+} from './json-formatter.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 export function renderJsonFormatter(container) {
@@ -24,6 +30,7 @@ export function renderJsonFormatter(container) {
           <button id="formatJsonButton" class="primary" type="button">Format JSON</button>
           <button id="minifyJsonButton" class="secondary" type="button">Minify JSON</button>
           <button id="shapeJsonButton" class="secondary" type="button">Generate shape/schema</button>
+          <button id="searchJsonButton" class="secondary" type="button">Search paths</button>
           <button id="clearJsonButton" class="secondary" type="button">Clear</button>
         </div>
       </div>
@@ -32,6 +39,20 @@ export function renderJsonFormatter(container) {
         <input id="jsonSortKeys" type="checkbox" />
         <span>Sort object keys</span>
       </label>
+
+      <div class="form-grid">
+        <div class="field-stack">
+          <label for="jsonPathSearch">Path search</label>
+          <input id="jsonPathSearch" type="search" spellcheck="false" placeholder="status, accountid or active" />
+        </div>
+
+        <div class="field-stack">
+          <label for="jsonSearchTarget">Search target</label>
+          <select id="jsonSearchTarget">
+            ${JSON_SEARCH_TARGETS.map(target => `<option value="${target.value}">${target.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
 
       <div class="field-stack">
         <label for="jsonInput">JSON input</label>
@@ -75,9 +96,12 @@ export function renderJsonFormatter(container) {
   const indent = container.querySelector('#jsonIndent');
   const sortKeys = container.querySelector('#jsonSortKeys');
   const schemaOutputFormat = container.querySelector('#jsonSchemaOutputFormat');
+  const pathSearch = container.querySelector('#jsonPathSearch');
+  const searchTarget = container.querySelector('#jsonSearchTarget');
   const formatButton = container.querySelector('#formatJsonButton');
   const minifyButton = container.querySelector('#minifyJsonButton');
   const shapeButton = container.querySelector('#shapeJsonButton');
+  const searchButton = container.querySelector('#searchJsonButton');
   const clearButton = container.querySelector('#clearJsonButton');
   const copyButton = container.querySelector('#copyJsonButton');
   const downloadButton = container.querySelector('#downloadJsonButton');
@@ -183,6 +207,25 @@ export function renderJsonFormatter(container) {
     }
   }
 
+  function handleSearchPaths() {
+    try {
+      const result = searchJsonPaths(input.value, {
+        query: pathSearch.value,
+        target: searchTarget.value
+      });
+
+      setOutput(result);
+      setStatus(`JSON path search completed. ${result.matches.length.toLocaleString('en-GB')} match${result.matches.length === 1 ? '' : 'es'} found.`, result.matches.length === 0 ? null : 'success');
+    } catch (error) {
+      outputHighlight.setLanguage('plain');
+      output.value = error.details?.snippet || '';
+      copyButton.disabled = true;
+      revokeObjectUrl();
+      setInvalidDetails();
+      setStatus(error.message || 'Unable to search this JSON.', 'error');
+    }
+  }
+
   async function copyOutput() {
     if (!output.value || copyButton.disabled) {
       setStatus('There is no output to copy.', 'error');
@@ -203,6 +246,7 @@ export function renderJsonFormatter(container) {
   formatButton.addEventListener('click', () => handleProcess('format'));
   minifyButton.addEventListener('click', () => handleProcess('minify'));
   shapeButton.addEventListener('click', handleGenerateShape);
+  searchButton.addEventListener('click', handleSearchPaths);
   copyButton.addEventListener('click', copyOutput);
 
   clearButton.addEventListener('click', () => {
@@ -211,6 +255,8 @@ export function renderJsonFormatter(container) {
     output.value = '';
     indent.value = '2';
     schemaOutputFormat.value = 'markdown';
+    pathSearch.value = '';
+    searchTarget.value = 'keys-values';
     sortKeys.checked = false;
     copyButton.disabled = true;
     revokeObjectUrl();
@@ -241,6 +287,13 @@ function resolveJsonDownload(result) {
     };
   }
 
+  if (result.outputType === 'JSON path search') {
+    return {
+      fileName: 'json-path-search.md',
+      mimeType: 'text/markdown;charset=utf-8'
+    };
+  }
+
   return {
     fileName: result.mode === 'minify' ? 'minified-json.json' : 'formatted-json.json',
     mimeType: 'application/json;charset=utf-8'
@@ -248,7 +301,7 @@ function resolveJsonDownload(result) {
 }
 
 function resolveJsonOutputLanguage(result) {
-  if (result.outputType === 'Markdown contract') {
+  if (result.outputType === 'Markdown contract' || result.outputType === 'JSON path search') {
     return 'markdown';
   }
 

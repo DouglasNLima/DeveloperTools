@@ -60,6 +60,12 @@ const knownFunctions = new Set([
   'with'
 ]);
 
+export const POWER_FX_OUTPUT_MODES = [
+  { value: 'formatted', label: 'Formatted formula' },
+  { value: 'review', label: 'Review report' },
+  { value: 'commented', label: 'Commented snippet' }
+];
+
 export function formatPowerFxSnippet(options = {}) {
   const formula = normaliseFormula(options.input);
   const validation = validatePowerFxSyntax(formula);
@@ -70,25 +76,40 @@ export function formatPowerFxSnippet(options = {}) {
 
   const formatted = formatFormula(formula);
   const functions = extractPowerFxFunctionNames(formula);
+  const delegationRisks = analysePowerFxDelegationRisks({ formula, functions });
   const warnings = buildPowerFxWarnings({
     formula,
-    functions
+    functions,
+    delegationRisks
   });
-  const outputBytes = new TextEncoder().encode(formatted).length;
+  const outputMode = normaliseOutputMode(options.outputMode);
+  const output = buildPowerFxOutput({
+    formula,
+    formatted,
+    functions,
+    warnings,
+    delegationRisks,
+    outputMode
+  });
+  const outputBytes = new TextEncoder().encode(output).length;
 
   return {
     formula,
     formatted,
-    output: formatted,
-    outputType: 'Power Fx formula',
+    output,
+    outputMode,
+    outputType: POWER_FX_OUTPUT_MODES.find(mode => mode.value === outputMode).label,
     outputBytes,
     outputSizeLabel: formatBytes(outputBytes),
     functions,
+    delegationRisks,
     warnings,
     summary: {
       functionCount: functions.length,
-      lineCount: formatted.split('\n').length,
-      unknownFunctionCount: functions.filter(name => !knownFunctions.has(name.toLowerCase())).length
+      lineCount: output.split('\n').length,
+      formattedLineCount: formatted.split('\n').length,
+      unknownFunctionCount: functions.filter(name => !knownFunctions.has(name.toLowerCase())).length,
+      delegationRiskCount: delegationRisks.length
     }
   };
 }
@@ -266,6 +287,28 @@ export function formatFormula(formula) {
   return lines.join('\n');
 }
 
+export function analysePowerFxDelegationRisks(options = {}) {
+  const formula = String(options.formula || '');
+  const functions = Array.isArray(options.functions) ? options.functions : extractPowerFxFunctionNames(formula);
+  const lowerFunctions = new Set(functions.map(name => name.toLowerCase()));
+  const risks = [];
+
+  addDelegationRisk(risks, lowerFunctions, ['search'], 'Search delegation depends on the data source and searchable columns.');
+  addDelegationRisk(risks, lowerFunctions, ['collect', 'clearcollect'], 'Collections are loaded client-side and can hide delegation limits.');
+  addDelegationRisk(risks, lowerFunctions, ['forall'], 'ForAll often runs client-side over the returned records.');
+  addDelegationRisk(risks, lowerFunctions, ['countif'], 'CountIf delegation support depends on the connector and enhanced delegation settings.');
+
+  if (/\bin\b/i.test(stripQuotedPowerFxText(formula))) {
+    risks.push({
+      rule: 'in-operator',
+      message: 'The in operator is delegation-sensitive for many connectors.',
+      functions: []
+    });
+  }
+
+  return risks;
+}
+
 function buildPowerFxWarnings(options) {
   const warnings = [];
   const unknownFunctions = options.functions.filter(name => !knownFunctions.has(name.toLowerCase()));
@@ -282,11 +325,114 @@ function buildPowerFxWarnings(options) {
     warnings.push('Patch formulas without Defaults(...) should be checked for update versus create intent.');
   }
 
+  if (/\bCollect\s*\(|\bClearCollect\s*\(/i.test(options.formula)) {
+    warnings.push('Collect and ClearCollect can hide delegation limits when loading records into local collections.');
+  }
+
   if (unknownFunctions.length > 0) {
     warnings.push(`Review unknown function names: ${unknownFunctions.join(', ')}.`);
   }
 
   return warnings;
+}
+
+function buildPowerFxOutput(report) {
+  if (report.outputMode === 'review') {
+    return formatPowerFxReviewReport(report);
+  }
+
+  if (report.outputMode === 'commented') {
+    return formatCommentedPowerFxSnippet(report);
+  }
+
+  return report.formatted;
+}
+
+function formatPowerFxReviewReport(report) {
+  return [
+    '# Power Fx review',
+    '',
+    `Functions: ${report.functions.length.toLocaleString('en-GB')}`,
+    `Warnings: ${report.warnings.length.toLocaleString('en-GB')}`,
+    `Delegation risks: ${report.delegationRisks.length.toLocaleString('en-GB')}`,
+    '',
+    '## Warnings',
+    ...(report.warnings.length === 0 ? ['- None'] : report.warnings.map(warning => `- ${warning}`)),
+    '',
+    '## Delegation Checklist',
+    ...(report.delegationRisks.length === 0 ? ['- No obvious delegation-sensitive patterns found.'] : report.delegationRisks.map(risk => `- ${risk.message}`)),
+    '',
+    '## Functions',
+    ...(report.functions.length === 0 ? ['- None'] : report.functions.map(name => `- ${name}`)),
+    '',
+    '## Formatted Formula',
+    '```powerfx',
+    report.formatted,
+    '```'
+  ].join('\n');
+}
+
+function formatCommentedPowerFxSnippet(report) {
+  const comments = [
+    '// Power Fx review',
+    ...(report.warnings.length === 0 ? ['// Warnings: none'] : report.warnings.map(warning => `// Warning: ${warning}`)),
+    ...(report.delegationRisks.length === 0 ? ['// Delegation: no obvious delegation-sensitive patterns found'] : report.delegationRisks.map(risk => `// Delegation: ${risk.message}`))
+  ];
+
+  return [
+    ...comments,
+    report.formatted
+  ].join('\n');
+}
+
+function addDelegationRisk(risks, lowerFunctions, functionNames, message) {
+  const matched = functionNames.filter(name => lowerFunctions.has(name));
+
+  if (matched.length === 0) {
+    return;
+  }
+
+  risks.push({
+    rule: matched.join(','),
+    message,
+    functions: matched
+  });
+}
+
+function normaliseOutputMode(value) {
+  return POWER_FX_OUTPUT_MODES.some(mode => mode.value === value) ? value : 'formatted';
+}
+
+function stripQuotedPowerFxText(value) {
+  let output = '';
+  let quote = null;
+
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index];
+    const next = value[index + 1];
+
+    if (quote) {
+      if (character === quote) {
+        if (quote === '"' && next === '"') {
+          index += 1;
+        } else {
+          quote = null;
+        }
+      }
+      output += ' ';
+      continue;
+    }
+
+    if (character === '"' || character === '\'') {
+      quote = character;
+      output += ' ';
+      continue;
+    }
+
+    output += character;
+  }
+
+  return output;
 }
 
 function containsCharacterOutsideQuotes(value, target) {

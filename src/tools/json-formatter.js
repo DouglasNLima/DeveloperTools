@@ -9,6 +9,12 @@ export const JSON_SCHEMA_OUTPUT_FORMATS = [
   { value: JSON_SCHEMA_OUTPUT, label: 'JSON Schema only' }
 ];
 
+export const JSON_SEARCH_TARGETS = [
+  { value: 'keys-values', label: 'Keys and values' },
+  { value: 'keys', label: 'Keys only' },
+  { value: 'values', label: 'Values only' }
+];
+
 export function processJson(input, options = {}) {
   const rawInput = String(input ?? '');
   const parsed = parseJsonInput(rawInput);
@@ -117,6 +123,50 @@ export function generateJsonShape(input, options = {}) {
     outputSizeLabel: formatByteSize(outputBytes),
     shape,
     schema
+  };
+}
+
+export function searchJsonPaths(input, options = {}) {
+  const parsed = parseJsonInput(input);
+  const query = String(options.query ?? '').trim();
+
+  if (!query) {
+    throw new Error('Enter a key or value search term.');
+  }
+
+  const target = normaliseSearchTarget(options.target);
+  const maxResults = normaliseMaxResults(options.maxResults);
+  const matches = [];
+  const queryLower = query.toLowerCase();
+
+  visitSearchValue(parsed, '$', {
+    queryLower,
+    target,
+    matches,
+    maxResults
+  });
+
+  const truncated = matches.length >= maxResults;
+  const output = formatJsonPathSearchMarkdown({
+    query,
+    target,
+    matches,
+    truncated,
+    maxResults
+  });
+  const outputBytes = countUtf8Bytes(output);
+
+  return {
+    output,
+    outputType: 'JSON path search',
+    outputBytes,
+    outputSizeLabel: formatByteSize(outputBytes),
+    query,
+    target,
+    matches,
+    truncated,
+    maxResults,
+    stats: analyseJsonValue(parsed)
   };
 }
 
@@ -292,6 +342,49 @@ function visitShapeValue(value, path, paths, objectStats) {
   }
 }
 
+function visitSearchValue(value, path, state, key = '') {
+  if (state.matches.length >= state.maxResults) {
+    return;
+  }
+
+  if (key && state.target !== 'values' && key.toLowerCase().includes(state.queryLower)) {
+    state.matches.push({
+      path,
+      matchType: 'key',
+      key,
+      valuePreview: formatSearchValuePreview(value)
+    });
+  }
+
+  if (state.matches.length >= state.maxResults) {
+    return;
+  }
+
+  if (state.target !== 'keys' && isSearchableJsonValue(value)) {
+    const valueText = String(value);
+
+    if (valueText.toLowerCase().includes(state.queryLower)) {
+      state.matches.push({
+        path,
+        matchType: 'value',
+        key,
+        valuePreview: formatSearchValuePreview(value)
+      });
+    }
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => visitSearchValue(item, `${path}[${index}]`, state));
+    return;
+  }
+
+  if (value && typeof value === 'object') {
+    Object.entries(value).forEach(([childKey, child]) => {
+      visitSearchValue(child, joinJsonPath(path, childKey), state, childKey);
+    });
+  }
+}
+
 function addShapePath(paths, path, type, value) {
   if (!paths.has(path)) {
     paths.set(path, {
@@ -446,6 +539,39 @@ function formatShapeExample(value) {
   return JSON.stringify(value);
 }
 
+function formatJsonPathSearchMarkdown(report) {
+  const targetLabel = JSON_SEARCH_TARGETS.find(target => target.value === report.target)?.label || report.target;
+
+  return [
+    '# JSON path search',
+    '',
+    `Query: ${report.query}`,
+    `Target: ${targetLabel}`,
+    `Matches: ${report.matches.length.toLocaleString('en-GB')}`,
+    ...(report.truncated ? [`Result limit: first ${report.maxResults.toLocaleString('en-GB')} matches shown`] : []),
+    '',
+    '| Path | Match | Value preview |',
+    '| --- | --- | --- |',
+    ...(report.matches.length === 0
+      ? ['| - | No matches found | - |']
+      : report.matches.map(match => `| ${escapeMarkdownCell(match.path)} | ${escapeMarkdownCell(match.matchType)} | ${escapeMarkdownCell(match.valuePreview)} |`))
+  ].join('\n');
+}
+
+function isSearchableJsonValue(value) {
+  return value === null || ['string', 'number', 'boolean'].includes(typeof value);
+}
+
+function formatSearchValuePreview(value) {
+  const preview = JSON.stringify(value);
+
+  if (preview.length <= 120) {
+    return preview;
+  }
+
+  return `${preview.slice(0, 117)}...`;
+}
+
 function joinJsonPath(path, key) {
   if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(key)) {
     return `${path}.${key}`;
@@ -477,6 +603,16 @@ function formatFieldList(fields) {
 
 function normaliseSchemaOutputFormat(value) {
   return value === JSON_SCHEMA_OUTPUT ? JSON_SCHEMA_OUTPUT : MARKDOWN_SCHEMA_OUTPUT;
+}
+
+function normaliseSearchTarget(value) {
+  return JSON_SEARCH_TARGETS.some(target => target.value === value) ? value : 'keys-values';
+}
+
+function normaliseMaxResults(value) {
+  const maxResults = Number(value || 250);
+
+  return Number.isFinite(maxResults) && maxResults > 0 ? Math.floor(maxResults) : 250;
 }
 
 function escapeMarkdownCell(value) {

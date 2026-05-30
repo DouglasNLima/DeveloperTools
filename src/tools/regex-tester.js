@@ -5,6 +5,33 @@ export const REGEX_OUTPUT_FORMATS = [
   { value: 'markdown', label: 'Markdown report' }
 ];
 
+export const REGEX_LOCAL_EXAMPLES = [
+  {
+    value: 'email-contacts',
+    label: 'Email contacts',
+    pattern: '(?<name>[A-Z][a-z]+)\\s+(?<email>[^\\s]+@[^\\s]+)',
+    flags: 'g',
+    text: 'Ada ada@example.test\nGrace grace@example.test',
+    replacement: '$<email>'
+  },
+  {
+    value: 'guid-values',
+    label: 'GUID values',
+    pattern: '\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\b',
+    flags: 'gi',
+    text: 'Account: 1f3f3f76-0a3d-4f7c-8a84-4f9d8f7a1111',
+    replacement: '[guid]'
+  },
+  {
+    value: 'query-pairs',
+    label: 'Query pairs',
+    pattern: '(?<key>[^=&?]+)=(?<value>[^&]+)',
+    flags: 'g',
+    text: '?name=Ada&status=active',
+    replacement: '$<key>: $<value>'
+  }
+];
+
 const VALID_FLAG_ORDER = ['d', 'g', 'i', 'm', 's', 'u', 'y'];
 const VALID_FLAGS = new Set(VALID_FLAG_ORDER);
 const DEFAULT_MAX_MATCHES = 250;
@@ -46,6 +73,53 @@ export function processRegexTest(options = {}) {
     outputBytes,
     outputSizeLabel: formatBytes(outputBytes)
   };
+}
+
+export function buildRegexReplacementPreview(options = {}) {
+  const pattern = normalisePattern(options.pattern);
+  const flags = normaliseFlags(options.flags);
+  const text = String(options.text ?? '');
+  const replacement = String(options.replacement ?? '');
+  const regex = compileRegex(pattern, flags.value);
+  const maxMatches = normaliseMaxMatches(options.maxMatches);
+  const matches = collectRegexMatches(regex, text, {
+    maxMatches
+  });
+  regex.lastIndex = 0;
+  const replacedText = text.replace(regex, replacement);
+  const warnings = buildWarnings({
+    flagWarnings: flags.warnings,
+    matches,
+    maxMatches,
+    truncated: matches.length >= maxMatches
+  });
+  const output = formatReplacementPreviewAsMarkdown({
+    pattern,
+    flags: flags.value,
+    replacement,
+    replacedText,
+    matches,
+    warnings
+  });
+  const outputBytes = new TextEncoder().encode(output).length;
+
+  return {
+    pattern,
+    flags: flags.value,
+    replacement,
+    replacedText,
+    matches,
+    matchCount: matches.length,
+    warnings,
+    output,
+    outputType: 'Replacement preview',
+    outputBytes,
+    outputSizeLabel: formatBytes(outputBytes)
+  };
+}
+
+export function getRegexExample(value) {
+  return REGEX_LOCAL_EXAMPLES.find(example => example.value === value) || null;
 }
 
 export function normaliseFlags(value = '') {
@@ -213,6 +287,23 @@ export function formatRegexReportAsMarkdown(report) {
       ''
     ])
   ].join('\n').trimEnd();
+}
+
+export function formatReplacementPreviewAsMarkdown(report) {
+  return [
+    '# Regex replacement preview',
+    '',
+    `Pattern: \`${escapeMarkdownInline(report.pattern)}\``,
+    `Flags: \`${report.flags || '(none)'}\``,
+    `Replacement: \`${escapeMarkdownInline(report.replacement)}\``,
+    `Replacements: ${report.matches.length.toLocaleString('en-GB')}`,
+    ...formatWarnings(report.warnings),
+    '',
+    '## Result',
+    '```text',
+    report.replacedText,
+    '```'
+  ].join('\n');
 }
 
 export function normalisePattern(value) {

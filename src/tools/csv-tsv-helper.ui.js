@@ -47,6 +47,11 @@ export function renderCsvTsvHelper(container) {
       </div>
 
       <div class="field-stack">
+        <label for="csvColumnRenameMapping">Column rename mapping</label>
+        <textarea id="csvColumnRenameMapping" spellcheck="false" placeholder="name=Full name&#10;email=Email address"></textarea>
+      </div>
+
+      <div class="field-stack">
         <label for="csvInput">CSV/TSV input</label>
         <textarea id="csvInput" spellcheck="false" placeholder="name,email&#10;Ada Lovelace,ada@example.test&#10;Grace Hopper,grace@example.test"></textarea>
       </div>
@@ -105,6 +110,7 @@ export function renderCsvTsvHelper(container) {
   const outputFormat = container.querySelector('#csvOutputFormat');
   const firstRowHeaders = container.querySelector('#csvFirstRowHeaders');
   const fileInput = container.querySelector('#csvFileInput');
+  const columnRenameMapping = container.querySelector('#csvColumnRenameMapping');
   const input = container.querySelector('#csvInput');
   const output = container.querySelector('#csvOutput');
   const processButton = container.querySelector('#processCsvButton');
@@ -198,7 +204,8 @@ export function renderCsvTsvHelper(container) {
         input: input.value,
         delimiter: delimiter.value,
         outputFormat: outputFormat.value,
-        firstRowHeaders: firstRowHeaders.checked
+        firstRowHeaders: firstRowHeaders.checked,
+        columnRenameMapping: columnRenameMapping.value
       });
 
       setOutput(result);
@@ -261,6 +268,7 @@ export function renderCsvTsvHelper(container) {
     outputFormat.value = 'json';
     firstRowHeaders.checked = true;
     fileInput.value = '';
+    columnRenameMapping.value = '';
     input.value = '';
     output.value = '';
     currentSourceName = '';

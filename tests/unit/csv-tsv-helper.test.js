@@ -2,11 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   analyseDelimitedRows,
+  applyColumnRenameMapping,
   buildDelimitedOutput,
   buildDelimitedOutputFileName,
   detectDelimiter,
   parseDelimitedText,
+  parseColumnRenameMapping,
   processDelimitedData,
+  rowsToMarkdownTable,
   rowsToObjects,
   serialiseDelimitedRows
 } from '../../src/tools/csv-tsv-helper.js';
@@ -93,6 +96,39 @@ test('processes semicolon data to TSV output', () => {
 
   assert.equal(result.output, 'name\temail\nAda\tada@example.test');
   assert.equal(result.outputType, 'TSV');
+});
+
+test('renames columns and exports Markdown tables', () => {
+  const input = 'name,email,unused\nAda,ada@example.test,\nGrace,grace@example.test,';
+  const result = processDelimitedData({
+    input,
+    outputFormat: 'markdown',
+    columnRenameMapping: 'name=Full name\nemail=Email address'
+  });
+
+  assert.equal(result.outputType, 'Markdown table');
+  assert.match(result.output, /\| Full name \| Email address \| unused \|/);
+  assert.match(result.output, /\| Ada \| ada@example.test \|/);
+  assert.match(result.warnings.join('\n'), /unused/);
+  assert.deepEqual(applyColumnRenameMapping(['name', 'email'], parseColumnRenameMapping('name=Full name')), ['Full name', 'email']);
+  assert.equal(rowsToMarkdownTable(parseDelimitedText(input, ','), {
+    columnRenameMap: parseColumnRenameMapping('name=Full name\nemail=Email address')
+  }), result.output);
+  assert.equal(buildDelimitedOutputFileName('markdown', 'contacts.csv'), 'contacts.md');
+});
+
+test('applies column rename mapping to cleaned delimited output', () => {
+  const result = processDelimitedData({
+    input: 'name,email\nAda,ada@example.test',
+    outputFormat: 'csv',
+    columnRenameMapping: 'name=Full name'
+  });
+
+  assert.equal(result.output, 'Full name,email\nAda,ada@example.test');
+  assert.throws(
+    () => parseColumnRenameMapping('name'),
+    /must use current=new/
+  );
 });
 
 test('builds output file names safely', () => {
