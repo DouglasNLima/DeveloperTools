@@ -19,6 +19,7 @@ The current foundation includes:
 - Cron / RRULE Builder
 - cURL/fetch converter
 - Regex Tester
+- SQL query formatter
 - Support Pack Sanitiser
 - Text diff
 - HTML cleaner/converter
@@ -124,6 +125,8 @@ src/
     power-pages-webapi.ui.js
     regex-tester.js
     regex-tester.ui.js
+    sql-formatter.js
+    sql-formatter.ui.js
     support-pack-sanitiser.js
     support-pack-sanitiser.ui.js
     syntax-highlight.js

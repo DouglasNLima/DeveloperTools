@@ -176,6 +176,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'regex-tester'
   },
   {
+    id: 'sql-query-formatter',
+    title: 'SQL query formatter',
+    category: 'Text utilities',
+    status: 'available',
+    summary: 'Format or linearise common SQL queries while preserving strings and comments.',
+    renderer: 'sql-query-formatter'
+  },
+  {
     id: 'support-pack-sanitiser',
     title: 'Support Pack Sanitiser',
     category: 'Text utilities',

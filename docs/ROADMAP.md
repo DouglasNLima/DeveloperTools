@@ -65,12 +65,13 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 ## Phase 7: Text Utilities
 
 - Regex tester with match group feedback.
+- SQL query formatter for formatting and linearising common SQL snippets.
 - Support Pack Sanitiser for masking sensitive values in shared logs and payloads.
 - Text diff with line-level changes.
 - HTML cleaner/converter for readable plain text and Markdown output from pasted HTML.
 - Case converter for common code naming styles.
 - UUID generator, hyphen restorer and validator.
-- Status: Regex Tester, Support Pack Sanitiser, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
+- Status: Regex Tester, SQL query formatter, Support Pack Sanitiser, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
 
 ## Test Expectations
 

@@ -29,6 +29,7 @@ import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-set
 import { renderPowerPagesTablePermissionsChecklist } from './tools/power-pages-table-permissions.ui.js';
 import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-webapi.ui.js';
 import { renderRegexTester } from './tools/regex-tester.ui.js';
+import { renderSqlFormatter } from './tools/sql-formatter.ui.js';
 import { renderSupportPackSanitiser } from './tools/support-pack-sanitiser.ui.js';
 import { renderTextDiff } from './tools/text-diff.ui.js';
 import { renderUrlCodec } from './tools/url-codec.ui.js';
@@ -58,6 +59,7 @@ const renderers = {
   'power-pages-site-settings': renderPowerPagesSiteSettingsHelper,
   'power-pages-table-permissions': renderPowerPagesTablePermissionsChecklist,
   'regex-tester': renderRegexTester,
+  'sql-query-formatter': renderSqlFormatter,
   'support-pack-sanitiser': renderSupportPackSanitiser,
   'text-diff': renderTextDiff,
   'url-codec': renderUrlCodec,

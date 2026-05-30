@@ -29,9 +29,19 @@ test('highlights expression functions, variables and strings', () => {
   assert.match(html, /syntax-token--string">&#039; - &#039;<\/span>/);
 });
 
+test('highlights SQL keywords, strings and comments', () => {
+  const html = highlightSyntax("select name from users where note = 'safe -- text' -- comment", 'sql');
+
+  assert.match(html, /syntax-token--key">select<\/span>/);
+  assert.match(html, /syntax-token--key">from<\/span>/);
+  assert.match(html, /syntax-token--string">&#039;safe -- text&#039;<\/span>/);
+  assert.match(html, /syntax-token--comment">-- comment<\/span>/);
+});
+
 test('auto-detects JSON and XML input', () => {
   assert.equal(detectSyntaxLanguage('  {"ok": true}'), 'json');
   assert.equal(detectSyntaxLanguage('\n<fetch></fetch>'), 'xml');
+  assert.equal(detectSyntaxLanguage('select id from users'), 'sql');
   assert.equal(detectSyntaxLanguage('plain text'), 'plain');
 });
 

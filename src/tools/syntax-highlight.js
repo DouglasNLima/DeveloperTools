@@ -1,4 +1,57 @@
-const SUPPORTED_LANGUAGES = new Set(['auto', 'plain', 'json', 'xml', 'expression', 'markdown']);
+const SUPPORTED_LANGUAGES = new Set(['auto', 'plain', 'json', 'xml', 'expression', 'markdown', 'sql']);
+const SQL_KEYWORDS = new Set([
+  'ADD',
+  'ALL',
+  'ALTER',
+  'AND',
+  'AS',
+  'ASC',
+  'BETWEEN',
+  'BY',
+  'CASE',
+  'CREATE',
+  'CROSS',
+  'DELETE',
+  'DESC',
+  'DISTINCT',
+  'DROP',
+  'ELSE',
+  'END',
+  'EXCEPT',
+  'EXISTS',
+  'FROM',
+  'FULL',
+  'GROUP',
+  'HAVING',
+  'IN',
+  'INNER',
+  'INSERT',
+  'INTERSECT',
+  'INTO',
+  'IS',
+  'JOIN',
+  'LEFT',
+  'LIKE',
+  'LIMIT',
+  'NOT',
+  'NULL',
+  'OFFSET',
+  'ON',
+  'OR',
+  'ORDER',
+  'OUTER',
+  'RETURNING',
+  'RIGHT',
+  'SELECT',
+  'SET',
+  'THEN',
+  'UNION',
+  'UPDATE',
+  'VALUES',
+  'WHEN',
+  'WHERE',
+  'WITH'
+]);
 
 export function detectSyntaxLanguage(value) {
   const trimmed = String(value ?? '').trimStart();
@@ -13,6 +66,10 @@ export function detectSyntaxLanguage(value) {
 
   if (trimmed.startsWith('<')) {
     return 'xml';
+  }
+
+  if (/^(select|with|insert|update|delete)\b/i.test(trimmed)) {
+    return 'sql';
   }
 
   return 'plain';
@@ -42,6 +99,10 @@ export function highlightSyntax(value, language = 'plain') {
     return highlightMarkdown(source);
   }
 
+  if (resolvedLanguage === 'sql') {
+    return highlightSql(source);
+  }
+
   return escapeHtml(source);
 }
 
@@ -68,7 +129,7 @@ export function bindSyntaxHighlight(textarea, options = {}) {
   textarea.dataset.syntaxHighlighted = 'true';
 
   function update() {
-    wrapper.classList.remove('syntax-editor--auto', 'syntax-editor--plain', 'syntax-editor--json', 'syntax-editor--xml', 'syntax-editor--expression', 'syntax-editor--markdown');
+    wrapper.classList.remove('syntax-editor--auto', 'syntax-editor--plain', 'syntax-editor--json', 'syntax-editor--xml', 'syntax-editor--expression', 'syntax-editor--markdown', 'syntax-editor--sql');
     wrapper.classList.add(`syntax-editor--${resolveLanguage(language, textarea.value)}`);
     code.innerHTML = `${highlightSyntax(textarea.value, language)}\n`;
     syncScroll();
@@ -206,6 +267,46 @@ function highlightExpression(source) {
       const nextCharacter = source.slice(tokenPattern.lastIndex).match(/^\s*\(/);
       html += tokenSpan(nextCharacter ? 'function' : expressionIdentifierClass(token), token);
     } else if (/^[+\-*\/=<>!&|?:]$/.test(token)) {
+      html += tokenSpan('operator', token);
+    } else {
+      html += tokenSpan('punctuation', token);
+    }
+
+    cursor = tokenPattern.lastIndex;
+  }
+
+  html += escapeHtml(source.slice(cursor));
+  return html;
+}
+
+function highlightSql(source) {
+  const tokenPattern = /--[^\r\n]*|\/\*[\s\S]*?\*\/|'(?:\\.|''|[^'\\])*'|"(?:\\.|""|[^"\\])*"|\[(?:\]\]|[^\]])*\]|`(?:``|[^`])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_][A-Za-z0-9_$#@]*\b|[()[\]{}.,;:+\-*\/=<>!%|&?]/g;
+  let html = '';
+  let cursor = 0;
+  let match;
+
+  while ((match = tokenPattern.exec(source)) !== null) {
+    const token = match[0];
+    html += escapeHtml(source.slice(cursor, match.index));
+
+    if (token.startsWith('--') || token.startsWith('/*')) {
+      html += tokenSpan('comment', token);
+    } else if (token.startsWith("'") || token.startsWith('"') || token.startsWith('[') || token.startsWith('`')) {
+      html += tokenSpan('string', token);
+    } else if (/^\d/.test(token)) {
+      html += tokenSpan('number', token);
+    } else if (/^[A-Za-z_]/.test(token)) {
+      const upperToken = token.toLocaleUpperCase('en-GB');
+      const nextCharacter = source.slice(tokenPattern.lastIndex).match(/^\s*\(/);
+
+      if (upperToken === 'NULL' || upperToken === 'TRUE' || upperToken === 'FALSE') {
+        html += tokenSpan('literal', token);
+      } else if (SQL_KEYWORDS.has(upperToken)) {
+        html += tokenSpan('key', token);
+      } else {
+        html += tokenSpan(nextCharacter ? 'function' : 'variable', token);
+      }
+    } else if (/^[+\-*\/=<>!%|&?:]$/.test(token)) {
       html += tokenSpan('operator', token);
     } else {
       html += tokenSpan('punctuation', token);

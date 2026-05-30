@@ -788,6 +788,37 @@ test('reports regex warnings and invalid patterns', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Invalid regular expression');
 });
 
+test('formats and linearises SQL queries', async ({ page }) => {
+  await page.goto('/#sql-query-formatter');
+
+  await expect(page.getByRole('heading', { name: 'SQL query formatter' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toHaveAttribute('aria-current', 'page');
+  await page.getByLabel('SQL input').fill("select id,name from users where active=1 and note='x -- y' order by name");
+  await page.getByRole('button', { name: 'Format SQL', exact: true }).click();
+
+  await expect(page.locator('#sqlStatusDetail')).toHaveText('Ready');
+  await expect(page.locator('#sqlModeDetail')).toHaveText('Format');
+  await expect(page.locator('#sqlLinesDetail')).toHaveText('8');
+  await expect(page.locator('#sqlOutput')).toHaveValue(/select\n  id,\n  name\nfrom users\nwhere\n  active = 1/);
+  await expect(page.locator('#sqlOutput')).toHaveValue(/note = 'x -- y'/);
+  await expect(page.locator('#downloadSqlButton')).toHaveAttribute('download', 'formatted-sql.sql');
+  await expect(page.getByRole('status')).toContainText('Formatted SQL created successfully.');
+
+  await page.getByRole('button', { name: 'Linearise SQL', exact: true }).click();
+
+  await expect(page.locator('#sqlModeDetail')).toHaveText('Linearise');
+  await expect(page.locator('#sqlLinesDetail')).toHaveText('1');
+  await expect(page.locator('#sqlOutput')).toHaveValue("select id, name from users where active = 1 and note = 'x -- y' order by name");
+  await expect(page.locator('#copySqlButton')).toBeEnabled();
+  await expect(page.locator('#downloadSqlButton')).toHaveAttribute('download', 'linearised-sql.sql');
+
+  await page.getByRole('button', { name: 'Clear', exact: true }).click();
+  await page.getByRole('button', { name: 'Format SQL', exact: true }).click();
+
+  await expect(page.locator('#sqlStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('Enter a SQL query to format.');
+});
+
 test('sanitises support packs and reports validation errors', async ({ page }) => {
   await page.goto('/#support-pack-sanitiser');
 
@@ -847,6 +878,7 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toBeEnabled();
   await page.locator('[data-tool-id="text-diff"]').click();
 
   await page.getByLabel('Output format').selectOption('json');

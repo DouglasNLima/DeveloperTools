@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v6';
+const CACHE_NAME = 'developer-tools-static-v7';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -58,6 +58,8 @@ const PRECACHE_URLS = [
   './src/tools/power-platform-cli.ui.js',
   './src/tools/regex-tester.js',
   './src/tools/regex-tester.ui.js',
+  './src/tools/sql-formatter.js',
+  './src/tools/sql-formatter.ui.js',
   './src/tools/support-pack-sanitiser.js',
   './src/tools/support-pack-sanitiser.ui.js',
   './src/tools/syntax-highlight.js',
