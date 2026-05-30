@@ -28,6 +28,7 @@ import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJsonSchemaValidator } from './tools/json-schema-validator.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
 import { renderMarkdownPreviewInspector } from './tools/markdown-preview.ui.js';
+import { renderMarkdownTableFormatter } from './tools/markdown-table.ui.js';
 import { renderApiWorkflowToMermaid } from './tools/mermaid-api.ui.js';
 import { renderDataToMermaid } from './tools/mermaid-data.ui.js';
 import { renderMermaidEditor } from './tools/mermaid-editor.ui.js';
@@ -65,6 +66,7 @@ const renderers = {
   'json-schema-validator': renderJsonSchemaValidator,
   'jwt-decoder': renderJwtDecoder,
   'markdown-preview-inspector': renderMarkdownPreviewInspector,
+  'markdown-table-formatter': renderMarkdownTableFormatter,
   'api-workflow-to-mermaid': renderApiWorkflowToMermaid,
   'data-to-mermaid': renderDataToMermaid,
   'mermaid-editor': renderMermaidEditor,

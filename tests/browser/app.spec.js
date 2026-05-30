@@ -1248,6 +1248,7 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="markdown-preview-inspector"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="markdown-table-formatter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toBeEnabled();
   await page.locator('[data-tool-id="text-diff"]').click();
 
@@ -1396,6 +1397,75 @@ test('hands HTML Markdown output into the Markdown preview inspector', async ({ 
   await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
   await expect(page.locator('#markdownPreview h1')).toHaveText('Guide');
   await expect(page.locator('#markdownReferences')).toContainText('./setup.md');
+});
+
+test('formats Markdown tables and hands output to the Markdown preview', async ({ page }) => {
+  await page.goto('/#markdown-table-formatter');
+
+  await expect(page.getByRole('heading', { name: 'Markdown table formatter' })).toBeVisible();
+  await page.getByLabel('Markdown table input').fill([
+    '# Report',
+    '',
+    '| Name|Count|',
+    '| :--- | ---: |',
+    '| Ada | 12 |',
+    '| Grace | 4 |'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Format table', exact: true }).click();
+
+  await expect(page.locator('#markdownTableCountDetail')).toHaveText('1');
+  await expect(page.locator('#markdownTableRowsDetail')).toHaveText('3 total / 2 data');
+  await expect(page.locator('#markdownTableColumnsDetail')).toHaveText('2');
+  await expect(page.locator('#markdownTableWarningsDetail')).toHaveText('None');
+  await expect(page.locator('#markdownTableOutput')).toHaveValue([
+    '# Report',
+    '',
+    '| Name  | Count |',
+    '| :---- | ----: |',
+    '| Ada   |    12 |',
+    '| Grace |     4 |'
+  ].join('\n'));
+  await expect(page.locator('#downloadMarkdownTableButton')).toHaveAttribute('download', 'markdown-table.md');
+  await expect(page.getByRole('status')).toContainText('Markdown table formatted successfully.');
+
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Preview Markdown/ }).click();
+
+  await expect(page).toHaveURL(/#markdown-preview-inspector$/);
+  await expect(page.getByLabel('Markdown input')).toHaveValue(/# Report/);
+  await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
+  await expect(page.locator('#markdownPreview table')).toContainText('Grace');
+});
+
+test('converts Markdown tables to CSV and hands output to the CSV helper', async ({ page }) => {
+  await page.goto('/#markdown-table-formatter');
+
+  await page.getByRole('button', { name: 'Format table', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Enter Markdown table input before formatting.');
+
+  await page.getByLabel('Output format').selectOption('csv');
+  await page.getByLabel('Markdown table input').fill([
+    '| Name | Note |',
+    '| --- | --- |',
+    '| Ada | Uses \\| safely |',
+    '| Grace | `A|B` |'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Format table', exact: true }).click();
+
+  await expect(page.locator('#markdownTableOutputTypeDetail')).toHaveText('CSV');
+  await expect(page.locator('#markdownTableOutput')).toHaveValue([
+    'Name,Note',
+    'Ada,Uses | safely',
+    'Grace,`A|B`'
+  ].join('\n'));
+  await expect(page.locator('#downloadMarkdownTableButton')).toHaveAttribute('download', 'markdown-table.csv');
+  await expect(page.getByRole('status')).toContainText('Markdown table converted successfully.');
+
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Inspect as delimited data/ }).click();
+
+  await expect(page).toHaveURL(/#csv-tsv-helper$/);
+  await expect(page.getByLabel('CSV/TSV input')).toHaveValue(/Name,Note/);
+  await expect(page.getByLabel('Delimiter')).toHaveValue('auto');
+  await expect(page.getByLabel('Output format')).toHaveValue('csv');
 });
 
 test('finds the HTML cleaner from sidebar search', async ({ page }) => {
@@ -2557,6 +2627,28 @@ test('loads the Markdown preview inspector offline', async ({ page }) => {
 
     await expect(page.locator('#markdownPreview h1')).toHaveText('Offline notes');
     await expect(page.locator('#markdownPreview .markdown-mermaid-block svg')).toBeVisible();
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
+test('loads the Markdown table formatter offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#markdown-table-formatter');
+
+    await expect(page.getByRole('heading', { name: 'Markdown table formatter' })).toBeVisible();
+    await page.getByLabel('Markdown table input').fill([
+      '| Name | Count |',
+      '| --- | ---: |',
+      '| Ada | 12 |'
+    ].join('\n'));
+    await page.getByRole('button', { name: 'Format table', exact: true }).click();
+
+    await expect(page.locator('#markdownTableOutput')).toHaveValue(/Ada/);
+    await expect(page.getByRole('status')).toContainText('Markdown table formatted successfully.');
   } finally {
     await page.context().setOffline(false);
   }

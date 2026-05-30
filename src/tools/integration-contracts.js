@@ -38,9 +38,15 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('support-pack-sanitiser', 'output', 'html-cleaner-converter', 'input', 'Clean as HTML', 'Use this output as HTML input for the cleaner/converter.'),
   createTextRoute('html-cleaner-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('html-cleaner-converter', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
+  createTextRoute('html-cleaner-converter', 'output', 'markdown-table-formatter', 'input', 'Format Markdown tables', 'Open this output in the Markdown table formatter.', 'require-markdown-table'),
   createTextRoute('html-cleaner-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('html-cleaner-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('html-cleaner-converter', 'output', 'support-pack-sanitiser', 'input', 'Sanitise text', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('csv-tsv-helper', 'text-output', 'markdown-table-formatter', 'input', 'Format Markdown tables', 'Open this output in the Markdown table formatter.', 'require-markdown-table'),
+  createTextRoute('markdown-preview-inspector', 'source', 'markdown-table-formatter', 'input', 'Format Markdown tables', 'Open this Markdown source in the table formatter.', 'require-markdown-table'),
+  createTextRoute('markdown-table-formatter', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
+  createTextRoute('markdown-table-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('markdown-table-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('case-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('case-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('case-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
@@ -248,6 +254,26 @@ export const TOOL_INTEGRATION_CONTRACTS = [
     ]
   },
   {
+    toolId: 'markdown-table-formatter',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#markdownTableOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#markdownTableInput',
+        label: 'Markdown table input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
     toolId: 'json-formatter',
     outputs: [
       {
@@ -366,6 +392,13 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         label: 'Output',
         mediaType: 'application/json',
         kind: 'json'
+      },
+      {
+        id: 'text-output',
+        selector: '#csvOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
       }
     ],
     inputs: [
@@ -891,6 +924,30 @@ export const TOOL_HANDOVER_ROUTES = [
     transform: 'json-records-to-csv'
   },
   {
+    id: 'markdown-table-formatter-output-to-csv-tsv-helper-input',
+    sourceToolId: 'markdown-table-formatter',
+    sourceOutputId: 'output',
+    targetToolId: 'csv-tsv-helper',
+    targetInputId: 'input',
+    acceptKinds: ['text'],
+    label: 'Inspect as delimited data',
+    description: 'Open this CSV or TSV output in the CSV/TSV helper.',
+    setFields: [
+      {
+        selector: '#csvDelimiter',
+        value: 'auto'
+      },
+      {
+        selector: '#csvOutputFormat',
+        value: 'csv'
+      },
+      {
+        selector: '#csvFirstRowHeaders',
+        value: true
+      }
+    ]
+  },
+  {
     id: 'markdown-preview-inspector-source-to-text-diff-left',
     sourceToolId: 'markdown-preview-inspector',
     sourceOutputId: 'source',
@@ -934,7 +991,7 @@ export const TOOL_HANDOVER_ROUTES = [
   }
 ];
 
-function createTextRoute(sourceToolId, sourceOutputId, targetToolId, targetInputId, label, description) {
+function createTextRoute(sourceToolId, sourceOutputId, targetToolId, targetInputId, label, description, transform = '') {
   return {
     id: `${sourceToolId}-${sourceOutputId}-to-${targetToolId}-${targetInputId}`,
     sourceToolId,
@@ -943,7 +1000,8 @@ function createTextRoute(sourceToolId, sourceOutputId, targetToolId, targetInput
     targetInputId,
     acceptKinds: ['text'],
     label,
-    description
+    description,
+    ...(transform ? { transform } : {})
   };
 }
 

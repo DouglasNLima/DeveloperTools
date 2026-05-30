@@ -44,6 +44,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'data-to-mermaid'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'api-workflow-to-mermaid'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'markdown-preview-inspector'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'markdown-table-formatter'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
@@ -69,6 +70,8 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-editor' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'markdown-preview-inspector'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-preview-inspector' && route.targetToolId === 'mermaid-editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'markdown-table-formatter'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-table-formatter' && route.targetToolId === 'csv-tsv-helper'));
 });
 
 test('transforms targeted handover payloads before suggestions are shown', () => {
@@ -226,6 +229,16 @@ test('transforms targeted handover payloads before suggestions are shown', () =>
   const mermaidFence = transformHandoverValue('```mermaid\nflowchart TD\n  A --> B\n```', 'extract-mermaid-fence');
   assert.equal(mermaidFence.valid, true);
   assert.equal(mermaidFence.rawValue, 'flowchart TD\n  A --> B');
+
+  const markdownTable = transformHandoverValue('| Name | Count |\n| --- | --- |\n| Ada | 12 |', 'require-markdown-table');
+  assert.equal(markdownTable.valid, true);
+  assert.equal(markdownTable.kind, 'text');
+  assert.match(markdownTable.rawValue, /^\| Name \| Count \|/);
+
+  assert.deepEqual(transformHandoverValue('# no table', 'require-markdown-table'), {
+    valid: false,
+    reason: 'empty-transform'
+  });
 });
 
 test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
@@ -523,7 +536,11 @@ test('resolves Markdown preview handovers to Mermaid and text tools', () => {
         '```mermaid',
         'flowchart TD',
         '  Draft --> Review',
-        '```'
+        '```',
+        '',
+        '| Name | Count |',
+        '| --- | --- |',
+        '| Ada | 12 |'
       ].join('\n')
     }),
     createControl({
@@ -538,10 +555,11 @@ test('resolves Markdown preview handovers to Mermaid and text tools', () => {
   const suggestions = resolveHandoverSuggestions({
     sourceToolId: 'markdown-preview-inspector',
     root,
-    availableTools: ['mermaid-editor', 'text-diff']
+    availableTools: ['mermaid-editor', 'markdown-table-formatter', 'text-diff']
   });
 
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Preview Mermaid block'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Format Markdown tables'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as left text'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as right text'));
   assert.equal(suggestions.find(suggestion => suggestion.label === 'Preview Mermaid block').kind, 'mermaid');
@@ -550,11 +568,81 @@ test('resolves Markdown preview handovers to Mermaid and text tools', () => {
   const textOnlySuggestions = resolveHandoverSuggestions({
     sourceToolId: 'markdown-preview-inspector',
     root,
-    availableTools: ['mermaid-editor', 'text-diff']
+    availableTools: ['mermaid-editor', 'markdown-table-formatter', 'text-diff']
   });
 
   assert.ok(!textOnlySuggestions.some(suggestion => suggestion.label === 'Preview Mermaid block'));
+  assert.ok(textOnlySuggestions.some(suggestion => suggestion.label === 'Format Markdown tables'));
   assert.ok(textOnlySuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
+});
+
+test('resolves Markdown table formatter handovers', () => {
+  const root = createRoot([
+    createControl({
+      id: 'markdownTableOutput',
+      tagName: 'TEXTAREA',
+      value: [
+        'Name,Count',
+        'Ada,12'
+      ].join('\n')
+    })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'markdown-table-formatter',
+    root,
+    availableTools: ['markdown-preview-inspector', 'csv-tsv-helper', 'text-diff']
+  });
+
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Preview Markdown'));
+  const csvSuggestion = suggestions.find(suggestion => suggestion.label === 'Inspect as delimited data');
+  assert.equal(csvSuggestion.kind, 'text');
+  assert.deepEqual(csvSuggestion.setFields, [
+    {
+      selector: '#csvDelimiter',
+      value: 'auto'
+    },
+    {
+      selector: '#csvOutputFormat',
+      value: 'csv'
+    },
+    {
+      selector: '#csvFirstRowHeaders',
+      value: true
+    }
+  ]);
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as left text'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as right text'));
+
+  root.controls[0].value = '';
+  assert.deepEqual(resolveHandoverSuggestions({
+    sourceToolId: 'markdown-table-formatter',
+    root,
+    availableTools: ['markdown-preview-inspector', 'csv-tsv-helper', 'text-diff']
+  }), []);
+});
+
+test('resolves CSV helper Markdown table output into the table formatter', () => {
+  const root = createRoot([
+    createControl({
+      id: 'csvOutput',
+      tagName: 'TEXTAREA',
+      value: [
+        '| Name | Count |',
+        '| --- | --- |',
+        '| Ada | 12 |'
+      ].join('\n')
+    })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'csv-tsv-helper',
+    root,
+    availableTools: ['markdown-table-formatter']
+  });
+
+  assert.equal(suggestions.length, 1);
+  assert.equal(suggestions[0].label, 'Format Markdown tables');
+  assert.equal(suggestions[0].sourceOutputId, 'text-output');
+  assert.equal(suggestions[0].kind, 'text');
 });
 
 test('resolves Power Pages Web API transformed handover sources', () => {

@@ -9,6 +9,7 @@ import {
   extractMermaidSource,
   isLikelyMermaidSource
 } from './mermaid.js';
+import { extractMarkdownTables } from './markdown-table.js';
 
 const JSON_SCHEMA_TYPES = new Set([
   'array',
@@ -53,6 +54,10 @@ const HANDOVER_TRANSFORMS = {
   'extract-mermaid-fence': {
     kind: 'mermaid',
     apply: extractMermaidSource
+  },
+  'require-markdown-table': {
+    kind: 'text',
+    apply: requireMarkdownTableSource
   },
   'json-to-mermaid-tree': {
     kind: 'mermaid',
@@ -645,6 +650,11 @@ function extractLiquidFetchXml(value) {
   const text = String(value ?? '');
   const match = text.match(/{%\s*fetchxml\b[^%]*%}([\s\S]*?){%\s*endfetchxml\s*%}/i);
   return match ? match[1].trim() : '';
+}
+
+function requireMarkdownTableSource(value) {
+  const text = String(value ?? '');
+  return extractMarkdownTables(text).length > 0 ? text : '';
 }
 
 function extractEndpointLine(value) {

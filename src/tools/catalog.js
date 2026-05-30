@@ -224,6 +224,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'markdown-preview-inspector'
   },
   {
+    id: 'markdown-table-formatter',
+    title: 'Markdown table formatter',
+    category: 'Text utilities',
+    status: 'available',
+    summary: 'Normalise Markdown tables, validate row lengths and convert tables to CSV or TSV.',
+    renderer: 'markdown-table-formatter'
+  },
+  {
     id: 'sql-query-formatter',
     title: 'SQL query formatter',
     category: 'Text utilities',

@@ -395,6 +395,7 @@ a.button[hidden],
 .pdf-field-details,
 .jwt-warning-list,
 .csv-issue-list,
+.markdown-table-issue-list,
 .data-filter-list,
 .data-issue-list,
 .regex-match-list {
@@ -1402,12 +1403,14 @@ label.button.secondary:hover {
 
 .jwt-warning-list,
 .csv-issue-list,
+.markdown-table-issue-list,
 .data-issue-list {
   gap: 0.4rem;
 }
 
 .jwt-warning-list p,
 .csv-issue-list p,
+.markdown-table-issue-list p,
 .data-issue-list p {
   background: var(--amber-soft);
   border: 1px solid rgba(217, 119, 6, 0.28);

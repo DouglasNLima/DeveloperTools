@@ -77,13 +77,14 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 
 - Regex tester with match group feedback.
 - Markdown preview and inspector for local rendering, heading/reference review and Mermaid block extraction.
+- Markdown table formatter for table normalisation, validation and CSV/TSV conversion.
 - SQL query formatter for formatting and linearising common SQL snippets.
 - Support Pack Sanitiser for masking sensitive values in shared logs and payloads.
 - Text diff with line-level changes.
 - HTML cleaner/converter for readable plain text and Markdown output from pasted HTML.
 - Case converter for common code naming styles.
 - UUID generator, hyphen restorer and validator.
-- Status: Regex Tester, Markdown preview & inspector, SQL query formatter, Support Pack Sanitiser, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
+- Status: Regex Tester, Markdown preview & inspector, Markdown table formatter, SQL query formatter, Support Pack Sanitiser, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
 
 ## Test Expectations
 
