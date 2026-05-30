@@ -558,9 +558,7 @@ function renderHandoverSuggestions() {
 
   const title = document.createElement('h2');
   title.id = 'toolHandoverTitle';
-  title.textContent = suggestions.some(suggestion => suggestion.kind === 'json-schema')
-    ? 'Continue with this JSON or schema'
-    : 'Continue with this JSON';
+  title.textContent = getHandoverSectionTitle(suggestions);
 
   const summary = document.createElement('p');
   summary.textContent = 'Send the populated output to another local tool with the input already filled.';
@@ -576,6 +574,28 @@ function renderHandoverSuggestions() {
 
   toolHandover.append(header, actions);
   toolHandover.hidden = false;
+}
+
+function getHandoverSectionTitle(suggestions) {
+  const kinds = new Set(suggestions.map(suggestion => suggestion.kind));
+
+  if (kinds.has('base64') && kinds.size === 1) {
+    return 'Continue with this Base64';
+  }
+
+  if (kinds.has('text') && kinds.size === 1) {
+    return 'Continue with this text';
+  }
+
+  if (kinds.has('json-schema')) {
+    return 'Continue with this JSON or schema';
+  }
+
+  if (kinds.has('json') && kinds.size === 1) {
+    return 'Continue with this JSON';
+  }
+
+  return 'Continue with this output';
 }
 
 function createHandoverSuggestionButton(suggestion) {

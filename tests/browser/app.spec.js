@@ -1082,6 +1082,27 @@ test('sanitises support packs and reports validation errors', async ({ page }) =
   await expect(page.getByRole('status')).toContainText('Enter support pack content to sanitise.');
 });
 
+test('hands sanitised support text to the regex tester', async ({ page }) => {
+  await page.goto('/#support-pack-sanitiser');
+
+  await page.getByLabel('Support pack input').fill([
+    'User admin@example.com',
+    'token=secretToken12345'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Sanitise support pack', exact: true }).click();
+
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this text');
+  await page.locator('#toolHandover').getByRole('button', { name: /Sanitised output: Test with regex/ }).click();
+
+  await expect(page).toHaveURL(/#regex-tester$/);
+  await expect(page.getByLabel('Test text')).toHaveValue(/\[EMAIL_1\]/);
+  await expect(page.getByLabel('Test text')).not.toHaveValue(/admin@example\.com/);
+
+  await page.getByLabel('Pattern').fill('\\[EMAIL_1\\]');
+  await page.getByRole('button', { name: 'Run test', exact: true }).click();
+  await expect(page.locator('#regexMatchCountDetail')).toHaveText('1');
+});
+
 test('generates line-level text diffs', async ({ page }) => {
   await page.goto('/#text-diff');
 
@@ -1190,6 +1211,19 @@ test('converts HTML to readable text and Markdown', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Markdown created successfully.');
 });
 
+test('hands cleaned HTML output to a text diff input', async ({ page }) => {
+  await page.goto('/#html-cleaner-converter');
+
+  await page.getByLabel('HTML input').fill('<article><h1>Release notes</h1><p>Alpha</p></article>');
+  await page.getByRole('button', { name: 'Convert HTML', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as left text/ }).click();
+
+  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/Release notes/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/Alpha/);
+  await expect(page.getByLabel('Right text')).toHaveValue('');
+});
+
 test('finds the HTML cleaner from sidebar search', async ({ page }) => {
   await page.goto('/');
 
@@ -1221,6 +1255,19 @@ test('converts text into common code casing styles', async ({ page }) => {
   await expect(page.locator('#caseOutput')).toHaveValue(/camelCase: `customerAccountId`/);
   await expect(page.locator('#downloadCaseButton')).toHaveAttribute('download', 'case-converter.md');
   await expect(page.getByRole('status')).toContainText('Case conversion completed successfully.');
+});
+
+test('hands converted case output to a text diff input', async ({ page }) => {
+  await page.goto('/#case-converter');
+
+  await page.getByLabel('Output format').selectOption('snake');
+  await page.getByLabel('Text input').fill('Customer Account ID');
+  await page.getByRole('button', { name: 'Convert case', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as right text/ }).click();
+
+  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page.getByLabel('Left text')).toHaveValue('');
+  await expect(page.getByLabel('Right text')).toHaveValue('customer_account_id');
 });
 
 test('finds case converter and converts each line separately', async ({ page }) => {
@@ -1810,6 +1857,26 @@ test('converts a selected file to raw Base64 and Data URL output', async ({ page
 
   await page.getByLabel('Output format').selectOption('dataUrl');
   await expect(page.locator('#base64Output')).toHaveValue('data:text/plain;base64,aGVsbG8=');
+});
+
+test('hands Base64 file output to the file creator', async ({ page }) => {
+  await page.goto('/#file-to-base64');
+
+  await page.setInputFiles('#fileInput', {
+    name: 'hello.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('hello')
+  });
+
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this Base64');
+  await page.locator('#toolHandover').getByRole('button', { name: /Base64 output: Create file/ }).click();
+
+  await expect(page).toHaveURL(/#base64-to-file$/);
+  await expect(page.getByLabel('Base64 content')).toHaveValue('aGVsbG8=');
+
+  await page.getByRole('button', { name: 'Create file' }).click();
+  await expect(page.locator('#recognisedType')).toHaveText('text/plain');
+  await expect(page.locator('#downloadButton')).toHaveAttribute('download', 'converted.txt');
 });
 
 test('converts multiple local images to PNG outputs', async ({ page }) => {

@@ -7,6 +7,7 @@ import {
   TOOL_INTEGRATION_CONTRACTS
 } from '../../src/tools/integration-contracts.js';
 import {
+  analyseHandoverValue,
   analyseJsonHandoverValue,
   applyHandoverPayload,
   resolveHandoverSuggestions,
@@ -26,8 +27,12 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'url-codec'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'regex-tester'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'text-diff'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'file-to-base64'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'file-to-base64' && route.targetToolId === 'base64-to-file'));
 });
 
 test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
@@ -53,6 +58,28 @@ test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
   }));
   assert.equal(schema.valid, true);
   assert.equal(schema.kind, 'json-schema');
+});
+
+test('detects populated text and Base64 handover values', () => {
+  assert.deepEqual(analyseHandoverValue('', 'text'), {
+    valid: false,
+    reason: 'empty'
+  });
+
+  const text = analyseHandoverValue('  plain text  ', 'text');
+  assert.equal(text.valid, true);
+  assert.equal(text.kind, 'text');
+  assert.equal(text.rawValue, '  plain text  ');
+
+  const base64 = analyseHandoverValue('data:text/plain;base64,aGVsbG8=', 'base64');
+  assert.equal(base64.valid, true);
+  assert.equal(base64.kind, 'base64');
+  assert.equal(base64.rawValue, 'data:text/plain;base64,aGVsbG8=');
+
+  assert.deepEqual(analyseHandoverValue('not valid !', 'base64'), {
+    valid: false,
+    reason: 'invalid-base64'
+  });
 });
 
 test('resolves suggestions only for compatible populated outputs', () => {
@@ -106,6 +133,53 @@ test('resolves suggestions for additional JSON report sources', () => {
       ]);
     }
   }
+});
+
+test('resolves suggestions for text handover sources', () => {
+  const root = createRoot([
+    createControl({ id: 'supportPackOutput', tagName: 'TEXTAREA', value: 'User [EMAIL_1]\nTrace [TOKEN_1]' })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'support-pack-sanitiser',
+    root,
+    availableTools: ['regex-tester', 'text-diff', 'case-converter', 'html-cleaner-converter']
+  });
+
+  assert.ok(suggestions.every(suggestion => suggestion.kind === 'text'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Test with regex'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as left text'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as right text'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Convert case'));
+  assert.ok(suggestions.some(suggestion => suggestion.label === 'Clean as HTML'));
+
+  root.controls[0].value = '   ';
+  assert.deepEqual(resolveHandoverSuggestions({
+    sourceToolId: 'support-pack-sanitiser',
+    root,
+    availableTools: ['regex-tester', 'text-diff', 'case-converter', 'html-cleaner-converter']
+  }), []);
+});
+
+test('resolves suggestions for Base64 handover sources', () => {
+  const root = createRoot([
+    createControl({ id: 'base64Output', tagName: 'TEXTAREA', value: 'aGVsbG8=' })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'file-to-base64',
+    root,
+    availableTools: ['base64-to-file']
+  });
+
+  assert.equal(suggestions.length, 1);
+  assert.equal(suggestions[0].kind, 'base64');
+  assert.equal(suggestions[0].label, 'Create file');
+
+  root.controls[0].value = 'not valid !';
+  assert.deepEqual(resolveHandoverSuggestions({
+    sourceToolId: 'file-to-base64',
+    root,
+    availableTools: ['base64-to-file']
+  }), []);
 });
 
 test('resolves schema handovers for detected JSON Schema output', () => {
@@ -172,6 +246,18 @@ test('applies handover payloads and restores serialised form state', () => {
   assert.equal(targetRoot.querySelector('#dataExplorerFormat').value, 'json');
   assert.equal(targetRoot.querySelector('#dataExplorerRecordPath').value, 'items');
   assert.equal(targetRoot.querySelector('#dataExplorerInput').value, '[{"name":"Ada"}]');
+
+  const textTargetRoot = createRoot([
+    createControl({ id: 'regexText', tagName: 'TEXTAREA', value: '' })
+  ]);
+  assert.equal(applyHandoverPayload(textTargetRoot, 'regex-tester', 'text', 'User [EMAIL_1]'), true);
+  assert.equal(textTargetRoot.querySelector('#regexText').value, 'User [EMAIL_1]');
+
+  const base64TargetRoot = createRoot([
+    createControl({ id: 'base64Input', tagName: 'TEXTAREA', value: '' })
+  ]);
+  assert.equal(applyHandoverPayload(base64TargetRoot, 'base64-to-file', 'content', 'aGVsbG8='), true);
+  assert.equal(base64TargetRoot.querySelector('#base64Input').value, 'aGVsbG8=');
 });
 
 function createRoot(controls) {

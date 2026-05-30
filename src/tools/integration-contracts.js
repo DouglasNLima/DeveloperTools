@@ -11,6 +11,21 @@ const JSON_SOURCE_PORTS = [
   { toolId: 'jwt-decoder', outputId: 'payload' }
 ];
 
+const TEXT_HANDOVER_ROUTES = [
+  createTextRoute('support-pack-sanitiser', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
+  createTextRoute('support-pack-sanitiser', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('support-pack-sanitiser', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('support-pack-sanitiser', 'output', 'case-converter', 'input', 'Convert case', 'Use this output as the input for the case converter.'),
+  createTextRoute('support-pack-sanitiser', 'output', 'html-cleaner-converter', 'input', 'Clean as HTML', 'Use this output as HTML input for the cleaner/converter.'),
+  createTextRoute('html-cleaner-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
+  createTextRoute('html-cleaner-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('html-cleaner-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('html-cleaner-converter', 'output', 'support-pack-sanitiser', 'input', 'Sanitise text', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('case-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
+  createTextRoute('case-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('case-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.')
+];
+
 const GENERIC_JSON_TARGETS = [
   {
     toolId: 'json-formatter',
@@ -45,6 +60,31 @@ const GENERIC_JSON_TARGETS = [
 ];
 
 export const TOOL_INTEGRATION_CONTRACTS = [
+  {
+    toolId: 'base64-to-file',
+    outputs: [],
+    inputs: [
+      {
+        id: 'content',
+        selector: '#base64Input',
+        label: 'Base64 content',
+        kind: 'base64'
+      }
+    ]
+  },
+  {
+    toolId: 'file-to-base64',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#base64Output',
+        label: 'Base64 output',
+        mediaType: 'text/plain',
+        kind: 'base64'
+      }
+    ],
+    inputs: []
+  },
   {
     toolId: 'json-formatter',
     outputs: [
@@ -180,7 +220,14 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         kind: 'json'
       }
     ],
-    inputs: []
+    inputs: [
+      {
+        id: 'text',
+        selector: '#regexText',
+        label: 'Test text',
+        kind: 'text'
+      }
+    ]
   },
   {
     toolId: 'text-diff',
@@ -193,7 +240,20 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         kind: 'json'
       }
     ],
-    inputs: []
+    inputs: [
+      {
+        id: 'left',
+        selector: '#textDiffLeft',
+        label: 'Left text',
+        kind: 'text'
+      },
+      {
+        id: 'right',
+        selector: '#textDiffRight',
+        label: 'Right text',
+        kind: 'text'
+      }
+    ]
   },
   {
     toolId: 'jwt-decoder',
@@ -214,6 +274,66 @@ export const TOOL_INTEGRATION_CONTRACTS = [
       }
     ],
     inputs: []
+  },
+  {
+    toolId: 'support-pack-sanitiser',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#supportPackOutput',
+        label: 'Sanitised output',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#supportPackInput',
+        label: 'Support pack input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
+    toolId: 'html-cleaner-converter',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#htmlCleanerOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#htmlCleanerInput',
+        label: 'HTML input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
+    toolId: 'case-converter',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#caseOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#caseInput',
+        label: 'Text input',
+        kind: 'text'
+      }
+    ]
   }
 ];
 
@@ -240,8 +360,32 @@ export const TOOL_HANDOVER_ROUTES = [
     acceptKinds: ['json-schema'],
     label: 'Use as JSON Schema',
     description: 'Load this output as the schema for JSON validation.'
-  }))
+  })),
+  ...TEXT_HANDOVER_ROUTES,
+  {
+    id: 'file-to-base64-output-to-base64-to-file-content',
+    sourceToolId: 'file-to-base64',
+    sourceOutputId: 'output',
+    targetToolId: 'base64-to-file',
+    targetInputId: 'content',
+    acceptKinds: ['base64'],
+    label: 'Create file',
+    description: 'Open this Base64 output in the file creator.'
+  }
 ];
+
+function createTextRoute(sourceToolId, sourceOutputId, targetToolId, targetInputId, label, description) {
+  return {
+    id: `${sourceToolId}-${sourceOutputId}-to-${targetToolId}-${targetInputId}`,
+    sourceToolId,
+    sourceOutputId,
+    targetToolId,
+    targetInputId,
+    acceptKinds: ['text'],
+    label,
+    description
+  };
+}
 
 function getRouteSetFields(source, target) {
   if (target.toolId !== 'data-explorer' || target.inputId !== 'input') {

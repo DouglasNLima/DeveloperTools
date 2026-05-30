@@ -13,6 +13,8 @@ const JSON_SCHEMA_TYPES = new Set([
   'string'
 ]);
 
+const HANDOVER_KINDS = new Set(['base64', 'json', 'json-schema', 'text']);
+
 export function getToolIntegrationContract(toolId, contracts = TOOL_INTEGRATION_CONTRACTS) {
   return contracts.find(contract => contract.toolId === toolId) || null;
 }
@@ -43,6 +45,45 @@ export function analyseJsonHandoverValue(value) {
       reason: 'invalid-json'
     };
   }
+}
+
+export function analyseHandoverValue(value, expectedKind = 'text') {
+  if (expectedKind === 'json' || expectedKind === 'json-schema') {
+    return analyseJsonHandoverValue(value);
+  }
+
+  const rawValue = String(value ?? '');
+  const trimmedValue = rawValue.trim();
+
+  if (!trimmedValue) {
+    return {
+      valid: false,
+      reason: 'empty'
+    };
+  }
+
+  if (expectedKind === 'base64') {
+    if (!isBase64HandoverValue(trimmedValue)) {
+      return {
+        valid: false,
+        reason: 'invalid-base64'
+      };
+    }
+
+    return {
+      valid: true,
+      rawValue: trimmedValue,
+      parsedValue: null,
+      kind: 'base64'
+    };
+  }
+
+  return {
+    valid: true,
+    rawValue,
+    parsedValue: rawValue,
+    kind: 'text'
+  };
 }
 
 export function isJsonSchemaValue(value) {
@@ -87,7 +128,7 @@ export function resolveHandoverSuggestions({
 
   sourceContract.outputs.forEach(sourceOutput => {
     const outputElement = root.querySelector(sourceOutput.selector);
-    const analysis = analyseJsonHandoverValue(readControlValue(outputElement));
+    const analysis = analyseHandoverValue(readControlValue(outputElement), sourceOutput.kind);
 
     if (!analysis.valid) {
       return;
@@ -231,6 +272,12 @@ export function validateIntegrationContracts({
 
     if (!Array.isArray(route.acceptKinds) || route.acceptKinds.length === 0) {
       errors.push(`Handover route ${route.id} must declare accepted kinds.`);
+    } else {
+      route.acceptKinds.forEach(kind => {
+        if (!HANDOVER_KINDS.has(kind)) {
+          errors.push(`Handover route ${route.id} has unsupported accepted kind ${kind}.`);
+        }
+      });
     }
   });
 
@@ -258,7 +305,7 @@ function validatePorts(errors, contract, portType) {
       errors.push(`${contract.toolId}.${port.id} is missing a selector.`);
     }
 
-    if (!['json', 'json-schema'].includes(port.kind)) {
+    if (!HANDOVER_KINDS.has(port.kind)) {
       errors.push(`${contract.toolId}.${port.id} has unsupported kind ${port.kind}.`);
     }
   });
@@ -359,6 +406,29 @@ function hasSchemaKeyword(value) {
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isBase64HandoverValue(value) {
+  const parsedBase64 = extractBase64Payload(value);
+  const cleaned = parsedBase64
+    .replace(/\s+/g, '')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+
+  return cleaned.length > 0
+    && cleaned.length % 4 !== 1
+    && /^[A-Za-z0-9+/]*={0,2}$/.test(cleaned);
+}
+
+function extractBase64Payload(value) {
+  const dataUrlMatch = String(value ?? '').trim().match(/^data:[^,]*;base64,(.*)$/is);
+
+  if (dataUrlMatch) {
+    return dataUrlMatch[1];
+  }
+
+  const commaIndex = String(value ?? '').indexOf('base64,');
+  return commaIndex >= 0 ? String(value).slice(commaIndex + 'base64,'.length) : String(value ?? '');
 }
 
 function escapeSelectorId(id) {

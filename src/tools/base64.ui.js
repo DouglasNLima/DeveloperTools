@@ -246,6 +246,7 @@ export function renderFileToBase64(container) {
   function updateBase64Output() {
     if (!currentFileResult) {
       base64Output.value = '';
+      notifyBase64OutputChanged();
       copyBase64Button.disabled = true;
       revokeBase64TextUrl();
       return;
@@ -256,6 +257,7 @@ export function renderFileToBase64(container) {
       : currentFileResult.rawBase64;
 
     base64Output.value = output;
+    notifyBase64OutputChanged();
     copyBase64Button.disabled = false;
 
     revokeBase64TextUrl();
@@ -368,6 +370,7 @@ export function renderFileToBase64(container) {
     currentFileResult = null;
     fileInput.value = '';
     base64Output.value = '';
+    notifyBase64OutputChanged();
     base64OutputFileName.value = '';
     base64OutputMode.value = 'raw';
     copyBase64Button.disabled = true;
@@ -380,4 +383,19 @@ export function renderFileToBase64(container) {
     unbindDropZone?.();
     revokeBase64TextUrl();
   };
+}
+
+function notifyBase64OutputChanged() {
+  if (typeof Event !== 'function' || typeof document === 'undefined') {
+    return;
+  }
+
+  const output = document.getElementById('base64Output');
+
+  if (!output) {
+    return;
+  }
+
+  output.dispatchEvent(new Event('input', { bubbles: true }));
+  output.dispatchEvent(new Event('change', { bubbles: true }));
 }
