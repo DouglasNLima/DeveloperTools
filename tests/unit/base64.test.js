@@ -6,7 +6,9 @@ import {
   cleanBase64,
   decodeBase64Input,
   detectFileType,
+  formatTextPreview,
   formatBytes,
+  getFilePreviewKind,
   normaliseFileName,
   normaliseTextFileName,
   parseBase64Input
@@ -73,4 +75,27 @@ test('formats byte counts with British numeric locale expectations', () => {
   assert.equal(formatBytes(0), '0 bytes');
   assert.equal(formatBytes(1024), '1.00 KB');
   assert.equal(formatBytes(1536), '1.50 KB');
+});
+
+test('classifies browser-safe preview types', () => {
+  assert.equal(getFilePreviewKind('image/png'), 'image');
+  assert.equal(getFilePreviewKind('application/pdf'), 'pdf');
+  assert.equal(getFilePreviewKind('audio/mpeg'), 'audio');
+  assert.equal(getFilePreviewKind('video/mp4'), 'video');
+  assert.equal(getFilePreviewKind('text/html; charset=utf-8'), 'text');
+  assert.equal(getFilePreviewKind('image/svg+xml'), 'text');
+  assert.equal(getFilePreviewKind('image/tiff'), 'unsupported');
+  assert.equal(getFilePreviewKind('application/zip'), 'unsupported');
+});
+
+test('formats text previews without rendering source markup', () => {
+  assert.deepEqual(formatTextPreview('{"ok":true}', 'application/json'), {
+    text: '{\n  "ok": true\n}',
+    truncated: false
+  });
+
+  assert.deepEqual(formatTextPreview('<script>alert(1)</script>', 'text/html', true), {
+    text: '<script>alert(1)</script>',
+    truncated: true
+  });
 });

@@ -1545,6 +1545,146 @@ label.button.secondary:hover {
   justify-content: space-between;
 }
 
+.file-preview-dialog {
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  inset: 0;
+  margin: auto;
+  max-width: min(960px, calc(100vw - 2rem));
+  padding: 0;
+  position: fixed;
+  width: min(960px, calc(100vw - 2rem));
+}
+
+.file-preview-dialog::backdrop {
+  backdrop-filter: blur(2px);
+  background: rgba(15, 23, 42, 0.58);
+}
+
+.file-preview-shell {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--menu-shadow);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  max-height: min(760px, calc(100vh - 2rem));
+  overflow: hidden;
+}
+
+.file-preview-header {
+  align-items: start;
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 0.85rem;
+}
+
+.file-preview-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin: 0.12rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.file-preview-meta {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 0.35rem 0 0;
+  overflow-wrap: anywhere;
+}
+
+.file-preview-close {
+  flex: 0 0 auto;
+}
+
+.file-preview-body {
+  background: var(--preview-surface);
+  display: grid;
+  max-height: calc(100vh - 10rem);
+  min-height: 18rem;
+  min-width: 0;
+  overflow: auto;
+  padding: 0.85rem;
+}
+
+.file-preview-media {
+  align-self: center;
+  display: block;
+  justify-self: center;
+  max-height: calc(100vh - 13rem);
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.file-preview-audio {
+  width: min(36rem, 100%);
+}
+
+.file-preview-frame {
+  background: #ffffff;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  min-height: 60vh;
+  width: 100%;
+}
+
+.file-preview-text-shell {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.file-preview-text {
+  background: var(--code-surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin: 0;
+  overflow: auto;
+  padding: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.file-preview-note,
+.file-preview-message {
+  color: var(--text-soft);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.file-preview-fallback {
+  align-content: center;
+  align-self: center;
+  display: grid;
+  gap: 0.6rem;
+  justify-self: center;
+  max-width: 36rem;
+}
+
+.file-preview-fallback strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.file-preview-fallback p {
+  color: var(--text-soft);
+  line-height: 1.5;
+  margin: 0;
+}
+
 .image-converter-tool {
   gap: 0.7rem;
 }
@@ -2088,6 +2228,34 @@ label.button.secondary:hover {
 
   textarea {
     min-height: 220px;
+  }
+
+  .file-preview-dialog {
+    max-width: calc(100vw - 1rem);
+    width: calc(100vw - 1rem);
+  }
+
+  .file-preview-shell {
+    max-height: calc(100vh - 1rem);
+  }
+
+  .file-preview-header {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 0.7rem;
+  }
+
+  .file-preview-close {
+    width: 100%;
+  }
+
+  .file-preview-body {
+    max-height: calc(100vh - 11rem);
+    padding: 0.7rem;
+  }
+
+  .file-preview-frame {
+    min-height: 56vh;
   }
 
   .image-result-card {

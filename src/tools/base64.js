@@ -141,6 +141,74 @@ export function formatBytes(bytes) {
   return `${value.toFixed(index === 0 ? 0 : 2)} ${units[index]}`;
 }
 
+export const TEXT_PREVIEW_BYTE_LIMIT = 256 * 1024;
+
+const browserPreviewImageTypes = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/avif',
+  'image/x-icon'
+]);
+
+const browserPreviewTextTypes = new Set([
+  'application/json',
+  'application/xml',
+  'application/xhtml+xml',
+  'image/svg+xml',
+  'text/xml'
+]);
+
+export function getFilePreviewKind(mimeType) {
+  const normalisedMimeType = normaliseMimeType(mimeType);
+
+  if (!normalisedMimeType) {
+    return 'unsupported';
+  }
+
+  if (normalisedMimeType.startsWith('text/') || browserPreviewTextTypes.has(normalisedMimeType)) {
+    return 'text';
+  }
+
+  if (browserPreviewImageTypes.has(normalisedMimeType)) {
+    return 'image';
+  }
+
+  if (normalisedMimeType === 'application/pdf') {
+    return 'pdf';
+  }
+
+  if (normalisedMimeType.startsWith('audio/')) {
+    return 'audio';
+  }
+
+  if (normalisedMimeType === 'video/mp4' || normalisedMimeType === 'video/webm') {
+    return 'video';
+  }
+
+  return 'unsupported';
+}
+
+export function formatTextPreview(value, mimeType, truncated = false) {
+  const normalisedMimeType = normaliseMimeType(mimeType);
+  let text = value;
+
+  if (!truncated && normalisedMimeType === 'application/json') {
+    try {
+      text = JSON.stringify(JSON.parse(value), null, 2);
+    } catch {
+      text = value;
+    }
+  }
+
+  return {
+    text,
+    truncated
+  };
+}
+
 export function startsWithBytes(bytes, signature, offset = 0) {
   if (bytes.length < offset + signature.length) {
     return false;
@@ -375,4 +443,8 @@ function decodeBase64String(base64) {
   }
 
   throw new Error('This environment cannot decode Base64.');
+}
+
+function normaliseMimeType(value) {
+  return String(value || '').split(';')[0].trim().toLowerCase();
 }
