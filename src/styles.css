@@ -349,6 +349,8 @@ a.button[hidden],
 .sidebar,
 .workspace-header,
 .tool-board,
+.handover-trail,
+.tool-handover,
 .home-summary-card,
 .home-tool-card,
 .pdf-template-panel,
@@ -833,9 +835,10 @@ textarea.syntax-editor-input::placeholder {
 }
 
 .workspace {
+  align-content: start;
   display: grid;
   gap: 0.5rem;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto auto auto;
   min-height: 0;
   min-width: 0;
   overflow: auto;
@@ -892,6 +895,105 @@ textarea.syntax-editor-input::placeholder {
   display: grid;
   gap: 0.85rem;
   padding: 0.85rem;
+}
+
+.handover-trail {
+  align-items: center;
+  background: var(--surface);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  padding: 0.55rem 0.7rem;
+}
+
+.handover-trail-label {
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+  margin-right: 0.2rem;
+}
+
+.handover-trail-button {
+  background: var(--surface-muted);
+  min-height: 1.9rem;
+  padding: 0.32rem 0.56rem;
+}
+
+.handover-trail-current {
+  color: var(--text);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.handover-trail-separator {
+  color: var(--text-soft);
+  font-weight: 900;
+}
+
+.tool-handover {
+  background: var(--surface);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+}
+
+.handover-header {
+  display: grid;
+  gap: 0.32rem;
+}
+
+.handover-header h2 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.handover-header p:last-child {
+  color: var(--text-soft);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.handover-action-grid {
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.handover-action {
+  align-content: start;
+  align-items: start;
+  background: var(--surface-strong);
+  border-color: var(--border-soft);
+  border-left: 4px solid var(--accent);
+  display: grid;
+  gap: 0.28rem;
+  justify-content: stretch;
+  min-height: 4.6rem;
+  padding: 0.62rem 0.7rem;
+  text-align: left;
+  width: 100%;
+}
+
+.handover-action:hover,
+.handover-action:focus-visible {
+  background: var(--accent-soft);
+}
+
+.handover-action strong {
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.handover-action span {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .home-board {
@@ -1957,7 +2059,8 @@ label.button.secondary:hover {
   }
 
   .workspace-header,
-  .tool-board {
+  .tool-board,
+  .tool-handover {
     padding: 0.7rem;
   }
 

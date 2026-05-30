@@ -563,6 +563,99 @@ test('reports JSON formatter validation errors with context', async ({ page }) =
   await expect(page.locator('#jsonOutput')).toHaveValue(/\^/);
 });
 
+test('shows JSON handovers only after compatible output is populated', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await expect(page.locator('#toolHandover')).toBeHidden();
+
+  await page.getByLabel('JSON input').fill('{"ok": true,}');
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('JSON parse error');
+  await expect(page.locator('#toolHandover')).toBeHidden();
+
+  await page.getByLabel('JSON input').fill('{"ok":true}');
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+
+  await expect(page.locator('#toolHandover')).toBeVisible();
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this JSON');
+  await expect(page.locator('#toolHandover').getByRole('button', { name: /Explore JSON records/ })).toBeVisible();
+});
+
+test('hands JSON formatter output to Data Explorer and restores the breadcrumb state', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  const records = [
+    { name: 'Ada Lovelace', status: 'active' },
+    { name: 'Grace Hopper', status: 'active' }
+  ];
+  const inputJson = JSON.stringify(records);
+
+  await page.getByLabel('JSON input').fill(inputJson);
+  await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Explore JSON records/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('json');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(JSON.stringify(records, null, 2));
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('2');
+
+  await expect(page.locator('#handoverTrail')).toContainText('JSON formatter/validator');
+  await page.locator('#handoverTrail').getByRole('button', { name: 'JSON formatter/validator' }).click();
+
+  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page.getByLabel('JSON input')).toHaveValue(inputJson);
+  await expect(page.locator('#jsonOutput')).toHaveValue(JSON.stringify(records, null, 2));
+});
+
+test('hands generated JSON Schema to the schema validator input', async ({ page }) => {
+  await page.goto('/#json-formatter');
+
+  await page.getByLabel('JSON input').fill('{"name":"Ada","active":true}');
+  await page.getByLabel('Shape/schema output').selectOption('schema');
+  await page.getByRole('button', { name: 'Generate shape/schema', exact: true }).click();
+
+  await expect(page.locator('#toolHandover').getByRole('button', { name: /Use as JSON Schema/ })).toBeVisible();
+  await page.locator('#toolHandover').getByRole('button', { name: /Use as JSON Schema/ }).click();
+
+  await expect(page).toHaveURL(/#json-schema-validator$/);
+  await expect(page.getByLabel('JSON Schema input')).toHaveValue(/"\$schema": "https:\/\/json-schema.org\/draft\/2020-12\/schema"/);
+  await expect(page.getByLabel('JSON Schema input')).toHaveValue(/"required": \[/);
+  await expect(page.getByLabel('JSON input', { exact: true })).toHaveValue('');
+});
+
+test('hands CSV JSON output to Data Explorer', async ({ page }) => {
+  await page.goto('/#csv-tsv-helper');
+
+  await page.getByLabel('CSV/TSV input').fill('name,email\nAda Lovelace,ada@example.test\nGrace Hopper,grace@example.test');
+  await page.getByRole('button', { name: 'Process data', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Explore JSON records/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('json');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"name": "Ada Lovelace"/);
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('2');
+});
+
+test('hands decoded JWT payload to the JSON formatter', async ({ page }) => {
+  await page.goto('/#jwt-decoder');
+
+  await page.getByLabel('JWT input').fill(makeJwt({
+    sub: 'user-123',
+    roles: ['admin'],
+    active: true
+  }));
+  await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /Format JSON/ }).click();
+
+  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page.getByLabel('JSON input')).toHaveValue(/"sub": "user-123"/);
+  await expect(page.getByLabel('JSON input')).toHaveValue(/"roles": \[/);
+});
+
 test('generates JSON structural diff reports', async ({ page }) => {
   await page.goto('/#json-diff');
 

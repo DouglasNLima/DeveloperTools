@@ -5,6 +5,12 @@ import {
   getToolById,
   matchesToolSearch
 } from './tools/catalog.js';
+import {
+  applyHandoverPayload,
+  resolveHandoverSuggestions,
+  restoreToolState,
+  serialiseToolState
+} from './tools/tool-handover.js';
 import { APP_TITLE } from './app-metadata.js';
 import { registerAppServiceWorker } from './pwa.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
@@ -78,17 +84,24 @@ const activeToolCategory = document.getElementById('activeToolCategory');
 const activeToolStatus = document.getElementById('activeToolStatus');
 const activeToolTitle = document.getElementById('activeToolTitle');
 const activeToolSummary = document.getElementById('activeToolSummary');
+const handoverTrail = document.getElementById('handoverTrail');
 const toolMount = document.getElementById('toolMount');
+const toolHandover = document.getElementById('toolHandover');
 const brandHomeLinks = document.querySelectorAll('.brand-home-link');
 
 const HOME_VIEW = 'home';
 const THEME_STORAGE_KEY = 'developer-tools-theme';
 const SIDEBAR_STORAGE_KEY = 'developer-tools-sidebar-collapsed';
+const HANDOVER_HISTORY_STORAGE_KEY = 'developer-tools-handover-history';
 
 let activeView = HOME_VIEW;
 let activeTool = null;
 let activeCleanup = null;
 let selectedTheme = readStorage(THEME_STORAGE_KEY);
+let handoverHistory = readHandoverHistory();
+let pendingHandover = null;
+let pendingRestore = null;
+let handoverRefreshTimer = null;
 
 document.title = APP_TITLE;
 
@@ -106,6 +119,43 @@ function writeStorage(key, value) {
   } catch {
     // Storage can be unavailable in private or restricted browser contexts.
   }
+}
+
+function readSessionStorage(key) {
+  try {
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeSessionStorage(key, value) {
+  try {
+    window.sessionStorage.setItem(key, value);
+  } catch {
+    // Session storage can be unavailable in private or restricted browser contexts.
+  }
+}
+
+function readHandoverHistory() {
+  try {
+    const parsedHistory = JSON.parse(readSessionStorage(HANDOVER_HISTORY_STORAGE_KEY) || '[]');
+    return Array.isArray(parsedHistory) ? parsedHistory.filter(entry => entry?.toolId && entry?.state) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeHandoverHistory() {
+  writeSessionStorage(HANDOVER_HISTORY_STORAGE_KEY, JSON.stringify(handoverHistory));
+}
+
+function clearHandoverHistory() {
+  handoverHistory = [];
+  pendingHandover = null;
+  pendingRestore = null;
+  writeHandoverHistory();
+  renderHandoverTrail();
 }
 
 function resolveSystemTheme() {
@@ -297,16 +347,21 @@ function getCompactLabel(title) {
 }
 
 function selectHome() {
+  clearHandoverHistory();
   history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
   closeNavigation();
   renderRoute({ view: HOME_VIEW, tool: null });
 }
 
-function selectTool(toolId) {
+function selectTool(toolId, options = {}) {
   const nextTool = getToolById(toolId);
 
   if (!nextTool || nextTool.status !== 'available') {
     return;
+  }
+
+  if (!options.preserveHandoverTrail) {
+    clearHandoverHistory();
   }
 
   history.replaceState(null, '', `#${nextTool.id}`);
@@ -318,6 +373,7 @@ function renderRoute(route) {
   activeView = route.view;
   activeTool = route.tool;
   renderToolList();
+  renderHandoverTrail();
 
   if (route.view === HOME_VIEW) {
     renderHome();
@@ -332,7 +388,11 @@ function resetActiveTool() {
     activeCleanup = null;
   }
 
+  clearTimeout(handoverRefreshTimer);
+  handoverRefreshTimer = null;
   toolMount.innerHTML = '';
+  toolHandover.innerHTML = '';
+  toolHandover.hidden = true;
 }
 
 function renderHome() {
@@ -407,6 +467,173 @@ function renderActiveTool() {
   }
 
   activeCleanup = renderer(toolMount);
+  applyPendingToolState();
+  renderHandoverTrail();
+  renderHandoverSuggestions();
+}
+
+function applyPendingToolState() {
+  if (pendingRestore && pendingRestore.toolId === activeTool.id) {
+    restoreToolState(toolMount, pendingRestore.state);
+    pendingRestore = null;
+  }
+
+  if (pendingHandover && pendingHandover.targetToolId === activeTool.id) {
+    applyHandoverPayload(toolMount, pendingHandover.targetToolId, pendingHandover.targetInputId, pendingHandover.value);
+    pendingHandover = null;
+  }
+}
+
+function renderHandoverTrail() {
+  handoverTrail.innerHTML = '';
+
+  if (activeView !== 'tool' || !activeTool || handoverHistory.length === 0) {
+    handoverTrail.hidden = true;
+    return;
+  }
+
+  const label = document.createElement('span');
+  label.className = 'handover-trail-label';
+  label.textContent = 'Handover trail';
+  handoverTrail.append(label);
+
+  handoverHistory.forEach((entry, index) => {
+    const tool = getToolById(entry.toolId);
+    const title = entry.title || tool?.title || entry.toolId;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'handover-trail-button';
+    button.textContent = title;
+    button.title = `Return to ${title}`;
+    button.addEventListener('click', () => restoreHandoverEntry(index));
+    handoverTrail.append(button);
+
+    const separator = document.createElement('span');
+    separator.className = 'handover-trail-separator';
+    separator.setAttribute('aria-hidden', 'true');
+    separator.textContent = '›';
+    handoverTrail.append(separator);
+  });
+
+  const current = document.createElement('span');
+  current.className = 'handover-trail-current';
+  current.setAttribute('aria-current', 'page');
+  current.textContent = activeTool.title;
+  handoverTrail.append(current);
+  handoverTrail.hidden = false;
+}
+
+function renderHandoverSuggestions() {
+  toolHandover.innerHTML = '';
+
+  if (activeView !== 'tool' || !activeTool) {
+    toolHandover.hidden = true;
+    return;
+  }
+
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: activeTool.id,
+    root: toolMount,
+    availableTools: getAvailableTools()
+  });
+
+  if (suggestions.length === 0) {
+    toolHandover.hidden = true;
+    return;
+  }
+
+  const header = document.createElement('div');
+  header.className = 'handover-header';
+
+  const eyebrow = document.createElement('p');
+  eyebrow.className = 'eyebrow';
+  eyebrow.textContent = 'Handover';
+
+  const title = document.createElement('h2');
+  title.id = 'toolHandoverTitle';
+  title.textContent = suggestions.some(suggestion => suggestion.kind === 'json-schema')
+    ? 'Continue with this JSON or schema'
+    : 'Continue with this JSON';
+
+  const summary = document.createElement('p');
+  summary.textContent = 'Send the populated output to another local tool with the input already filled.';
+
+  header.append(eyebrow, title, summary);
+
+  const actions = document.createElement('div');
+  actions.className = 'handover-action-grid';
+
+  suggestions.forEach(suggestion => {
+    actions.append(createHandoverSuggestionButton(suggestion));
+  });
+
+  toolHandover.append(header, actions);
+  toolHandover.hidden = false;
+}
+
+function createHandoverSuggestionButton(suggestion) {
+  const targetTool = getToolById(suggestion.targetToolId);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'handover-action';
+  button.dataset.handoverTarget = suggestion.targetToolId;
+  button.dataset.handoverInput = suggestion.targetInputId;
+
+  const title = document.createElement('strong');
+  title.textContent = suggestion.label;
+
+  const detail = document.createElement('span');
+  detail.textContent = `${targetTool?.title || suggestion.targetToolId}: ${suggestion.description}`;
+
+  button.append(title, detail);
+  button.addEventListener('click', () => startHandover(suggestion));
+
+  return button;
+}
+
+function startHandover(suggestion) {
+  if (!activeTool) {
+    return;
+  }
+
+  handoverHistory = [
+    ...handoverHistory,
+    {
+      toolId: activeTool.id,
+      title: activeTool.title,
+      state: serialiseToolState(activeTool.id, toolMount),
+      createdAt: Date.now()
+    }
+  ].slice(-8);
+  writeHandoverHistory();
+
+  pendingHandover = suggestion;
+  selectTool(suggestion.targetToolId, { preserveHandoverTrail: true });
+}
+
+function restoreHandoverEntry(index) {
+  const entry = handoverHistory[index];
+  const tool = entry ? getToolById(entry.toolId) : null;
+
+  if (!entry || !tool || tool.status !== 'available') {
+    return;
+  }
+
+  handoverHistory = handoverHistory.slice(0, index);
+  writeHandoverHistory();
+  pendingRestore = entry;
+  selectTool(entry.toolId, { preserveHandoverTrail: true });
+}
+
+function scheduleHandoverRefresh() {
+  if (activeView !== 'tool' || !activeTool) {
+    return;
+  }
+
+  clearTimeout(handoverRefreshTimer);
+  handoverRefreshTimer = window.setTimeout(() => {
+    renderHandoverSuggestions();
+  }, 0);
 }
 
 function createHomeToolCard(tool) {
@@ -459,6 +686,9 @@ function toggleNavigation() {
 }
 
 toolSearch.addEventListener('input', renderToolList);
+toolMount.addEventListener('input', scheduleHandoverRefresh);
+toolMount.addEventListener('change', scheduleHandoverRefresh);
+toolMount.addEventListener('click', scheduleHandoverRefresh);
 navToggle.addEventListener('click', toggleNavigation);
 navBackdrop.addEventListener('click', closeNavigation);
 themeToggle.addEventListener('click', toggleTheme);
@@ -477,6 +707,7 @@ window.addEventListener('keydown', event => {
 });
 
 window.addEventListener('hashchange', () => {
+  clearHandoverHistory();
   renderRoute(resolveRoute());
 });
 

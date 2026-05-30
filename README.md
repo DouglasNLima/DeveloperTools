@@ -35,6 +35,7 @@ The current foundation includes:
 - Power Automate Expression Formatter
 - Power Fx Snippet Formatter
 - A scalable tool menu with roadmap previews
+- Session-based JSON handovers between compatible tools
 - Unit and browser test scaffolding for future tools
 
 ## Local Usage
@@ -56,6 +57,8 @@ Available scripts:
 npm run test:unit
 npm run test:browser
 ```
+
+Tools that produce valid JSON can hand their populated output to compatible JSON tools during the same browser session. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -100,6 +103,7 @@ src/
     hash-checksums.ui.js
     image-converter.js
     image-converter.ui.js
+    integration-contracts.js
     json-diff.js
     json-diff.ui.js
     json-formatter.js
@@ -133,6 +137,7 @@ src/
     support-pack-sanitiser.js
     support-pack-sanitiser.ui.js
     syntax-highlight.js
+    tool-handover.js
     text-diff.js
     text-diff.ui.js
     html-cleaner.js
