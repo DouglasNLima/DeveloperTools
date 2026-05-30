@@ -112,11 +112,19 @@ export const TOOL_CATALOGUE = [
     renderer: 'power-platform-cli-command-builder'
   },
   {
+    id: 'power-platform-solution-import-preflight',
+    title: 'Power Platform Solution Import Preflight',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Inspect exported solution ZIP files and generate local import preflight reports.',
+    renderer: 'power-platform-solution-import-preflight'
+  },
+  {
     id: 'power-platform-solution-mermaid',
     title: 'Power Platform Solution Mermaid Generator',
     category: 'Power Platform',
     status: 'available',
-    summary: 'Inspect exported solution ZIP files and generate Mermaid diagrams for workflow components.',
+    summary: 'Inspect exported solution ZIP files and generate Mermaid dependency maps for automation components.',
     renderer: 'power-platform-solution-mermaid'
   },
   {
@@ -142,6 +150,70 @@ export const TOOL_CATALOGUE = [
     status: 'available',
     summary: 'Format Power Fx formulas and highlight practical sharing warnings.',
     renderer: 'power-fx-snippet-formatter'
+  },
+  {
+    id: 'model-driven-javascript-reviewer',
+    title: 'Model-driven JavaScript Reviewer',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Review model-driven app JavaScript web resources for Client API risks and migration warnings.',
+    renderer: 'model-driven-javascript-reviewer'
+  },
+  {
+    id: 'client-api-migration-helper',
+    title: 'Client API Migration Helper',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Convert Xrm.Page review notes into formContext migration guidance and handler skeletons.',
+    renderer: 'client-api-migration-helper'
+  },
+  {
+    id: 'form-event-handler-builder',
+    title: 'Form Event Handler Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Generate model-driven app OnLoad, OnSave, OnChange and subgrid handler boilerplate.',
+    renderer: 'form-event-handler-builder'
+  },
+  {
+    id: 'xrm-webapi-snippet-builder',
+    title: 'Xrm.WebApi Snippet Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Generate local model-driven app Xrm.WebApi snippets with warnings and error handling.',
+    renderer: 'xrm-webapi-snippet-builder'
+  },
+  {
+    id: 'form-notification-validation-builder',
+    title: 'Form Notification & Validation Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Build guarded form notification and validation snippets for model-driven app fields.',
+    renderer: 'form-notification-validation-builder'
+  },
+  {
+    id: 'command-bar-javascript-builder',
+    title: 'Command Bar JavaScript Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Generate JavaScript command handlers for form and grid command bars.',
+    renderer: 'command-bar-javascript-builder'
+  },
+  {
+    id: 'solution-javascript-event-inspector',
+    title: 'Solution JavaScript Event Inspector',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Inspect exported solution ZIP files for model-driven JavaScript web resources and form events.',
+    renderer: 'solution-javascript-event-inspector'
+  },
+  {
+    id: 'web-resource-dependency-mapper',
+    title: 'Web Resource Dependency Mapper',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Map JavaScript web resources, handlers and forms from exported solution metadata.',
+    renderer: 'web-resource-dependency-mapper'
   },
   {
     id: 'url-codec',

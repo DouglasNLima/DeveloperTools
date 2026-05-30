@@ -14,7 +14,7 @@ export const WORKFLOW_CATEGORY_TYPES = {
   0: { type: 'classic-workflow', label: 'Classic workflow' },
   1: { type: 'dialog', label: 'Dialog' },
   2: { type: 'business-rule', label: 'Business rule' },
-  3: { type: 'action', label: 'Action' },
+  3: { type: 'action', label: 'Custom action' },
   4: { type: 'business-process-flow', label: 'Business process flow' },
   5: { type: 'cloud-flow', label: 'Cloud flow' }
 };
@@ -24,7 +24,10 @@ export async function readPowerPlatformSolutionArchive(input, options = {}) {
   const zip = await readZipArchive(bytes, options);
   const textFiles = await readSolutionTextFiles(zip);
   const solution = parseSolutionMetadata(textFiles.solutionXml);
-  const metadataComponents = parseWorkflowMetadata(textFiles.customizationsXml);
+  const metadataComponents = [
+    ...parseWorkflowMetadata(textFiles.customizationsXml),
+    ...parsePluginStepMetadata(textFiles.customizationsXml)
+  ];
   const jsonFlowComponents = parseWorkflowJsonFiles(textFiles.workflowJsonFiles);
   const components = mergeWorkflowComponents(metadataComponents, jsonFlowComponents);
   const environmentVariables = parseEnvironmentVariables(textFiles.customizationsXml);
@@ -208,6 +211,81 @@ export function parseWorkflowMetadata(customizationsXml = '') {
           xaml: decodeXmlEntities(xaml)
         },
         warnings: []
+      };
+    })
+    .filter(component => component.name || component.id);
+}
+
+export function parsePluginStepMetadata(customizationsXml = '') {
+  if (!String(customizationsXml || '').trim()) {
+    return [];
+  }
+
+  return extractXmlElementBlocks(customizationsXml, 'SdkMessageProcessingStep')
+    .map((block, index) => {
+      const attrs = parseXmlAttributes(block.attributes);
+      const content = block.content || '';
+      const name = attrs.name
+        || attrs.displayname
+        || readFirstAvailableXmlText(content, ['Name', 'DisplayName'])
+        || `Plug-in step ${index + 1}`;
+      const message = normalisePluginMessage(
+        attrs.message
+        || attrs.messagename
+        || attrs.sdkmessagename
+        || attrs.sdkmessage
+        || readFirstAvailableXmlText(content, ['MessageName', 'SdkMessageName', 'SdkMessage', 'Message'])
+        || inferPluginMessage(`${name}\n${content}`)
+      );
+      const primaryEntity = attrs.primaryentity
+        || attrs.primaryentityname
+        || attrs.entity
+        || attrs.entityname
+        || readFirstAvailableXmlText(content, ['PrimaryEntity', 'PrimaryEntityName', 'Entity', 'EntityName'])
+        || inferPluginEntity(`${name}\n${content}`);
+      const filteringAttributes = parseAttributeList(
+        attrs.filteringattributes
+        || attrs.filteringattributeslist
+        || readFirstAvailableXmlText(content, ['FilteringAttributes', 'FilteringAttributesList'])
+      );
+
+      return {
+        id: normaliseGuid(
+          attrs.sdkmessageprocessingstepid
+          || attrs.stepid
+          || attrs.id
+          || readFirstAvailableXmlText(content, ['SdkMessageProcessingStepId', 'StepId', 'Id'])
+          || `plugin-step-${index + 1}`
+        ),
+        name: decodeXmlEntities(name),
+        type: 'plugin-step',
+        typeLabel: 'Plug-in step',
+        category: null,
+        sourcePath: 'customizations.xml',
+        primaryEntity: decodeXmlEntities(primaryEntity),
+        state: decodeXmlEntities(attrs.state || readFirstAvailableXmlText(content, ['StateCode', 'statecode']) || ''),
+        raw: {
+          attributes: attrs,
+          content,
+          step: {
+            message,
+            filteringAttributes,
+            stage: decodeXmlEntities(attrs.stage || readFirstAvailableXmlText(content, ['Stage']) || ''),
+            mode: decodeXmlEntities(attrs.mode || readFirstAvailableXmlText(content, ['Mode']) || ''),
+            rank: decodeXmlEntities(attrs.rank || readFirstAvailableXmlText(content, ['Rank']) || ''),
+            handler: decodeXmlEntities(
+              attrs.eventhandler
+              || attrs.plugintype
+              || attrs.plugintypename
+              || readFirstAvailableXmlText(content, ['EventHandler', 'PluginType', 'PluginTypeName'])
+              || ''
+            )
+          }
+        },
+        warnings: [
+          ...(message ? [] : ['Plug-in step message was not found in the exported metadata.']),
+          ...(primaryEntity ? [] : ['Plug-in step primary table was not found in the exported metadata.'])
+        ]
       };
     })
     .filter(component => component.name || component.id);
@@ -790,6 +868,62 @@ function isSameWorkflowComponent(left, right) {
 
 function normaliseComponentKey(value) {
   return String(value ?? '').trim().toLocaleLowerCase('en-GB').replace(/[^a-z0-9]+/g, '');
+}
+
+function readFirstAvailableXmlText(xml, tagNames) {
+  for (const tagName of tagNames) {
+    const value = readXmlText(xml, tagName);
+
+    if (value) {
+      return value;
+    }
+  }
+
+  return '';
+}
+
+function normalisePluginMessage(value) {
+  const text = String(value ?? '').trim();
+  const lower = text.toLocaleLowerCase('en-GB');
+
+  if (/(^|[^a-z])create(d|s)?([^a-z]|$)/.test(lower) || lower.includes('add')) {
+    return 'Create';
+  }
+
+  if (/(^|[^a-z])update(d|s)?([^a-z]|$)/.test(lower) || lower.includes('modify')) {
+    return 'Update';
+  }
+
+  if (/(^|[^a-z])delete(d|s)?([^a-z]|$)/.test(lower) || lower.includes('remove')) {
+    return 'Delete';
+  }
+
+  if (/(^|[^a-z])assign(ed|s)?([^a-z]|$)/.test(lower)) {
+    return 'Assign';
+  }
+
+  return decodeXmlEntities(text);
+}
+
+function inferPluginMessage(value) {
+  return normalisePluginMessage(value);
+}
+
+function inferPluginEntity(value) {
+  const text = String(value ?? '');
+  const match = text.match(/\b(?:primaryentity|entity|table)\s*[:=]\s*["']?([A-Za-z_][\w.]*)/i)
+    || text.match(/\b(?:create|update|delete|assign)\s+(?:of\s+|on\s+)?([A-Za-z_][\w.]*)\b/i);
+
+  return match ? match[1] : '';
+}
+
+function parseAttributeList(value) {
+  return uniqueLabels(
+    String(value ?? '')
+      .split(/[,\s;|]+/)
+      .map(item => item.trim())
+      .filter(Boolean)
+  );
 }
 
 function normaliseEnvironmentVariableType(value) {

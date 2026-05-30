@@ -39,10 +39,19 @@ The current foundation includes:
 - Table Permissions Checklist for Power Pages
 - Dataverse OData Query Builder
 - Power Platform CLI Command Builder
-- Power Platform Solution Mermaid Generator
+- Power Platform Solution Import Preflight
+- Power Platform Solution Mermaid and Dependency Map Generator
 - Power Platform Solution Documentation Generator
 - Power Automate Expression Formatter
 - Power Fx Snippet Formatter
+- Model-driven JavaScript Reviewer
+- Client API Migration Helper
+- Form Event Handler Builder
+- Xrm.WebApi Snippet Builder
+- Form Notification & Validation Builder
+- Command Bar JavaScript Builder
+- Solution JavaScript Event Inspector
+- Web Resource Dependency Mapper
 - A scalable tool menu with roadmap previews
 - Session-based handovers between compatible tools
 - Unit and browser test scaffolding for future tools
@@ -71,7 +80,7 @@ npm run test:unit
 npm run test:browser
 ```
 
-Tools that produce compatible JSON, XML, Mermaid, Markdown, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff, JWT, PDF field mappings and Data Explorer tools can move into compatible JSON, Mermaid or text tools; PDF field mappings and Data Explorer JSON can be transformed into CSV input; formatted FetchXML and FetchXML embedded in Liquid blocks can move into the JSON/XML data explorer; generated Dataverse OData and Power Pages Web API reports can extract their endpoints into the URL helper, their request snippets into the cURL/fetch converter, or their request flow into Mermaid; generated Mermaid, including selected diagrams from exported Power Platform solutions, can move into the Mermaid editor/exporter or Text diff; Markdown-like reports, including exported Power Platform solution documentation, can move into the Markdown preview and inspector, Markdown tables can move through the table formatter and CSV/TSV helper, Mermaid blocks found in Markdown can move into the Mermaid editor/exporter, and Markdown source can move into Text diff; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the file creator. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
+Tools that produce compatible JSON, XML, Mermaid, Markdown, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff, JWT, PDF field mappings and Data Explorer tools can move into compatible JSON, Mermaid or text tools; PDF field mappings and Data Explorer JSON can be transformed into CSV input; formatted FetchXML and FetchXML embedded in Liquid blocks can move into the JSON/XML data explorer; generated Dataverse OData, Power Pages Web API and Xrm.WebApi reports can extract request snippets or request flow into Mermaid; generated Mermaid, including selected diagrams from exported Power Platform solutions and web resource dependency maps, can move into the Mermaid editor/exporter or Text diff; Markdown-like reports, including exported Power Platform solution import preflight reports, solution documentation and model-driven JavaScript reports, can move into the Markdown preview and inspector, Markdown tables can move through the table formatter and CSV/TSV helper, Mermaid blocks found in Markdown can move into the Mermaid editor/exporter, and Markdown source can move into Text diff; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the file creator. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -135,6 +144,10 @@ src/
     mermaid-editor.ui.js
     mermaid-runtime.js
     mermaid-template-builder.ui.js
+    model-driven-javascript.js
+    model-driven-javascript.ui.js
+    model-driven-solution-javascript.js
+    model-driven-solution-javascript.ui.js
     markdown.js
     markdown-preview.ui.js
     markdown-table.js
@@ -149,6 +162,8 @@ src/
     power-fx-formatter.ui.js
     power-platform-cli.js
     power-platform-cli.ui.js
+    power-platform-solution-import-preflight.js
+    power-platform-solution-import-preflight.ui.js
     power-platform-solution.js
     power-platform-solution-docs.js
     power-platform-solution-docs.ui.js

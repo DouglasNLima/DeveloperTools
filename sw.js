@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v25';
+const CACHE_NAME = 'developer-tools-static-v27';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -57,6 +57,10 @@ const PRECACHE_URLS = [
   './src/tools/mermaid-editor.ui.js',
   './src/tools/mermaid-runtime.js',
   './src/tools/mermaid-template-builder.ui.js',
+  './src/tools/model-driven-javascript.js',
+  './src/tools/model-driven-javascript.ui.js',
+  './src/tools/model-driven-solution-javascript.js',
+  './src/tools/model-driven-solution-javascript.ui.js',
   './src/tools/pdf-template-fields.js',
   './src/tools/pdf-template-fields.ui.js',
   './src/tools/power-automate-expression.js',
@@ -66,6 +70,8 @@ const PRECACHE_URLS = [
   './src/tools/power-platform-solution.js',
   './src/tools/power-platform-solution-docs.js',
   './src/tools/power-platform-solution-docs.ui.js',
+  './src/tools/power-platform-solution-import-preflight.js',
+  './src/tools/power-platform-solution-import-preflight.ui.js',
   './src/tools/power-platform-solution-mermaid.js',
   './src/tools/power-platform-solution-mermaid.ui.js',
   './src/tools/power-pages-site-settings.js',

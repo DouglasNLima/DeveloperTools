@@ -292,6 +292,7 @@ test('finds Power Platform tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="dataverse-odata-query-builder"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-cli-command-builder"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-platform-solution-import-preflight"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-solution-mermaid"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-solution-docs"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
@@ -310,7 +311,7 @@ test('encodes and decodes URL components', async ({ page }) => {
   await expect(page.locator('#urlWarnings')).toHaveText('None');
   await expect(page.getByRole('status')).toContainText('Encoded component created successfully.');
 
-  await page.getByLabel('Mode').selectOption('decode-component');
+  await page.getByLabel('Mode', { exact: true }).selectOption('decode-component');
   await page.getByLabel('Input').fill('hello%20world%26x%3D1');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
@@ -439,7 +440,7 @@ test('accepts dropped files in every file-capable tool', async ({ page }) => {
 test('parses and builds query strings', async ({ page }) => {
   await page.goto('/#url-codec');
 
-  await page.getByLabel('Mode').selectOption('parse-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('parse-query');
   await page.getByLabel('Input').fill('https://example.test/search?q=hello+world&tag=alpha&tag=beta&empty=');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
@@ -448,7 +449,7 @@ test('parses and builds query strings', async ({ page }) => {
   await expect(page.locator('#urlOutput')).toHaveValue(/"hello world"/);
   await expect(page.locator('#urlOutput')).toHaveValue(/"empty"/);
 
-  await page.getByLabel('Mode').selectOption('build-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('build-query');
   await page.getByLabel('Input').fill('z=last\nq=hello world\ntag=alpha');
   await page.getByLabel('Sort keys when building a query string').check();
   await page.getByLabel('Prefix built query strings with ?').check();
@@ -462,13 +463,13 @@ test('parses and builds query strings', async ({ page }) => {
 test('reports URL helper validation errors', async ({ page }) => {
   await page.goto('/#url-codec');
 
-  await page.getByLabel('Mode').selectOption('decode-component');
+  await page.getByLabel('Mode', { exact: true }).selectOption('decode-component');
   await page.getByLabel('Input').fill('hello%ZZ');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
   await expect(page.getByRole('status')).toContainText('Invalid percent-encoding');
 
-  await page.getByLabel('Mode').selectOption('build-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('build-query');
   await page.getByLabel('Input').fill('not a row');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
 
@@ -478,7 +479,7 @@ test('reports URL helper validation errors', async ({ page }) => {
 test('hands parsed URL query JSON to Data Explorer', async ({ page }) => {
   await page.goto('/#url-codec');
 
-  await page.getByLabel('Mode').selectOption('parse-query');
+  await page.getByLabel('Mode', { exact: true }).selectOption('parse-query');
   await page.getByLabel('Input').fill('https://example.test/search?q=hello+world&tag=alpha');
   await page.getByRole('button', { name: 'Process', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
@@ -1932,7 +1933,7 @@ test('hands Power Pages Web API endpoints to the URL helper', async ({ page }) =
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Inspect Web API endpoint/ }).click();
 
   await expect(page).toHaveURL(/#url-codec$/);
-  await expect(page.getByLabel('Mode')).toHaveValue('parse-query');
+  await expect(page.getByLabel('Mode', { exact: true })).toHaveValue('parse-query');
   await expect(page.getByLabel('Query parse output')).toHaveValue('json');
   await expect(page.getByLabel('Input')).toHaveValue('/_api/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
 
@@ -2130,7 +2131,7 @@ test('hands Dataverse OData endpoints to the URL helper', async ({ page }) => {
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Inspect endpoint query/ }).click();
 
   await expect(page).toHaveURL(/#url-codec$/);
-  await expect(page.getByLabel('Mode')).toHaveValue('parse-query');
+  await expect(page.getByLabel('Mode', { exact: true })).toHaveValue('parse-query');
   await expect(page.getByLabel('Query parse output')).toHaveValue('json');
   await expect(page.getByLabel('Input')).toHaveValue('/api/data/v9.2/accounts?$select=name,accountnumber&$filter=statecode%20eq%200&$top=5');
 
@@ -2219,7 +2220,7 @@ test('generates Mermaid diagrams from an exported Power Platform solution ZIP', 
   await page.setInputFiles('#solutionMermaidFileInput', {
     name: 'ops-toolkit.zip',
     mimeType: 'application/zip',
-    buffer: createSolutionZip()
+    buffer: createDependencySolutionZip()
   });
   await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
@@ -2227,23 +2228,30 @@ test('generates Mermaid diagrams from an exported Power Platform solution ZIP', 
   await expect(page.getByRole('status')).toContainText('Power Platform solution analysed successfully.');
   await expect(page.locator('#solutionMermaidNameDetail')).toHaveText('Operations Toolkit');
   await expect(page.locator('#solutionMermaidVersionDetail')).toHaveText('1.2.3.4');
-  await expect(page.locator('#solutionMermaidComponentsDetail')).toHaveText('2');
-  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Lead process');
-  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^stateDiagram-v2/);
+  await expect(page.locator('#solutionMermaidComponentsDetail')).toHaveText('5');
+  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Parent account updater');
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR/);
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Parent account updater/);
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/calls child flow/);
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Account post update/);
+  await expect(page.locator('#downloadSolutionMermaidButton')).toHaveAttribute('download', 'Operations Toolkit-automation-map.mmd');
 
   await page.getByLabel('Component filter').selectOption('cloud-flow');
+  await page.getByLabel('Search components').fill('Parent account');
   await expect(page.locator('#solutionMermaidFilteredDetail')).toHaveText('1 shown');
-  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Account approval');
+  await expect(page.locator('#solutionMermaidComponentList')).toContainText('Parent account updater');
   await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart TD/);
-  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Get account - OpenApiConnection - GetItem/);
-  await expect(page.locator('#downloadSolutionMermaidButton')).toHaveAttribute('download', 'Cloud flow-Account approval.mmd');
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Update account - OpenApiConnection - UpdateRecord/);
+  await expect(page.locator('#downloadSolutionMermaidButton')).toHaveAttribute('download', 'Cloud flow-Parent account updater.mmd');
   await expect(page.locator('#downloadSolutionMermaidInventoryButton')).toHaveAttribute('download', 'Operations Toolkit-inventory.md');
+  await page.getByRole('button', { name: 'Show dependency map', exact: true }).click();
+  await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR/);
   await expect(page.locator('#toolHandover')).toContainText('Selected Mermaid: Preview and export');
   await page.locator('#toolHandover').getByRole('button', { name: /Selected Mermaid: Preview and export/ }).click();
 
   await expect(page).toHaveURL(/#mermaid-editor$/);
-  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
-  await expect(page.getByLabel('Mermaid source')).toHaveValue(/Account approval/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart LR/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/Parent account updater/);
 });
 
 test('reports Power Platform solution Mermaid validation errors', async ({ page }) => {
@@ -2306,6 +2314,43 @@ test('reports Power Platform solution documentation validation errors', async ({
   });
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('The ZIP central directory could not be found.');
+});
+
+test('generates an import preflight report from an exported Power Platform solution ZIP', async ({ page }) => {
+  await page.goto('/#power-platform-solution-import-preflight');
+
+  await expect(page.getByRole('heading', { name: 'Power Platform Solution Import Preflight' })).toBeVisible();
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP file before analysing the solution.');
+
+  await page.setInputFiles('#solutionImportFileInput', {
+    name: 'ops-toolkit.zip',
+    mimeType: 'application/zip',
+    buffer: createImportPreflightSolutionZip()
+  });
+  await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
+  await page.getByLabel('Suggested ZIP path').fill('dist/ops toolkit.zip');
+  await page.getByLabel('Target environment note').fill('Test environment before production');
+  await page.getByLabel('Run asynchronously').check();
+  await page.getByLabel('Force overwrite on import').check();
+  await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Power Platform solution import preflight generated successfully.');
+  await expect(page.locator('#solutionImportNameDetail')).toHaveText('Operations Toolkit');
+  await expect(page.locator('#solutionImportPackageDetail')).toHaveText('Unmanaged');
+  await expect(page.locator('#solutionImportComponentsDetail')).toHaveText('4');
+  await expect(page.locator('#solutionImportDependenciesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionImportVariablesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionImportConnectionsDetail')).toHaveText('1');
+  await expect(page.locator('#solutionImportWarningsDetail')).toHaveText('4 warnings');
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/^# Power Platform solution import preflight/);
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/pac solution import --path "dist\/ops toolkit\.zip" --async --force-overwrite/);
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/Exported missing dependencies/);
+  await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/exported solution metadata only/);
+  await expect(page.locator('#solutionImportPreflightOutput')).not.toHaveValue(/https:\/\/api\.example\.test\/current/);
+  await expect(page.locator('#copySolutionImportButton')).toBeEnabled();
+  await expect(page.locator('#downloadSolutionImportButton')).toHaveAttribute('download', 'Operations-Toolkit-import-preflight.md');
+  await expect(page.locator('#toolHandover')).toContainText('Preflight Markdown: Preview preflight report');
 });
 
 test('formats Power Automate expressions and reports syntax errors', async ({ page }) => {
@@ -2406,6 +2451,100 @@ test('hands Power Fx output to text diff', async ({ page }) => {
   await expect(page.getByLabel('Left text')).toHaveValue(/Patch\(/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Accounts/);
   await expect(page.getByLabel('Right text')).toHaveValue('');
+});
+
+test('reviews model-driven JavaScript and builds migration reports', async ({ page }) => {
+  await page.goto('/#model-driven-javascript-reviewer');
+
+  await expect(page.getByRole('heading', { name: 'Model-driven JavaScript Reviewer' })).toBeVisible();
+  await page.getByLabel('JavaScript input').fill([
+    'function onLoad() {',
+    '  var name = Xrm.Page.getAttribute("name").getValue();',
+    '  Xrm.WebApi.retrieveRecord("account", "11111111-1111-4111-8111-111111111111");',
+    '}'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Analyse JavaScript' }).click();
+
+  await expect(page.locator('#modelDrivenJsReviewHighDetail')).toHaveText('2');
+  await expect(page.locator('#modelDrivenJsReviewOutput')).toHaveValue(/Deprecated Xrm.Page usage/);
+  await expect(page.locator('#toolHandover')).toContainText('Review report: Preview review');
+
+  await page.goto('/#client-api-migration-helper');
+  await page.getByLabel('Legacy JavaScript input').fill('function onLoad(){ var name = Xrm.Page.getAttribute("name").getValue(); }');
+  await page.getByRole('button', { name: 'Build migration report' }).click();
+
+  await expect(page.locator('#clientApiMigrationReplacementsDetail')).toHaveText('1');
+  await expect(page.locator('#clientApiMigrationOutput')).toHaveValue(/formContext.getAttribute\("name"\)/);
+  await expect(page.getByRole('status')).toContainText('Client API migration report built successfully.');
+});
+
+test('builds model-driven JavaScript snippets', async ({ page }) => {
+  await page.goto('/#form-event-handler-builder');
+
+  await page.getByLabel('Event type').selectOption('onchange');
+  await page.getByLabel('Namespace').fill('Contoso.Account');
+  await page.getByLabel('Function name').fill('onNameChange');
+  await page.getByLabel('Field logical name').fill('name');
+  await page.getByRole('button', { name: 'Generate handler' }).click();
+
+  await expect(page.locator('#formEventOutputTypeDetail')).toHaveText('OnChange handler');
+  await expect(page.locator('#formEventHandlerOutput')).toHaveValue(/Contoso.Account.onNameChange/);
+
+  await page.goto('/#xrm-webapi-snippet-builder');
+  await page.getByLabel('Operation').selectOption('retrieveMultipleRecords');
+  await page.getByLabel('Table logical name').fill('account');
+  await page.getByLabel('Function name').fill('retrieveAccounts');
+  await page.getByLabel('$select columns').fill('name,accountnumber');
+  await page.getByLabel('$filter').fill('statecode eq 0');
+  await page.getByRole('button', { name: 'Generate Web API snippet' }).click();
+
+  await expect(page.locator('#xrmWebApiSnippetOutput')).toHaveValue(/Xrm.WebApi.retrieveMultipleRecords/);
+  await expect(page.getByRole('status')).toContainText('Xrm.WebApi snippet generated successfully.');
+
+  await page.goto('/#form-notification-validation-builder');
+  await page.getByLabel('Validation rule').selectOption('maxLength');
+  await page.getByLabel('Field logical name').fill('name');
+  await page.getByLabel('Maximum length').fill('50');
+  await page.getByRole('button', { name: 'Generate validation snippet' }).click();
+
+  await expect(page.locator('#formValidationOutput')).toHaveValue(/setNotification/);
+  await expect(page.locator('#formValidationOutput')).toHaveValue(/preventDefault/);
+
+  await page.goto('/#command-bar-javascript-builder');
+  await page.getByLabel('Command context').selectOption('grid');
+  await page.getByLabel('Table logical name').fill('account');
+  await page.getByRole('button', { name: 'Generate command handler' }).click();
+
+  await expect(page.locator('#commandBarJavascriptOutput')).toHaveValue(/SelectedControl/);
+  await expect(page.locator('#commandBarJavascriptOutput')).toHaveValue(/Promise.all/);
+});
+
+test('inspects solution JavaScript events and maps web resource dependencies', async ({ page }) => {
+  await page.goto('/#solution-javascript-event-inspector');
+
+  await page.setInputFiles('#solutionJavascriptEventsFileInput', {
+    name: 'model-driven.zip',
+    mimeType: 'application/zip',
+    buffer: createModelDrivenJavascriptSolutionZip()
+  });
+  await page.getByRole('button', { name: 'Analyse JavaScript events' }).click();
+
+  await expect(page.locator('#solutionJavascriptEventsWebresourcesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionJavascriptEventsHandlersDetail')).toHaveText('2');
+  await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Model-driven JavaScript event inspection/);
+  await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Contoso.Account.onLoad/);
+
+  await page.goto('/#web-resource-dependency-mapper');
+  await page.setInputFiles('#webResourceDependencyFileInput', {
+    name: 'model-driven.zip',
+    mimeType: 'application/zip',
+    buffer: createModelDrivenJavascriptSolutionZip()
+  });
+  await page.getByRole('button', { name: 'Build dependency map' }).click();
+
+  await expect(page.locator('#webResourceDependencyMapOutput')).toHaveValue(/Web resource dependency map/);
+  await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/flowchart LR/);
+  await expect(page.locator('#toolHandover')).toContainText('Mermaid diagram: Preview and export');
 });
 
 test('opens and closes the mobile tool menu', async ({ page }) => {
@@ -2793,7 +2932,7 @@ test('loads the Power Platform solution Mermaid generator offline', async ({ pag
     await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
 
     await expect(page.getByRole('status')).toContainText('Power Platform solution analysed successfully.');
-    await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^stateDiagram-v2|^flowchart TD/);
+    await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR|^stateDiagram-v2|^flowchart TD/);
   } finally {
     await page.context().setOffline(false);
   }
@@ -2816,6 +2955,28 @@ test('loads the Power Platform solution documentation generator offline', async 
 
     await expect(page.getByRole('status')).toContainText('Power Platform solution documentation generated successfully.');
     await expect(page.locator('#solutionDocsOutput')).toHaveValue(/^# Power Platform solution documentation/);
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
+test('loads the Power Platform solution import preflight offline', async ({ page }) => {
+  await primeOfflineApp(page);
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#power-platform-solution-import-preflight');
+
+    await expect(page.getByRole('heading', { name: 'Power Platform Solution Import Preflight' })).toBeVisible();
+    await page.setInputFiles('#solutionImportFileInput', {
+      name: 'offline-solution.zip',
+      mimeType: 'application/zip',
+      buffer: createImportPreflightSolutionZip()
+    });
+    await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
+
+    await expect(page.getByRole('status')).toContainText('Power Platform solution import preflight generated successfully.');
+    await expect(page.locator('#solutionImportPreflightOutput')).toHaveValue(/^# Power Platform solution import preflight/);
   } finally {
     await page.context().setOffline(false);
   }
@@ -2946,6 +3107,65 @@ test('extracts FetchXML from generated Liquid blocks for Data Explorer', async (
   await expect(page.getByLabel('JSON or XML input')).not.toHaveValue(/{% fetchxml/);
 });
 
+function createImportPreflightSolutionZip() {
+  const files = [
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>ops_toolkit</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Operations Toolkit" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>1.2.3.4</Version>',
+      '    <Managed>0</Managed>',
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '    <RootComponents>',
+      '      <RootComponent type="1" schemaName="contoso_account" id="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" behavior="0" />',
+      '      <RootComponent type="29" schemaName="Account approval" id="{11111111-1111-1111-1111-111111111111}" behavior="1" />',
+      '      <RootComponent type="150" schemaName="contoso_api_url" id="{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}" behavior="1" />',
+      '      <RootComponent type="372" schemaName="contoso_dataverse" id="{cccccccc-cccc-cccc-cccc-cccccccccccc}" behavior="1" />',
+      '    </RootComponents>',
+      '    <MissingDependencies>',
+      '      <MissingDependency>',
+      '        <Required type="1" schemaName="Account custom table" id="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" solution="Base solution" />',
+      '        <Dependent type="29" schemaName="Account approval" id="{11111111-1111-1111-1111-111111111111}" />',
+      '      </MissingDependency>',
+      '    </MissingDependencies>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <Workflows>',
+      '    <Workflow WorkflowId="{11111111-1111-1111-1111-111111111111}" Name="Account approval" Category="5" />',
+      '  </Workflows>',
+      '  <EnvironmentVariableDefinition schemaName="contoso_api_url" displayName="API URL" type="100000000" defaultValue="https://api.example.test/default" />',
+      '  <EnvironmentVariableValue schemaName="contoso_api_url">',
+      '    <Value>https://api.example.test/current</Value>',
+      '  </EnvironmentVariableValue>',
+      '  <ConnectionReference connectionreferencelogicalname="contoso_dataverse" displayname="Dataverse connection" connectorid="/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps" />',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['Workflows/11111111-1111-1111-1111-111111111111.json', JSON.stringify({
+      properties: {
+        displayName: 'Account approval',
+        workflowEntityId: '11111111-1111-1111-1111-111111111111',
+        definition: {
+          triggers: {
+            manual: {
+              type: 'Request',
+              description: 'When an account is selected'
+            }
+          },
+          actions: {}
+        }
+      }
+    }, null, 2)]
+  ];
+
+  return createStoredZip(files);
+}
+
 function createSolutionZip() {
   const files = [
     ['solution.xml', [
@@ -3013,6 +3233,165 @@ function createSolutionZip() {
                   }
                 }
               }
+            }
+          }
+        }
+      }
+    }, null, 2)]
+  ];
+
+  return createStoredZip(files);
+}
+
+function createModelDrivenJavascriptSolutionZip() {
+  const files = [
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>model_driven_tools</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Model-driven Tools" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>2.0.0.0</Version>',
+      '    <Managed>0</Managed>',
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <WebResources>',
+      '    <WebResource Name="contoso_/account.js" DisplayName="Account script" WebResourceType="3" />',
+      '  </WebResources>',
+      '  <Entities>',
+      '    <Entity>',
+      '      <FormXml>',
+      '        <systemform name="Account main">',
+      '          <events>',
+      '            <event name="onload">',
+      '              <Handlers>',
+      '                <Handler functionName="Contoso.Account.onLoad" libraryName="$webresource:contoso_/account.js" enabled="true" passExecutionContext="true" rank="1" />',
+      '              </Handlers>',
+      '            </event>',
+      '            <event name="onsave">',
+      '              <Handlers>',
+      '                <Handler functionName="Contoso.Account.onSave" libraryName="$webresource:contoso_/account.js" enabled="true" passExecutionContext="false" rank="2" />',
+      '              </Handlers>',
+      '            </event>',
+      '          </events>',
+      '        </systemform>',
+      '      </FormXml>',
+      '    </Entity>',
+      '  </Entities>',
+      '</ImportExportXml>'
+    ].join('\n')]
+  ];
+
+  return createStoredZip(files);
+}
+
+function createDependencySolutionZip() {
+  const files = [
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>ops_toolkit</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Operations Toolkit" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>1.2.3.4</Version>',
+      '    <Managed>0</Managed>',
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <Workflows>',
+      '    <Workflow WorkflowId="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" Name="Parent account updater" Category="5" />',
+      '    <Workflow WorkflowId="{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}" Name="Child account notifier" Category="5" />',
+      '    <Workflow WorkflowId="{cccccccc-cccc-cccc-cccc-cccccccccccc}" Name="Account risk rule" Category="2">',
+      '      <PrimaryEntity>account</PrimaryEntity>',
+      '      <ClientData>{"conditions":[{"field":"name","name":"Name changed"}],"actions":[{"name":"Show risk field"}]}</ClientData>',
+      '    </Workflow>',
+      '    <Workflow WorkflowId="{dddddddd-dddd-dddd-dddd-dddddddddddd}" Name="contoso_DoAccountWork" Category="3">',
+      '      <PrimaryEntity>account</PrimaryEntity>',
+      '    </Workflow>',
+      '  </Workflows>',
+      '  <SdkMessageProcessingStep SdkMessageProcessingStepId="{eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee}" Name="Account post update" MessageName="Update" PrimaryEntity="account" FilteringAttributes="name" Stage="40" Mode="0" />',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['Workflows/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.json', JSON.stringify({
+      properties: {
+        displayName: 'Parent account updater',
+        workflowEntityId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        definition: {
+          triggers: {
+            manual: {
+              type: 'Request',
+              description: 'When an account is selected'
+            }
+          },
+          actions: {
+            Update_account: {
+              type: 'OpenApiConnection',
+              inputs: {
+                host: {
+                  apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
+                  operationId: 'UpdateRecord'
+                },
+                parameters: {
+                  entityName: 'account',
+                  item: {
+                    name: 'Contoso'
+                  }
+                }
+              }
+            },
+            Run_child_flow: {
+              type: 'Workflow',
+              runAfter: {
+                Update_account: ['Succeeded']
+              },
+              inputs: {
+                host: {
+                  workflowReferenceName: 'Child account notifier'
+                }
+              }
+            },
+            Call_custom_action: {
+              type: 'OpenApiConnection',
+              runAfter: {
+                Run_child_flow: ['Succeeded']
+              },
+              inputs: {
+                host: {
+                  apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
+                  operationId: 'PerformUnboundAction'
+                },
+                parameters: {
+                  actionName: 'contoso_DoAccountWork'
+                }
+              }
+            }
+          }
+        }
+      }
+    }, null, 2)],
+    ['Workflows/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.json', JSON.stringify({
+      properties: {
+        displayName: 'Child account notifier',
+        workflowEntityId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+        definition: {
+          triggers: {
+            request: {
+              type: 'Request',
+              description: 'Run from parent flow'
+            }
+          },
+          actions: {
+            Compose_response: {
+              type: 'Compose'
             }
           }
         }

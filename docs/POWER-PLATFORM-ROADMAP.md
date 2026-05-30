@@ -13,6 +13,11 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - [Use expressions in conditions in Power Automate](https://learn.microsoft.com/en-us/power-automate/use-expressions-in-conditions)
 - [Power Fx formula reference overview](https://learn.microsoft.com/en-us/power-platform/power-fx/formula-reference-cards)
 - [Power Fx operators and identifiers](https://learn.microsoft.com/en-us/power-platform/power-fx/reference/operators)
+- [Client API Xrm object](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/clientapi-xrm)
+- [Client API form context](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/clientapi-form-context)
+- [Xrm.WebApi](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi)
+- [JavaScript web resources](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/script-jscript-web-resources)
+- [Customize the command bar](https://learn.microsoft.com/en-us/power-apps/maker/model-driven-apps/use-command-designer)
 - [Export cloud flows to solutions](https://learn.microsoft.com/en-us/power-automate/export-flow-solution)
 - [Manage flows with code](https://learn.microsoft.com/en-us/power-automate/manage-flows-with-code)
 - [SolutionPackager tool](https://learn.microsoft.com/en-us/power-platform/alm/solution-packager-tool)
@@ -56,10 +61,10 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 ## Phase 5: Power Platform Solution Mermaid Generator
 
 - Read exported solution ZIP files locally in the browser.
-- Detect cloud flows, business process flows, business rules and classic workflows from solution metadata and `Workflows/*.json` files.
-- Generate semantic Mermaid diagrams with metadata fallback warnings when exported process detail is limited.
+- Detect cloud flows, child flow calls, business process flows, business rules, classic workflows, custom actions and plug-in steps from solution metadata and `Workflows/*.json` files.
+- Generate semantic Mermaid diagrams and an automation dependency map with explicit and probable Dataverse trigger relations.
 - Produce a Markdown inventory and hand selected diagrams to the Mermaid editor/exporter.
-- Status: implemented with unit and browser coverage.
+- Status: implemented with unit and browser coverage, including dependency maps for flow-to-flow calls and Dataverse update to plug-in paths.
 
 ## Phase 6: Power Platform Solution Documentation Generator
 
@@ -69,13 +74,41 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - Hand generated documentation to the Markdown preview and Text diff tools.
 - Status: implemented with unit and browser coverage.
 
+## Phase 7: Power Platform Solution Import Preflight
+
+- Read exported solution ZIP files locally in the browser.
+- Generate a local import preflight report with package metadata, root component mix, process inventory, environment variable value states, connection references, exported missing dependency metadata and post-import checks.
+- Build a suggested `pac solution import --path ...` command with async and force-overwrite options.
+- Label dependency findings as exported metadata only, not a live target-environment dependency check.
+- Status: implemented with unit and browser coverage.
+
+## Phase 8: Model-driven JavaScript Review Pack
+
+- Review pasted JavaScript web resources for deprecated `Xrm.Page`, missing execution context, unguarded form member access, hard-coded environment values, unsupported DOM access and weak `Xrm.WebApi` error handling.
+- Generate Client API migration reports with `formContext` replacement guidance and handler skeletons.
+- Keep JavaScript as text only; the app must never execute pasted source.
+- Status: implemented with unit and browser coverage.
+
+## Phase 9: Model-driven JavaScript Builder Pack
+
+- Generate OnLoad, OnSave, OnChange and subgrid handler boilerplate with execution context registration checklists.
+- Generate `Xrm.WebApi` retrieve, query, create, update and delete snippets with focused query warnings and error handling.
+- Generate form notification, validation and command bar JavaScript snippets for form and grid commands.
+- Status: implemented with unit and browser coverage.
+
+## Phase 10: Model-driven Solution JavaScript Inspection
+
+- Read exported solution ZIP files locally in the browser.
+- Detect JavaScript web resources and form event handlers from exported metadata where available.
+- Report Pass execution context, enabled state, handler ordering and missing library matches.
+- Generate Markdown event reports and Mermaid web resource dependency maps.
+- Status: implemented with unit and browser coverage.
+
 ## Candidate Next Tools
 
 - Dataverse FetchXML to OData helper.
-- Environment variable and connection reference deployment checklist.
 - Solution settings file helper.
 - Power Automate trigger condition builder.
-- Power Fx delegation risk checklist.
 - Power Pages deployment profile helper.
 - ALM pull request checklist for solutions and sites.
 

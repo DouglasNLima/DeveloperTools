@@ -62,11 +62,16 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Table Permissions Checklist for web roles, table access and scope review.
 - Dataverse OData Query Builder for `$select`, `$filter`, `$expand`, `$orderby`, `$top`, `$count`, headers and local fetch snippets.
 - Power Platform CLI Command Builder for common `pac auth`, `pac solution` and `pac pages` commands.
-- Power Platform Solution Mermaid Generator for exported solution ZIP inspection and workflow component diagrams.
+- Power Platform Solution Import Preflight for local solution ZIP review, dependency metadata and import command checklists.
+- Power Platform Solution Mermaid Generator for exported solution ZIP inspection, workflow component diagrams and automation dependency maps.
 - Power Platform Solution Documentation Generator for operational Markdown documentation from exported solution ZIP files.
 - Power Automate Expression Formatter for Workflow Definition Language expressions.
 - Power Fx Snippet Formatter for readable formula snippets and sharing warnings.
-- Status: initial Power Pages mini-roadmap, first wider Power Platform utility set, solution-to-Mermaid workflow inspection and solution documentation generation implemented.
+- Model-driven JavaScript Reviewer for local web resource risk reports.
+- Client API Migration Helper for `Xrm.Page` to `formContext` guidance.
+- Form Event Handler Builder, Xrm.WebApi Snippet Builder, Form Notification & Validation Builder and Command Bar JavaScript Builder for model-driven app client scripting.
+- Solution JavaScript Event Inspector and Web Resource Dependency Mapper for exported solution ZIP metadata.
+- Status: initial Power Pages mini-roadmap, first wider Power Platform utility set, solution import preflight, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation and model-driven JavaScript tools implemented.
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 

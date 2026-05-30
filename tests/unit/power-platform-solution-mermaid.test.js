@@ -3,9 +3,11 @@ import { deflateRawSync, inflateRawSync } from 'node:zlib';
 import test from 'node:test';
 
 import {
+  buildSolutionDependencyMap,
   buildComponentDiagram,
   buildSolutionInventoryMarkdown,
   mergeWorkflowComponents,
+  parsePluginStepMetadata,
   parseSolutionMetadata,
   parseWorkflowJsonFiles,
   parseWorkflowMetadata,
@@ -58,6 +60,79 @@ test('reads stored ZIP entries and generates Mermaid for solution workflow compo
   assert.match(workflow.mermaid, /Check account/);
   assert.match(workflow.mermaid, /Send email/);
   assert.match(result.inventoryMarkdown, /```mermaid\nflowchart TD/);
+});
+
+test('builds an automation dependency map across flows, Dataverse events, plug-ins and rules', async () => {
+  const result = await processPowerPlatformSolutionArchive(createZipArchive([
+    ['solution.xml', solutionXml()],
+    ['customizations.xml', dependencyCustomizationsXml()],
+    ['Workflows/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.json', JSON.stringify(parentFlowJson(), null, 2)],
+    ['Workflows/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.json', JSON.stringify(childFlowJson(), null, 2)]
+  ]));
+
+  assert.equal(result.summary.componentCount, 5);
+  assert.equal(result.dependencyMap.type, 'dependency-map');
+  assert.match(result.dependencyMap.mermaid, /^flowchart LR/);
+  assert.match(result.dependencyMap.mermaid, /Parent account updater/);
+  assert.match(result.dependencyMap.mermaid, /calls child flow/);
+  assert.match(result.dependencyMap.mermaid, /Child account notifier/);
+  assert.match(result.dependencyMap.mermaid, /Dataverse Update: account/);
+  assert.match(result.dependencyMap.mermaid, /Account post update/);
+  assert.match(result.dependencyMap.mermaid, /Account risk rule/);
+  assert.match(result.dependencyMap.mermaid, /calls custom action/);
+  assert.match(result.dependencyMap.mermaid, /contoso_DoAccountWork/);
+  assert.match(result.inventoryMarkdown, /## Automation dependency map/);
+});
+
+test('parses plug-in step metadata and avoids unrelated update attribute links', () => {
+  const pluginSteps = parsePluginStepMetadata([
+    '<ImportExportXml>',
+    '  <SdkMessageProcessingStep SdkMessageProcessingStepId="{99999999-9999-9999-9999-999999999999}" Name="Status plug-in" MessageName="Update" PrimaryEntity="account" FilteringAttributes="statuscode" />',
+    '</ImportExportXml>'
+  ].join('\n'));
+  const flow = buildComponentDiagram({
+    id: 'flow',
+    name: 'Name updater',
+    type: 'cloud-flow',
+    typeLabel: 'Cloud flow',
+    category: 5,
+    sourcePath: 'Workflows/flow.json',
+    primaryEntity: '',
+    state: '',
+    raw: {
+      definition: {
+        triggers: {},
+        actions: {
+          Update_account: {
+            type: 'OpenApiConnection',
+            inputs: {
+              host: {
+                apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
+                operationId: 'UpdateRecord'
+              },
+              parameters: {
+                entityName: 'account',
+                item: {
+                  name: 'Contoso'
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    warnings: []
+  });
+  const plugin = buildComponentDiagram(pluginSteps[0]);
+  const map = buildSolutionDependencyMap([flow, plugin], {
+    solution: { name: 'Attribute filtered' }
+  });
+
+  assert.equal(plugin.type, 'plugin-step');
+  assert.equal(plugin.raw.step.message, 'Update');
+  assert.deepEqual(plugin.raw.step.filteringAttributes, ['statuscode']);
+  assert.match(map.mermaid, /Dataverse Update: account/);
+  assert.doesNotMatch(map.mermaid, /Status plug-in/);
 });
 
 test('reads deflated ZIP entries with an injected inflater', async () => {
@@ -187,6 +262,25 @@ function customizationsXml() {
   ].join('\n');
 }
 
+function dependencyCustomizationsXml() {
+  return [
+    '<ImportExportXml>',
+    '  <Workflows>',
+    '    <Workflow WorkflowId="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" Name="Parent account updater" Category="5" />',
+    '    <Workflow WorkflowId="{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}" Name="Child account notifier" Category="5" />',
+    '    <Workflow WorkflowId="{cccccccc-cccc-cccc-cccc-cccccccccccc}" Name="Account risk rule" Category="2">',
+    '      <PrimaryEntity>account</PrimaryEntity>',
+    '      <ClientData>{"conditions":[{"field":"name","name":"Name changed"}],"actions":[{"name":"Show risk field"}]}</ClientData>',
+    '    </Workflow>',
+    '    <Workflow WorkflowId="{dddddddd-dddd-dddd-dddd-dddddddddddd}" Name="contoso_DoAccountWork" Category="3">',
+    '      <PrimaryEntity>account</PrimaryEntity>',
+    '    </Workflow>',
+    '  </Workflows>',
+    '  <SdkMessageProcessingStep SdkMessageProcessingStepId="{eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee}" Name="Account post update" MessageName="Update" PrimaryEntity="account" FilteringAttributes="name" Stage="40" Mode="0" />',
+    '</ImportExportXml>'
+  ].join('\n');
+}
+
 function cloudFlowJson() {
   return {
     properties: {
@@ -231,6 +325,88 @@ function cloudFlowJson() {
                 }
               }
             }
+          }
+        }
+      }
+    }
+  };
+}
+
+function parentFlowJson() {
+  return {
+    properties: {
+      displayName: 'Parent account updater',
+      workflowEntityId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      definition: {
+        triggers: {
+          manual: {
+            type: 'Request',
+            description: 'When an account is selected'
+          }
+        },
+        actions: {
+          Update_account: {
+            type: 'OpenApiConnection',
+            inputs: {
+              host: {
+                apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
+                operationId: 'UpdateRecord'
+              },
+              parameters: {
+                entityName: 'account',
+                item: {
+                  name: 'Contoso'
+                }
+              }
+            }
+          },
+          Run_child_flow: {
+            type: 'Workflow',
+            runAfter: {
+              Update_account: ['Succeeded']
+            },
+            inputs: {
+              host: {
+                workflowReferenceName: 'Child account notifier'
+              }
+            }
+          },
+          Call_custom_action: {
+            type: 'OpenApiConnection',
+            runAfter: {
+              Run_child_flow: ['Succeeded']
+            },
+            inputs: {
+              host: {
+                apiId: '/providers/Microsoft.PowerApps/apis/shared_commondataserviceforapps',
+                operationId: 'PerformUnboundAction'
+              },
+              parameters: {
+                actionName: 'contoso_DoAccountWork'
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+}
+
+function childFlowJson() {
+  return {
+    properties: {
+      displayName: 'Child account notifier',
+      workflowEntityId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      definition: {
+        triggers: {
+          request: {
+            type: 'Request',
+            description: 'Run from parent flow'
+          }
+        },
+        actions: {
+          Compose_response: {
+            type: 'Compose'
           }
         }
       }

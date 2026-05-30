@@ -69,13 +69,14 @@ export function renderPowerPlatformSolutionMermaid(container) {
           <div class="output-toolbar">
             <label id="solutionMermaidOutputLabel" for="solutionMermaidOutput">Selected Mermaid</label>
             <div class="button-row">
+              <button id="showSolutionMermaidMapButton" class="secondary" type="button" disabled>Show dependency map</button>
               <button id="copySolutionMermaidButton" class="primary" type="button" disabled>Copy Mermaid</button>
               <a id="downloadSolutionMermaidButton" class="button secondary" href="#" download="solution-component.mmd" hidden>Download MMD</a>
               <a id="downloadSolutionMermaidInventoryButton" class="button secondary" href="#" download="solution-mermaid-inventory.md" hidden>Download inventory</a>
             </div>
           </div>
 
-          <textarea id="solutionMermaidOutput" spellcheck="false" readonly placeholder="Select a detected component to view its Mermaid source."></textarea>
+          <textarea id="solutionMermaidOutput" spellcheck="false" readonly placeholder="Analyse a solution to view the dependency map or a component Mermaid source."></textarea>
           <textarea id="solutionMermaidInventoryOutput" spellcheck="false" readonly hidden></textarea>
 
           <div class="detail-grid solution-mermaid-selected-grid" aria-live="polite">
@@ -88,7 +89,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
               <strong id="solutionMermaidOutputTypeDetail">-</strong>
             </div>
             <div class="detail-card">
-              <span>Steps</span>
+              <span>Steps/relations</span>
               <strong id="solutionMermaidStepsDetail">-</strong>
             </div>
             <div class="detail-card">
@@ -114,6 +115,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
   const componentList = container.querySelector('#solutionMermaidComponentList');
   const output = container.querySelector('#solutionMermaidOutput');
   const inventoryOutput = container.querySelector('#solutionMermaidInventoryOutput');
+  const mapButton = container.querySelector('#showSolutionMermaidMapButton');
   const copyButton = container.querySelector('#copySolutionMermaidButton');
   const downloadButton = container.querySelector('#downloadSolutionMermaidButton');
   const inventoryDownloadButton = container.querySelector('#downloadSolutionMermaidInventoryButton');
@@ -133,7 +135,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
 
   let currentFile = null;
   let currentResult = null;
-  let selectedComponentId = '';
+  let selectedDiagramId = '';
   const objectUrls = [];
 
   function trackObjectUrl(url) {
@@ -181,12 +183,12 @@ export function renderPowerPlatformSolutionMermaid(container) {
 
     try {
       currentResult = await processPowerPlatformSolutionArchive(currentFile);
-      selectedComponentId = currentResult.components[0]?.id || '';
+      selectedDiagramId = currentResult.dependencyMap?.id || currentResult.components[0]?.id || '';
       renderResult();
       setStatus('Power Platform solution analysed successfully.', 'success');
     } catch (error) {
       currentResult = null;
-      selectedComponentId = '';
+      selectedDiagramId = '';
       clearOutputs();
       setStatus(error.message || 'Unable to analyse this solution export.', 'error');
     } finally {
@@ -203,14 +205,15 @@ export function renderPowerPlatformSolutionMermaid(container) {
     details.name.textContent = currentResult.solution.name;
     details.version.textContent = currentResult.solution.version;
     details.components.textContent = currentResult.summary.componentCount.toLocaleString('en-GB');
-    const warningCount = currentResult.summary.warningCount + currentResult.warnings.length;
+    const warningCount = currentResult.summary.warningCount + currentResult.warnings.length + (currentResult.dependencyMap?.warnings.length || 0);
     details.warnings.textContent = warningCount === 0
       ? 'None'
       : `${warningCount.toLocaleString('en-GB')} warning${warningCount === 1 ? '' : 's'}`;
     inventoryOutput.value = currentResult.inventoryMarkdown;
+    mapButton.disabled = !currentResult.dependencyMap;
     setInventoryDownload();
     renderComponentList();
-    selectComponent(selectedComponentId || currentResult.components[0]?.id);
+    selectDiagram(selectedDiagramId || currentResult.dependencyMap?.id || currentResult.components[0]?.id);
   }
 
   function renderComponentList() {
@@ -230,8 +233,8 @@ export function renderPowerPlatformSolutionMermaid(container) {
     components.forEach(component => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = `solution-component-card${component.id === selectedComponentId ? ' selected' : ''}`;
-      button.setAttribute('aria-pressed', component.id === selectedComponentId ? 'true' : 'false');
+      button.className = `solution-component-card${component.id === selectedDiagramId ? ' selected' : ''}`;
+      button.setAttribute('aria-pressed', component.id === selectedDiagramId ? 'true' : 'false');
       button.dataset.componentId = component.id;
 
       const title = document.createElement('strong');
@@ -268,12 +271,15 @@ export function renderPowerPlatformSolutionMermaid(container) {
     });
   }
 
-  function selectComponent(componentId) {
-    const component = currentResult?.components.find(item => item.id === componentId) || getFilteredComponents()[0];
+  function selectDiagram(diagramId) {
+    const component = diagramId === currentResult?.dependencyMap?.id
+      ? currentResult.dependencyMap
+      : currentResult?.components.find(item => item.id === diagramId) || getFilteredComponents()[0];
 
     if (!component) {
       output.value = '';
       copyButton.disabled = true;
+      mapButton.disabled = true;
       setSelectedDetails(null);
       revokeObjectUrls();
       setInventoryDownload();
@@ -281,14 +287,19 @@ export function renderPowerPlatformSolutionMermaid(container) {
       return;
     }
 
-    selectedComponentId = component.id;
+    selectedDiagramId = component.id;
     output.value = component.mermaid;
     copyButton.disabled = false;
+    mapButton.disabled = !currentResult?.dependencyMap;
     setSelectedDetails(component);
     setComponentDownload(component);
     renderIssues(component);
     renderComponentList();
     dispatchOutputChange();
+  }
+
+  function selectComponent(componentId) {
+    selectDiagram(componentId);
   }
 
   function setSelectedDetails(component) {
@@ -340,6 +351,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
     output.value = '';
     inventoryOutput.value = '';
     copyButton.disabled = true;
+    mapButton.disabled = true;
     componentList.innerHTML = '<p class="empty-state">Load a solution export to list workflow components.</p>';
     revokeObjectUrls();
     resetDetails();
@@ -379,6 +391,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
 
   fileInput.addEventListener('change', () => setFile(fileInput.files?.[0] || null));
   analyseButton.addEventListener('click', analyseSolution);
+  mapButton.addEventListener('click', () => selectDiagram(currentResult?.dependencyMap?.id));
   copyButton.addEventListener('click', copyOutput);
   componentFilter.addEventListener('change', () => {
     renderComponentList();
@@ -386,14 +399,14 @@ export function renderPowerPlatformSolutionMermaid(container) {
   });
   search.addEventListener('input', () => {
     renderComponentList();
-    if (!getFilteredComponents().some(component => component.id === selectedComponentId)) {
+    if (!getFilteredComponents().some(component => component.id === selectedDiagramId)) {
       selectComponent(getFilteredComponents()[0]?.id);
     }
   });
   clearButton.addEventListener('click', () => {
     currentFile = null;
     currentResult = null;
-    selectedComponentId = '';
+    selectedDiagramId = '';
     fileInput.value = '';
     componentFilter.value = 'all';
     search.value = '';
