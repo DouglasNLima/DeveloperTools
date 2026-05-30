@@ -467,6 +467,7 @@ test('finds the JSON formatter and processes formatted and minified output', asy
   await page.getByLabel('Search tools').fill('JSON');
   await expect(page.locator('[data-tool-id="json-formatter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="json-diff"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="json-schema-validator"]')).toBeEnabled();
   await page.locator('[data-tool-id="json-formatter"]').click();
 
   await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
@@ -503,7 +504,7 @@ test('finds the JSON formatter and processes formatted and minified output', asy
 test('generates JSON shape and schema output from the JSON formatter', async ({ page }) => {
   await page.goto('/#json-formatter');
 
-  await page.getByLabel('JSON input').fill(JSON.stringify({
+  await page.getByLabel('JSON input', { exact: true }).fill(JSON.stringify({
     items: [
       { id: 1, name: 'Alpha', active: true },
       { id: 2, name: 'Beta', tags: ['new'] }
@@ -601,6 +602,94 @@ test('reports JSON diff validation errors by side', async ({ page }) => {
   await expect(page.locator('#jsonDiffStatusDetail')).toHaveText('Invalid');
   await expect(page.getByRole('status')).toContainText('Right JSON: JSON parse error');
   await expect(page.locator('#jsonDiffOutput')).toHaveValue(/\^/);
+});
+
+test('validates JSON against a JSON Schema with path-level errors', async ({ page }) => {
+  await page.goto('/#json-schema-validator');
+
+  await expect(page.getByRole('heading', { name: 'JSON Schema validator' })).toBeVisible();
+  await page.getByLabel('JSON input', { exact: true }).fill(JSON.stringify({
+    items: [
+      {
+        id: 1,
+        active: 'yes',
+        extra: true
+      }
+    ]
+  }));
+  await page.getByLabel('JSON Schema input').fill(JSON.stringify({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    type: 'object',
+    required: ['items'],
+    properties: {
+      items: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['id', 'active'],
+          additionalProperties: false,
+          properties: {
+            id: { type: 'integer' },
+            active: { type: 'boolean' }
+          }
+        }
+      }
+    }
+  }));
+  await page.getByRole('button', { name: 'Validate JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonSchemaValidationStatusDetail')).toHaveText('Invalid');
+  await expect(page.locator('#jsonSchemaErrorCountDetail')).toHaveText('2');
+  await expect(page.locator('#jsonSchemaWarningCountDetail')).toHaveText('0');
+  await expect(page.locator('#jsonSchemaDraftDetail')).toHaveText('Draft 2020-12');
+  await expect(page.locator('#jsonSchemaValidatorOutput')).toHaveValue(/### \$\.items\[0\]\.active/);
+  await expect(page.locator('#jsonSchemaValidatorOutput')).toHaveValue(/Additional property "extra" is not allowed/);
+  await expect(page.getByRole('status')).toContainText('JSON does not match the schema.');
+  await expect(page.locator('#downloadJsonSchemaReportButton')).toHaveAttribute('download', 'json-schema-validation.md');
+
+  await page.getByLabel('Output format').selectOption('json');
+  await page.getByRole('button', { name: 'Validate JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonSchemaValidatorOutput')).toHaveValue(/"instancePath": "\$\.items\[0\]\.active"/);
+  await expect(page.locator('#downloadJsonSchemaReportButton')).toHaveAttribute('download', 'json-schema-validation.json');
+
+  await page.getByLabel('JSON input').fill(JSON.stringify({
+    items: [
+      {
+        id: 1,
+        active: true
+      }
+    ]
+  }));
+  await page.getByRole('button', { name: 'Validate JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonSchemaValidationStatusDetail')).toHaveText('Valid');
+  await expect(page.locator('#jsonSchemaErrorCountDetail')).toHaveText('0');
+  await expect(page.getByRole('status')).toContainText('JSON matches the schema.');
+});
+
+test('reports JSON Schema validator parsing errors and schema warnings', async ({ page }) => {
+  await page.goto('/#json-schema-validator');
+
+  await page.getByRole('button', { name: 'Validate JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonSchemaValidationStatusDetail')).toHaveText('Invalid');
+  await expect(page.getByRole('status')).toContainText('JSON input: Enter JSON input.');
+
+  await page.getByLabel('JSON input', { exact: true }).fill('"ada@example.test"');
+  await page.getByLabel('JSON Schema input').fill('{"$ref":"https://example.test/schema.json","format":"email"}');
+  await page.getByRole('button', { name: 'Validate JSON', exact: true }).click();
+
+  await expect(page.locator('#jsonSchemaValidationStatusDetail')).toHaveText('Invalid');
+  await expect(page.locator('#jsonSchemaErrorCountDetail')).toHaveText('1');
+  await expect(page.locator('#jsonSchemaWarningCountDetail')).toHaveText('2');
+  await expect(page.locator('#jsonSchemaValidatorOutput')).toHaveValue(/Remote \$ref values are not supported/);
+
+  await page.getByLabel('JSON Schema input').fill('{bad schema}');
+  await page.getByRole('button', { name: 'Validate JSON', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('JSON Schema input: JSON parse error');
+  await expect(page.locator('#jsonSchemaValidatorOutput')).toHaveValue(/\^/);
 });
 
 test('finds the data explorer and queries JSON records', async ({ page }) => {

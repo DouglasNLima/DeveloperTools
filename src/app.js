@@ -18,6 +18,7 @@ import { renderHtmlCleaner } from './tools/html-cleaner.ui.js';
 import { renderImageConverter } from './tools/image-converter.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
+import { renderJsonSchemaValidator } from './tools/json-schema-validator.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
 import { renderPdfTemplateFieldExplorer } from './tools/pdf-template-fields.ui.js';
 import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js';
@@ -49,6 +50,7 @@ const renderers = {
   'image-converter': renderImageConverter,
   'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
+  'json-schema-validator': renderJsonSchemaValidator,
   'jwt-decoder': renderJwtDecoder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,

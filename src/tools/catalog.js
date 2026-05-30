@@ -120,6 +120,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'json-diff'
   },
   {
+    id: 'json-schema-validator',
+    title: 'JSON Schema validator',
+    category: 'JSON & data',
+    status: 'available',
+    summary: 'Validate JSON against local JSON Schema rules with path-level errors.',
+    renderer: 'json-schema-validator'
+  },
+  {
     id: 'data-explorer',
     title: 'JSON/XML data explorer',
     category: 'JSON & data',

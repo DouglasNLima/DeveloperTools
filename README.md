@@ -12,6 +12,7 @@ The current foundation includes:
 - JSON formatter/validator
 - JSON shape/schema generation
 - JSON diff
+- JSON Schema validator
 - JSON/XML data explorer
 - CSV/TSV helper
 - PDF Template Field Explorer
@@ -103,6 +104,8 @@ src/
     json-diff.ui.js
     json-formatter.js
     json-formatter.ui.js
+    json-schema-validator.js
+    json-schema-validator.ui.js
     jwt-decoder.js
     jwt-decoder.ui.js
     pdf-template-fields.js

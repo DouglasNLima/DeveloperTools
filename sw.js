@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v7';
+const CACHE_NAME = 'developer-tools-static-v8';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -38,6 +38,8 @@ const PRECACHE_URLS = [
   './src/tools/json-diff.ui.js',
   './src/tools/json-formatter.js',
   './src/tools/json-formatter.ui.js',
+  './src/tools/json-schema-validator.js',
+  './src/tools/json-schema-validator.ui.js',
   './src/tools/jwt-decoder.js',
   './src/tools/jwt-decoder.ui.js',
   './src/tools/pdf-template-fields.js',

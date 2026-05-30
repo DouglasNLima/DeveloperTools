@@ -26,7 +26,8 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - CSV/TSV helper for inspecting, cleaning and converting delimited data.
 - JSON/XML data explorer for guided JSON queries and local grid review of JSON or XML records.
 - JSON shape/schema generation for payload contracts and draft 2020-12 schema output.
-- Status: JSON formatter/validator, JSON shape/schema generation, JSON diff, CSV/TSV helper and JSON/XML data explorer implemented.
+- JSON Schema validator with local refs and path-level validation errors.
+- Status: JSON formatter/validator, JSON shape/schema generation, JSON diff, JSON Schema validator, CSV/TSV helper and JSON/XML data explorer implemented.
 
 ## Phase 4: Documents
 
