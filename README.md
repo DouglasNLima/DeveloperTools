@@ -7,6 +7,7 @@ The current foundation includes:
 - Base64 to file
 - File to Base64
 - Image converter
+- Image OCR
 - Mermaid editor & exporter
 - Mermaid template builder
 - Data to Mermaid
@@ -52,6 +53,8 @@ Open `index.html` directly in a browser, or serve the folder with any static fil
 When served from GitHub Pages, localhost or another HTTPS origin, Microsoft Edge can install the app on Windows using its native app install option. After the first online load, the service worker caches the static app shell and vendored assets so the installed app can reopen and run offline. Opening `index.html` directly with `file://` still works for normal local use, but browsers do not allow service worker registration from that origin.
 
 The home page includes a transparency section that explains the local-first philosophy and names runtime and testing libraries. Runtime libraries are bundled locally for the published app; testing-only libraries support development and are not loaded by the published app.
+
+Image OCR loads its vendored Tesseract.js worker, WASM core and English language data only when OCR runs. Those assets are served from the same static origin and are cached by the service worker after first use, so OCR can run offline after it has been opened once online from GitHub Pages, localhost or another HTTPS origin.
 
 For the test runner and local development tooling:
 
@@ -114,6 +117,8 @@ src/
     hash-checksums.ui.js
     image-converter.js
     image-converter.ui.js
+    image-ocr.js
+    image-ocr.ui.js
     integration-contracts.js
     json-diff.js
     json-diff.ui.js
@@ -179,6 +184,7 @@ src/
   vendor/
     mermaid/
     pdfjs/
+    tesseract/
 tests/
   browser/
   support/

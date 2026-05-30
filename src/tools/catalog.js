@@ -24,6 +24,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'image-converter'
   },
   {
+    id: 'image-ocr',
+    title: 'Image OCR',
+    category: 'Encoding & files',
+    status: 'available',
+    summary: 'Extract English text from local images with browser-only OCR.',
+    renderer: 'image-ocr'
+  },
+  {
     id: 'mermaid-editor',
     title: 'Mermaid editor & exporter',
     category: 'Charts & diagrams',

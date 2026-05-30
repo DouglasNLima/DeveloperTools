@@ -34,6 +34,7 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(pdfJsLink).toHaveAttribute('target', '_blank');
   await expect(pdfJsLink).toHaveAttribute('rel', /noopener noreferrer/);
   await expect(transparency.locator('[data-library-name="PDF.js"]')).toContainText('PDF Template Field Explorer');
+  await expect(transparency.locator('[data-library-name="Tesseract.js"]')).toContainText('Image OCR');
   await expect(transparency.locator('.home-library-card').filter({ hasText: 'Not loaded by published app' })).toHaveCount(3);
   expect(await page.locator('#activeToolStatus').evaluate(element => getComputedStyle(element).color))
     .toMatch(/rgb\((2, 122, 72|101, 217, 159)\)/);
@@ -2545,6 +2546,77 @@ test('reports Image converter validation errors', async ({ page }) => {
   await expect(page.locator('.image-result-card.error')).toContainText('Choose SVG, PNG, JPEG or WebP');
 });
 
+test('extracts text from a local image with browser OCR', async ({ page }) => {
+  test.setTimeout(120000);
+  await page.goto('/#image-ocr');
+
+  await expect(page.getByRole('heading', { name: 'Image OCR' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="image-ocr"]')).toHaveAttribute('aria-current', 'page');
+  await page.setInputFiles('#imageOcrFileInput', {
+    name: 'hello-ocr.png',
+    mimeType: 'image/png',
+    buffer: await createOcrPng(page, 'HELLO OCR')
+  });
+
+  await expect(page.locator('#imageOcrSelectedFile')).toHaveText('hello-ocr.png');
+  await expect(page.locator('#imageOcrTypeDetail')).toHaveText('PNG');
+  await page.getByRole('button', { name: 'Run OCR', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText(/OCR completed/, { timeout: 90000 });
+  await expect(page.locator('#imageOcrOutput')).toHaveValue(/HELLO\s+OCR/i);
+  await expect(page.locator('#imageOcrOutputDetail')).toHaveText('Text extracted');
+  await expect(page.locator('#imageOcrWordsDetail')).toHaveText(/[1-9]/);
+  await expect(page.locator('#downloadImageOcrButton')).toHaveAttribute('download', 'hello-ocr.ocr.txt');
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this text');
+});
+
+test('reports Image OCR validation errors', async ({ page }) => {
+  await page.goto('/#image-ocr');
+
+  await page.getByRole('button', { name: 'Run OCR', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Select an image before running OCR.');
+
+  await page.setInputFiles('#imageOcrFileInput', {
+    name: 'notes.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('HELLO OCR')
+  });
+  await page.getByRole('button', { name: 'Run OCR', exact: true }).click();
+
+  await expect(page.getByRole('status')).toContainText('Unsupported image type');
+  await expect(page.locator('.image-result-card.error')).toContainText('Choose PNG, JPEG, WebP, BMP or non-animated GIF');
+});
+
+test('loads Image OCR assets offline after first OCR use', async ({ page }) => {
+  test.setTimeout(180000);
+  await primeOfflineApp(page);
+  await page.goto('/#image-ocr');
+  await page.setInputFiles('#imageOcrFileInput', {
+    name: 'online-ocr.png',
+    mimeType: 'image/png',
+    buffer: await createOcrPng(page, 'ONLINE OCR')
+  });
+  await page.getByRole('button', { name: 'Run OCR', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText(/OCR completed/, { timeout: 90000 });
+
+  await page.context().setOffline(true);
+
+  try {
+    await page.goto('/#image-ocr');
+    await page.setInputFiles('#imageOcrFileInput', {
+      name: 'offline-ocr.png',
+      mimeType: 'image/png',
+      buffer: await createOcrPng(page, 'OFFLINE OCR')
+    });
+    await page.getByRole('button', { name: 'Run OCR', exact: true }).click();
+
+    await expect(page.getByRole('status')).toContainText(/OCR completed/, { timeout: 90000 });
+    await expect(page.locator('#imageOcrOutput')).toHaveValue(/OFFLINE\s+OCR/i);
+  } finally {
+    await page.context().setOffline(false);
+  }
+});
+
 test('renders Mermaid diagrams and exposes local exports', async ({ page }) => {
   await page.goto('/#mermaid-editor');
 
@@ -2950,6 +3022,26 @@ async function createFillablePdf() {
 
   form.updateFieldAppearances(font);
   return Buffer.from(await pdfDoc.save());
+}
+
+async function createOcrPng(page, text) {
+  const base64 = await page.evaluate(value => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    canvas.width = 900;
+    canvas.height = 260;
+    context.fillStyle = '#ffffff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#000000';
+    context.font = 'bold 96px Arial, sans-serif';
+    context.textBaseline = 'middle';
+    context.fillText(value, 64, 130);
+
+    return canvas.toDataURL('image/png').split(',')[1];
+  }, text);
+
+  return Buffer.from(base64, 'base64');
 }
 
 async function dropFile(page, selector, file) {

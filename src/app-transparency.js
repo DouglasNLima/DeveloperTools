@@ -33,6 +33,15 @@ export const TRANSPARENCY_LIBRARY_ENTRIES = [
     note: 'Bundled locally under src/vendor/mermaid; no CDN request is made.'
   },
   {
+    name: 'Tesseract.js',
+    website: 'https://tesseract.projectnaptha.com/',
+    scope: 'Runtime',
+    usage: 'Runs local OCR in a browser worker with vendored English language data.',
+    usedBy: ['Image OCR'],
+    loadedByPublishedApp: true,
+    note: 'Bundled locally under src/vendor/tesseract and loaded only when Image OCR runs.'
+  },
+  {
     name: 'Playwright',
     website: 'https://playwright.dev/',
     scope: 'Testing only',

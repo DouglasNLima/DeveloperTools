@@ -23,6 +23,7 @@ import { renderDataExplorer } from './tools/data-explorer.ui.js';
 import { renderHashChecksums } from './tools/hash-checksums.ui.js';
 import { renderHtmlCleaner } from './tools/html-cleaner.ui.js';
 import { renderImageConverter } from './tools/image-converter.ui.js';
+import { renderImageOcr } from './tools/image-ocr.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJsonSchemaValidator } from './tools/json-schema-validator.ui.js';
@@ -62,6 +63,7 @@ const renderers = {
   'hash-checksums': renderHashChecksums,
   'html-cleaner-converter': renderHtmlCleaner,
   'image-converter': renderImageConverter,
+  'image-ocr': renderImageOcr,
   'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
   'json-schema-validator': renderJsonSchemaValidator,

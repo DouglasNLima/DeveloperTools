@@ -29,6 +29,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'regex-tester'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'text-diff'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'image-ocr'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'file-to-base64'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'curl-fetch-converter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'dataverse-odata-query-builder'));
@@ -49,6 +50,7 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'image-ocr' && route.targetToolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'file-to-base64' && route.targetToolId === 'base64-to-file'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'curl-fetch-converter' && route.targetToolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'extract-fenced-fetch'));
@@ -494,6 +496,20 @@ test('resolves suggestions for text handover sources', () => {
     root,
     availableTools: ['regex-tester', 'markdown-preview-inspector', 'text-diff', 'case-converter', 'html-cleaner-converter']
   }), []);
+
+  const ocrRoot = createRoot([
+    createControl({ id: 'imageOcrOutput', tagName: 'TEXTAREA', value: 'HELLO OCR' })
+  ]);
+  const ocrSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'image-ocr',
+    root: ocrRoot,
+    availableTools: ['support-pack-sanitiser', 'regex-tester', 'text-diff']
+  });
+
+  assert.ok(ocrSuggestions.every(suggestion => suggestion.kind === 'text'));
+  assert.ok(ocrSuggestions.some(suggestion => suggestion.label === 'Sanitise text'));
+  assert.ok(ocrSuggestions.some(suggestion => suggestion.label === 'Test with regex'));
+  assert.ok(ocrSuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
 });
 
 test('resolves suggestions for API and Power Platform text sources', () => {

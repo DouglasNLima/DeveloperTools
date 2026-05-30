@@ -31,6 +31,10 @@ const REQUEST_TEXT_SOURCE_PORTS = [
 ];
 
 const TEXT_HANDOVER_ROUTES = [
+  createTextRoute('image-ocr', 'output', 'support-pack-sanitiser', 'input', 'Sanitise text', 'Use this OCR text as input for the support pack sanitiser.'),
+  createTextRoute('image-ocr', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this OCR text as the test text for the regex tester.'),
+  createTextRoute('image-ocr', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this OCR text as the left side of a text diff.'),
+  createTextRoute('image-ocr', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this OCR text as the right side of a text diff.'),
   createTextRoute('support-pack-sanitiser', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('support-pack-sanitiser', 'output', 'markdown-preview-inspector', 'input', 'Preview Markdown', 'Open this output in the Markdown preview and inspector.'),
   createTextRoute('support-pack-sanitiser', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
@@ -543,6 +547,19 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         label: 'Field mapping JSON',
         mediaType: 'application/json',
         kind: 'json'
+      }
+    ],
+    inputs: []
+  },
+  {
+    toolId: 'image-ocr',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#imageOcrOutput',
+        label: 'OCR text',
+        mediaType: 'text/plain',
+        kind: 'text'
       }
     ],
     inputs: []
