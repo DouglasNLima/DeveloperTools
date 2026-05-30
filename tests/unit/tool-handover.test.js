@@ -30,7 +30,9 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'file-to-base64'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'curl-fetch-converter'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'dataverse-odata-query-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-pages-web-api-snippets'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'fetchxml-liquid-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-automate-expression-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-fx-snippet-formatter'));
@@ -39,6 +41,9 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'file-to-base64' && route.targetToolId === 'base64-to-file'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'curl-fetch-converter' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'text-diff'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'data-explorer' && route.targetInputId === 'xml'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-cli-command-builder' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-automate-expression-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-fx-snippet-formatter' && route.targetToolId === 'text-diff'));
@@ -69,7 +74,7 @@ test('detects populated JSON, invalid JSON and JSON Schema payloads', () => {
   assert.equal(schema.kind, 'json-schema');
 });
 
-test('detects populated text and Base64 handover values', () => {
+test('detects populated text, Base64 and XML handover values', () => {
   assert.deepEqual(analyseHandoverValue('', 'text'), {
     valid: false,
     reason: 'empty'
@@ -88,6 +93,21 @@ test('detects populated text and Base64 handover values', () => {
   assert.deepEqual(analyseHandoverValue('not valid !', 'base64'), {
     valid: false,
     reason: 'invalid-base64'
+  });
+
+  const xml = analyseHandoverValue('  <fetch><entity name="account"/></fetch>  ', 'xml');
+  assert.equal(xml.valid, true);
+  assert.equal(xml.kind, 'xml');
+  assert.equal(xml.rawValue, '<fetch><entity name="account"/></fetch>');
+
+  assert.deepEqual(analyseHandoverValue('{% fetchxml accounts %}<fetch />{% endfetchxml %}', 'xml'), {
+    valid: false,
+    reason: 'invalid-xml'
+  });
+
+  assert.deepEqual(analyseHandoverValue('<fetch><entity></fetch>', 'xml'), {
+    valid: false,
+    reason: 'invalid-xml'
   });
 });
 
@@ -172,6 +192,7 @@ test('resolves suggestions for text handover sources', () => {
 test('resolves suggestions for API and Power Platform text sources', () => {
   for (const [toolId, outputId, availableTools, expectedLabels] of [
     ['curl-fetch-converter', 'curlFetchOutput', ['support-pack-sanitiser', 'regex-tester', 'text-diff'], ['Sanitise request', 'Test with regex', 'Compare as left text']],
+    ['dataverse-odata-query-builder', 'odataOutput', ['support-pack-sanitiser', 'text-diff'], ['Sanitise query', 'Compare as left text']],
     ['power-pages-web-api-snippets', 'webApiSnippetOutput', ['support-pack-sanitiser'], ['Sanitise snippet']],
     ['power-platform-cli-command-builder', 'pacOutput', ['support-pack-sanitiser', 'text-diff'], ['Sanitise command', 'Compare as left text']],
     ['power-automate-expression-formatter', 'flowExpressionOutput', ['text-diff'], ['Compare as left text', 'Compare as right text']],
@@ -198,6 +219,41 @@ test('resolves suggestions for API and Power Platform text sources', () => {
       availableTools
     }), []);
   }
+});
+
+test('resolves XML and Data Explorer text handover sources', () => {
+  const fetchXmlRoot = createRoot([
+    createControl({ id: 'powerPagesOutput', tagName: 'TEXTAREA', value: '<fetch><entity name="account"/></fetch>' })
+  ]);
+  const xmlSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'fetchxml-liquid-builder',
+    root: fetchXmlRoot,
+    availableTools: ['data-explorer']
+  });
+
+  assert.equal(xmlSuggestions.length, 1);
+  assert.equal(xmlSuggestions[0].kind, 'xml');
+  assert.equal(xmlSuggestions[0].targetInputId, 'xml');
+  assert.equal(xmlSuggestions[0].label, 'Explore XML data');
+
+  fetchXmlRoot.controls[0].value = '{% fetchxml accounts %}\n<fetch />\n{% endfetchxml %}';
+  assert.deepEqual(resolveHandoverSuggestions({
+    sourceToolId: 'fetchxml-liquid-builder',
+    root: fetchXmlRoot,
+    availableTools: ['data-explorer']
+  }), []);
+
+  const dataExplorerRoot = createRoot([
+    createControl({ id: 'dataExplorerOutput', tagName: 'TEXTAREA', value: '[{"name":"Ada"}]' })
+  ]);
+  const textSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'data-explorer',
+    root: dataExplorerRoot,
+    availableTools: ['text-diff']
+  });
+
+  assert.ok(textSuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
+  assert.ok(textSuggestions.some(suggestion => suggestion.label === 'Compare as right text'));
 });
 
 test('resolves suggestions for Base64 handover sources', () => {
@@ -286,6 +342,10 @@ test('applies handover payloads and restores serialised form state', () => {
   assert.equal(targetRoot.querySelector('#dataExplorerFormat').value, 'json');
   assert.equal(targetRoot.querySelector('#dataExplorerRecordPath').value, 'items');
   assert.equal(targetRoot.querySelector('#dataExplorerInput').value, '[{"name":"Ada"}]');
+
+  assert.equal(applyHandoverPayload(targetRoot, 'data-explorer', 'xml', '<fetch />'), true);
+  assert.equal(targetRoot.querySelector('#dataExplorerFormat').value, 'xml');
+  assert.equal(targetRoot.querySelector('#dataExplorerInput').value, '<fetch />');
 
   const textTargetRoot = createRoot([
     createControl({ id: 'regexText', tagName: 'TEXTAREA', value: '' })

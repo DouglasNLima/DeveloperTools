@@ -1,6 +1,6 @@
 export const APP_NAME = 'Developer Tools';
 export const APP_VERSION = '0.1.0';
-export const APP_BUILD = '12';
+export const APP_BUILD = '13';
 
 export const APP_TITLE = formatAppTitle({
   name: APP_NAME,

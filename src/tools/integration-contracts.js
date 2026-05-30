@@ -28,6 +28,9 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('curl-fetch-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('curl-fetch-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('curl-fetch-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('dataverse-odata-query-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise query', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('dataverse-odata-query-builder', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('dataverse-odata-query-builder', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('power-pages-web-api-snippets', 'output', 'support-pack-sanitiser', 'input', 'Sanitise snippet', 'Use this output as input for the support pack sanitiser.'),
   createTextRoute('power-platform-cli-command-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise command', 'Use this output as input for the support pack sanitiser.'),
   createTextRoute('power-platform-cli-command-builder', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
@@ -184,12 +187,24 @@ export const TOOL_INTEGRATION_CONTRACTS = [
       {
         id: 'input',
         selector: '#dataExplorerInput',
-        label: 'JSON or XML input',
+        label: 'JSON input',
         kind: 'json',
         setFields: [
           {
             selector: '#dataExplorerFormat',
             value: 'json'
+          }
+        ]
+      },
+      {
+        id: 'xml',
+        selector: '#dataExplorerInput',
+        label: 'XML input',
+        kind: 'xml',
+        setFields: [
+          {
+            selector: '#dataExplorerFormat',
+            value: 'xml'
           }
         ]
       }
@@ -368,6 +383,19 @@ export const TOOL_INTEGRATION_CONTRACTS = [
     ]
   },
   {
+    toolId: 'dataverse-odata-query-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#odataOutput',
+        label: 'Output',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      }
+    ],
+    inputs: []
+  },
+  {
     toolId: 'power-pages-web-api-snippets',
     outputs: [
       {
@@ -379,6 +407,26 @@ export const TOOL_INTEGRATION_CONTRACTS = [
       }
     ],
     inputs: []
+  },
+  {
+    toolId: 'fetchxml-liquid-builder',
+    outputs: [
+      {
+        id: 'output',
+        selector: '#powerPagesOutput',
+        label: 'Output',
+        mediaType: 'application/xml',
+        kind: 'xml'
+      }
+    ],
+    inputs: [
+      {
+        id: 'input',
+        selector: '#fetchXmlInput',
+        label: 'FetchXML input',
+        kind: 'xml'
+      }
+    ]
   },
   {
     toolId: 'power-platform-cli-command-builder',
@@ -445,6 +493,36 @@ export const TOOL_HANDOVER_ROUTES = [
     label: 'Use as JSON Schema',
     description: 'Load this output as the schema for JSON validation.'
   })),
+  {
+    id: 'fetchxml-liquid-builder-output-to-data-explorer-xml',
+    sourceToolId: 'fetchxml-liquid-builder',
+    sourceOutputId: 'output',
+    targetToolId: 'data-explorer',
+    targetInputId: 'xml',
+    acceptKinds: ['xml'],
+    label: 'Explore XML data',
+    description: 'Load this output into the JSON/XML data explorer.'
+  },
+  {
+    id: 'data-explorer-output-to-text-diff-left',
+    sourceToolId: 'data-explorer',
+    sourceOutputId: 'output',
+    targetToolId: 'text-diff',
+    targetInputId: 'left',
+    acceptKinds: ['json', 'json-schema'],
+    label: 'Compare as left text',
+    description: 'Use this JSON output as the left side of a text diff.'
+  },
+  {
+    id: 'data-explorer-output-to-text-diff-right',
+    sourceToolId: 'data-explorer',
+    sourceOutputId: 'output',
+    targetToolId: 'text-diff',
+    targetInputId: 'right',
+    acceptKinds: ['json', 'json-schema'],
+    label: 'Compare as right text',
+    description: 'Use this JSON output as the right side of a text diff.'
+  },
   ...TEXT_HANDOVER_ROUTES,
   {
     id: 'file-to-base64-output-to-base64-to-file-content',

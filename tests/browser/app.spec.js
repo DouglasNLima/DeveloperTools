@@ -917,6 +917,25 @@ test('flattens XML data into a grid and JSON export', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('XML data explored successfully.');
 });
 
+test('hands Data Explorer JSON output to text diff', async ({ page }) => {
+  await page.goto('/#data-explorer');
+
+  await page.getByLabel('Input format').selectOption('xml');
+  await page.getByLabel('JSON or XML input').fill([
+    '<contacts>',
+    '  <contact id="1"><name>Ada Lovelace</name></contact>',
+    '  <contact id="2"><name>Grace Hopper</name></contact>',
+    '</contacts>'
+  ].join('\n'));
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await page.locator('#toolHandover').getByRole('button', { name: /JSON output: Compare as left text/ }).click();
+
+  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/"@id": "1"/);
+  await expect(page.getByLabel('Left text')).toHaveValue(/"name": "Ada Lovelace"/);
+  await expect(page.getByLabel('Right text')).toHaveValue('');
+});
+
 test('converts CSV input to JSON array output', async ({ page }) => {
   await page.goto('/#csv-tsv-helper');
 
@@ -1718,6 +1737,22 @@ test('builds Dataverse OData queries and reports validation errors', async ({ pa
   await expect(page.getByRole('status')).toContainText('Enter the Dataverse EntitySetName.');
 });
 
+test('hands Dataverse OData reports to the support sanitiser', async ({ page }) => {
+  await page.goto('/#dataverse-odata-query-builder');
+
+  await page.getByLabel('EntitySetName').fill('accounts');
+  await page.getByLabel('Columns / $select').fill('name, accountnumber');
+  await page.getByLabel('$filter', { exact: true }).fill('statecode eq 0');
+  await page.getByRole('button', { name: 'Build query', exact: true }).click();
+
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this text');
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Sanitise query/ }).click();
+
+  await expect(page).toHaveURL(/#support-pack-sanitiser$/);
+  await expect(page.getByLabel('Support pack input')).toHaveValue(/Dataverse OData/);
+  await expect(page.getByLabel('Support pack input')).toHaveValue(/\/api\/data\/v9\.2\/accounts/);
+});
+
 test('uses Dataverse OData presets, guided expands and advanced warnings', async ({ page }) => {
   await page.goto('/#dataverse-odata-query-builder');
 
@@ -2049,6 +2084,38 @@ test('formats FetchXML and builds a Power Pages Liquid block', async ({ page }) 
   ].join('\n'));
   await expect(page.locator('#powerPagesOutputType')).toHaveText('Liquid');
   await expect(page.locator('#downloadPowerPagesOutputButton')).toHaveAttribute('download', 'power-pages-fetchxml.liquid');
+});
+
+test('hands formatted FetchXML to Data Explorer as XML', async ({ page }) => {
+  await page.goto('/#fetchxml-liquid-builder');
+
+  const fetchXml = '<fetch><entity name="account"><attribute name="name" /></entity></fetch>';
+
+  await page.getByLabel('FetchXML input').fill(fetchXml);
+  await page.getByRole('button', { name: 'Format FetchXML', exact: true }).click();
+
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this XML');
+  await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore XML data/ }).click();
+
+  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page.getByLabel('Input format')).toHaveValue('xml');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(/<entity name="account">/);
+
+  await page.getByRole('button', { name: 'Explore data', exact: true }).click();
+  await expect(page.locator('#dataExplorerFormatDetail')).toHaveText('XML');
+  await expect(page.locator('#dataExplorerPathDetail')).toHaveText('/fetch');
+  await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('1');
+  await expect(page.locator('#dataExplorerOutput')).toHaveValue(/"entity\.@name": "account"/);
+});
+
+test('does not offer XML handover for generated Liquid FetchXML blocks', async ({ page }) => {
+  await page.goto('/#fetchxml-liquid-builder');
+
+  await page.getByLabel('FetchXML input').fill('<fetch><entity name="account" /></fetch>');
+  await page.getByRole('button', { name: 'Build Liquid', exact: true }).click();
+
+  await expect(page.locator('#powerPagesOutputType')).toHaveText('Liquid');
+  await expect(page.locator('#toolHandover')).toBeHidden();
 });
 
 async function createFillablePdf() {

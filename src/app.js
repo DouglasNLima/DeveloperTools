@@ -587,6 +587,10 @@ function getHandoverSectionTitle(suggestions) {
     return 'Continue with this text';
   }
 
+  if (kinds.has('xml') && kinds.size === 1) {
+    return 'Continue with this XML';
+  }
+
   if (kinds.has('json-schema')) {
     return 'Continue with this JSON or schema';
   }

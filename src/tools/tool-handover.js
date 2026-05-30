@@ -13,7 +13,7 @@ const JSON_SCHEMA_TYPES = new Set([
   'string'
 ]);
 
-const HANDOVER_KINDS = new Set(['base64', 'json', 'json-schema', 'text']);
+const HANDOVER_KINDS = new Set(['base64', 'json', 'json-schema', 'text', 'xml']);
 
 export function getToolIntegrationContract(toolId, contracts = TOOL_INTEGRATION_CONTRACTS) {
   return contracts.find(contract => contract.toolId === toolId) || null;
@@ -75,6 +75,22 @@ export function analyseHandoverValue(value, expectedKind = 'text') {
       rawValue: trimmedValue,
       parsedValue: null,
       kind: 'base64'
+    };
+  }
+
+  if (expectedKind === 'xml') {
+    if (!isXmlHandoverValue(trimmedValue)) {
+      return {
+        valid: false,
+        reason: 'invalid-xml'
+      };
+    }
+
+    return {
+      valid: true,
+      rawValue: trimmedValue,
+      parsedValue: null,
+      kind: 'xml'
     };
   }
 
@@ -429,6 +445,49 @@ function extractBase64Payload(value) {
 
   const commaIndex = String(value ?? '').indexOf('base64,');
   return commaIndex >= 0 ? String(value).slice(commaIndex + 'base64,'.length) : String(value ?? '');
+}
+
+function isXmlHandoverValue(value) {
+  const trimmedValue = String(value ?? '').trim();
+
+  if (!trimmedValue.startsWith('<')) {
+    return false;
+  }
+
+  const tags = trimmedValue.match(/<[^>]+>/g) || [];
+  const stack = [];
+  let rootCount = 0;
+
+  for (const tag of tags) {
+    if (/^<\?/.test(tag) || /^<!--/.test(tag) || /^<!\[CDATA\[/.test(tag) || /^<!doctype\s/i.test(tag)) {
+      continue;
+    }
+
+    const nameMatch = tag.match(/^<\s*\/?\s*([A-Za-z_][\w:.-]*)/);
+
+    if (!nameMatch) {
+      return false;
+    }
+
+    const name = nameMatch[1];
+
+    if (/^<\s*\//.test(tag)) {
+      if (stack.pop() !== name) {
+        return false;
+      }
+      continue;
+    }
+
+    if (stack.length === 0) {
+      rootCount += 1;
+    }
+
+    if (!/\/\s*>$/.test(tag)) {
+      stack.push(name);
+    }
+  }
+
+  return rootCount === 1 && stack.length === 0;
 }
 
 function escapeSelectorId(id) {
