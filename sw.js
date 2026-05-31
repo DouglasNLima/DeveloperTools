@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v34';
+const CACHE_NAME = 'developer-tools-static-v38';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -65,7 +65,9 @@ const PRECACHE_URLS = [
   './src/tools/mermaid-studio.ui.js',
   './src/tools/mermaid-template-builder.ui.js',
   './src/tools/model-driven-javascript.js',
+  './src/tools/model-driven-javascript-workbench.ui.js',
   './src/tools/model-driven-javascript.ui.js',
+  './src/tools/model-driven-solution-inspector.ui.js',
   './src/tools/model-driven-solution-javascript.js',
   './src/tools/model-driven-solution-javascript.ui.js',
   './src/tools/pdf-template-fields.js',
@@ -101,12 +103,14 @@ const PRECACHE_URLS = [
   './src/tools/support-pack-sanitiser.ui.js',
   './src/tools/syntax-highlight.js',
   './src/tools/tool-handover.js',
+  './src/tools/text-utilities-workbench.ui.js',
   './src/tools/text-diff.js',
   './src/tools/text-diff.ui.js',
   './src/tools/url-codec.js',
   './src/tools/url-codec.ui.js',
   './src/tools/uuid-generator.js',
   './src/tools/uuid-generator.ui.js',
+  './src/tools/web-api-workbench.ui.js',
   './src/tools/workbench.js',
   './src/vendor/mermaid/LICENSE',
   './src/vendor/mermaid/chunks/mermaid.esm.min/architecture-7EHR7CIX-6QZW5X65.mjs',

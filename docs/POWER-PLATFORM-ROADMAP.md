@@ -2,7 +2,7 @@
 
 This roadmap covers Power Platform tools beyond the first Power Pages mini-roadmap. Every tool remains static, local-first and browser-only. The app can help compose snippets, commands and review artefacts, but it must not connect to Dataverse, call a tenant API, authenticate a user or run Power Platform CLI commands.
 
-Status: the implemented solution ZIP phases are consolidated in the Solution Package Inspector, with legacy route aliases preserved for the original standalone tools.
+Status: the implemented solution ZIP phases are consolidated in the Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools.
 
 ## References
 

@@ -387,12 +387,82 @@ export const TOOL_CATALOGUE = [
     renderer: 'power-fx-snippet-formatter'
   },
   {
+    id: 'model-driven-javascript-workbench',
+    title: 'Model-driven JavaScript Workbench',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Review, migrate and generate model-driven app JavaScript snippets locally.',
+    renderer: 'model-driven-javascript-workbench',
+    modes: [
+      {
+        id: 'review',
+        title: 'Review',
+        summary: 'Review model-driven app JavaScript for Client API, async OnSave and command-context risks.'
+      },
+      {
+        id: 'migration',
+        title: 'Migration',
+        summary: 'Convert Xrm.Page review notes into formContext migration guidance and handler skeletons.'
+      },
+      {
+        id: 'form-events',
+        title: 'Form events',
+        summary: 'Generate model-driven app OnLoad, OnSave, OnChange and subgrid handler boilerplate.'
+      },
+      {
+        id: 'web-api',
+        title: 'Web API',
+        summary: 'Generate local model-driven app Xrm.WebApi snippets with warnings and error handling.'
+      },
+      {
+        id: 'validation',
+        title: 'Validation',
+        summary: 'Build guarded form notification and validation snippets for model-driven app fields.'
+      },
+      {
+        id: 'command-bar',
+        title: 'Command bar',
+        summary: 'Generate JavaScript command handlers for form and grid command bars.'
+      }
+    ],
+    defaultMode: 'review',
+    legacyIds: [
+      'model-driven-javascript-reviewer',
+      'client-api-migration-helper',
+      'form-event-handler-builder',
+      'xrm-webapi-snippet-builder',
+      'form-notification-validation-builder',
+      'command-bar-javascript-builder'
+    ],
+    modeAliases: {
+      'model-driven-javascript-reviewer': 'review',
+      'client-api-migration-helper': 'migration',
+      'form-event-handler-builder': 'form-events',
+      'xrm-webapi-snippet-builder': 'web-api',
+      'form-notification-validation-builder': 'validation',
+      'command-bar-javascript-builder': 'command-bar'
+    },
+    searchTerms: [
+      'Model-driven JavaScript Reviewer',
+      'Client API Migration Helper',
+      'Form Event Handler Builder',
+      'Xrm.WebApi Snippet Builder',
+      'Form Notification & Validation Builder',
+      'Command Bar JavaScript Builder',
+      'Xrm.Page',
+      'formContext',
+      'executionContext',
+      'model-driven app client scripting'
+    ]
+  },
+  {
     id: 'model-driven-javascript-reviewer',
     title: 'Model-driven JavaScript Reviewer',
     category: 'Power Platform',
     status: 'available',
     summary: 'Review model-driven app JavaScript for Client API, async OnSave and command-context risks.',
-    renderer: 'model-driven-javascript-reviewer'
+    renderer: 'model-driven-javascript-reviewer',
+    hidden: true
   },
   {
     id: 'client-api-migration-helper',
@@ -400,7 +470,8 @@ export const TOOL_CATALOGUE = [
     category: 'Power Platform',
     status: 'available',
     summary: 'Convert Xrm.Page review notes into formContext migration guidance and handler skeletons.',
-    renderer: 'client-api-migration-helper'
+    renderer: 'client-api-migration-helper',
+    hidden: true
   },
   {
     id: 'form-event-handler-builder',
@@ -408,7 +479,8 @@ export const TOOL_CATALOGUE = [
     category: 'Power Platform',
     status: 'available',
     summary: 'Generate model-driven app OnLoad, OnSave, OnChange and subgrid handler boilerplate.',
-    renderer: 'form-event-handler-builder'
+    renderer: 'form-event-handler-builder',
+    hidden: true
   },
   {
     id: 'xrm-webapi-snippet-builder',
@@ -416,7 +488,8 @@ export const TOOL_CATALOGUE = [
     category: 'Power Platform',
     status: 'available',
     summary: 'Generate local model-driven app Xrm.WebApi snippets with warnings and error handling.',
-    renderer: 'xrm-webapi-snippet-builder'
+    renderer: 'xrm-webapi-snippet-builder',
+    hidden: true
   },
   {
     id: 'form-notification-validation-builder',
@@ -424,7 +497,8 @@ export const TOOL_CATALOGUE = [
     category: 'Power Platform',
     status: 'available',
     summary: 'Build guarded form notification and validation snippets for model-driven app fields.',
-    renderer: 'form-notification-validation-builder'
+    renderer: 'form-notification-validation-builder',
+    hidden: true
   },
   {
     id: 'command-bar-javascript-builder',
@@ -432,7 +506,45 @@ export const TOOL_CATALOGUE = [
     category: 'Power Platform',
     status: 'available',
     summary: 'Generate JavaScript command handlers for form and grid command bars.',
-    renderer: 'command-bar-javascript-builder'
+    renderer: 'command-bar-javascript-builder',
+    hidden: true
+  },
+  {
+    id: 'model-driven-solution-inspector',
+    title: 'Model-driven Solution Inspector',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Inspect model-driven JavaScript events and web resource dependencies from exported solution ZIP files.',
+    renderer: 'model-driven-solution-inspector',
+    modes: [
+      {
+        id: 'events',
+        title: 'Events',
+        summary: 'Inspect exported solution ZIP files for JavaScript libraries, handlers and source findings.'
+      },
+      {
+        id: 'dependencies',
+        title: 'Dependencies',
+        summary: 'Map JavaScript web resources, handlers, forms and HTML source references from solution exports.'
+      }
+    ],
+    defaultMode: 'events',
+    legacyIds: [
+      'solution-javascript-event-inspector',
+      'web-resource-dependency-mapper'
+    ],
+    modeAliases: {
+      'solution-javascript-event-inspector': 'events',
+      'web-resource-dependency-mapper': 'dependencies'
+    },
+    searchTerms: [
+      'Solution JavaScript Event Inspector',
+      'Web Resource Dependency Mapper',
+      'web resource dependency map',
+      'form event handlers',
+      'solution ZIP JavaScript',
+      'HTML web resources'
+    ]
   },
   {
     id: 'solution-javascript-event-inspector',
@@ -440,7 +552,8 @@ export const TOOL_CATALOGUE = [
     category: 'Power Platform',
     status: 'available',
     summary: 'Inspect exported solution ZIP files for JavaScript libraries, handlers and source findings.',
-    renderer: 'solution-javascript-event-inspector'
+    renderer: 'solution-javascript-event-inspector',
+    hidden: true
   },
   {
     id: 'web-resource-dependency-mapper',
@@ -448,7 +561,8 @@ export const TOOL_CATALOGUE = [
     category: 'Power Platform',
     status: 'available',
     summary: 'Map JavaScript web resources, handlers, forms and HTML source references from solution exports.',
-    renderer: 'web-resource-dependency-mapper'
+    renderer: 'web-resource-dependency-mapper',
+    hidden: true
   },
   {
     id: 'url-codec',
@@ -570,12 +684,58 @@ export const TOOL_CATALOGUE = [
     renderer: 'csv-tsv-helper'
   },
   {
+    id: 'web-api-workbench',
+    title: 'Web/API Workbench',
+    category: 'Web/API',
+    status: 'available',
+    summary: 'Decode tokens, build schedules and convert request snippets locally.',
+    renderer: 'web-api-workbench',
+    modes: [
+      {
+        id: 'jwt',
+        title: 'JWT',
+        summary: 'Decode JWT headers and payload claims locally with expiry insight and verification warnings.'
+      },
+      {
+        id: 'schedule',
+        title: 'Schedules',
+        summary: 'Build Cron and RRULE schedules for recurring jobs, reminders and timezone-aware handover snippets.'
+      },
+      {
+        id: 'request',
+        title: 'Requests',
+        summary: 'Convert common cURL commands into fetch snippets and back.'
+      }
+    ],
+    defaultMode: 'jwt',
+    legacyIds: ['jwt-decoder', 'cron-rrule-builder', 'curl-fetch-converter'],
+    modeAliases: {
+      'jwt-decoder': 'jwt',
+      'cron-rrule-builder': 'schedule',
+      'curl-fetch-converter': 'request'
+    },
+    searchTerms: [
+      'JWT Decoder & Claims Inspector',
+      'JWT claims',
+      'Bearer token',
+      'Cron / RRULE Builder',
+      'cron expression',
+      'recurring schedule',
+      'RRULE',
+      'cURL/fetch converter',
+      'curl request',
+      'fetch snippet',
+      'request converter'
+    ]
+  },
+  {
     id: 'jwt-decoder',
     title: 'JWT Decoder & Claims Inspector',
     category: 'Web/API',
     status: 'available',
     summary: 'Decode JWT headers and payload claims locally with expiry insight and verification warnings.',
-    renderer: 'jwt-decoder'
+    renderer: 'jwt-decoder',
+    hidden: true
   },
   {
     id: 'cron-rrule-builder',
@@ -583,7 +743,8 @@ export const TOOL_CATALOGUE = [
     category: 'Web/API',
     status: 'available',
     summary: 'Build guided cron expressions, RRULE snippets and timezone warnings for recurring jobs.',
-    renderer: 'cron-rrule-builder'
+    renderer: 'cron-rrule-builder',
+    hidden: true
   },
   {
     id: 'curl-fetch-converter',
@@ -591,7 +752,76 @@ export const TOOL_CATALOGUE = [
     category: 'Web/API',
     status: 'available',
     summary: 'Convert common cURL commands into fetch snippets and back.',
-    renderer: 'curl-fetch-converter'
+    renderer: 'curl-fetch-converter',
+    hidden: true
+  },
+  {
+    id: 'text-utilities-workbench',
+    title: 'Text Utilities Workbench',
+    category: 'Text utilities',
+    status: 'available',
+    summary: 'Test patterns, format SQL, sanitise logs, compare text, convert case and manage UUIDs locally.',
+    renderer: 'text-utilities-workbench',
+    modes: [
+      {
+        id: 'regex',
+        title: 'Regex',
+        summary: 'Test regular expressions locally with matches, groups, highlighted text and replacement previews.'
+      },
+      {
+        id: 'sql',
+        title: 'SQL',
+        summary: 'Format and linearise common SQL snippets without sending queries anywhere.'
+      },
+      {
+        id: 'sanitise',
+        title: 'Sanitise',
+        summary: 'Mask sensitive values in shared support packs, logs and payloads.'
+      },
+      {
+        id: 'diff',
+        title: 'Diff',
+        summary: 'Compare text with line-level changes and JSON reports.'
+      },
+      {
+        id: 'case',
+        title: 'Case',
+        summary: 'Convert text into common code naming styles.'
+      },
+      {
+        id: 'uuid',
+        title: 'UUID',
+        summary: 'Generate UUID v4 values, restore hyphens and validate pasted UUIDs.'
+      }
+    ],
+    defaultMode: 'regex',
+    legacyIds: [
+      'regex-tester',
+      'sql-query-formatter',
+      'support-pack-sanitiser',
+      'text-diff',
+      'case-converter',
+      'uuid-generator'
+    ],
+    modeAliases: {
+      'regex-tester': 'regex',
+      'sql-query-formatter': 'sql',
+      'support-pack-sanitiser': 'sanitise',
+      'text-diff': 'diff',
+      'case-converter': 'case',
+      'uuid-generator': 'uuid'
+    },
+    searchTerms: [
+      'Regex Tester',
+      'regular expression tester',
+      'SQL query formatter',
+      'Support Pack Sanitiser',
+      'Text diff',
+      'Case converter',
+      'UUID generator',
+      'UUID restorer',
+      'UUID validator'
+    ]
   },
   {
     id: 'regex-tester',
@@ -599,7 +829,8 @@ export const TOOL_CATALOGUE = [
     category: 'Text utilities',
     status: 'available',
     summary: 'Test regular expressions locally with matches, groups and highlighted text.',
-    renderer: 'regex-tester'
+    renderer: 'regex-tester',
+    hidden: true
   },
   {
     id: 'markdown-workbench',
@@ -657,7 +888,8 @@ export const TOOL_CATALOGUE = [
     category: 'Text utilities',
     status: 'available',
     summary: 'Format or linearise common SQL queries while preserving strings and comments.',
-    renderer: 'sql-query-formatter'
+    renderer: 'sql-query-formatter',
+    hidden: true
   },
   {
     id: 'support-pack-sanitiser',
@@ -665,7 +897,8 @@ export const TOOL_CATALOGUE = [
     category: 'Text utilities',
     status: 'available',
     summary: 'Mask sensitive values in logs, payloads, config snippets and stack traces before sharing.',
-    renderer: 'support-pack-sanitiser'
+    renderer: 'support-pack-sanitiser',
+    hidden: true
   },
   {
     id: 'text-diff',
@@ -673,7 +906,8 @@ export const TOOL_CATALOGUE = [
     category: 'Text utilities',
     status: 'available',
     summary: 'Compare plain text snippets locally with line-level changes.',
-    renderer: 'text-diff'
+    renderer: 'text-diff',
+    hidden: true
   },
   {
     id: 'html-cleaner-converter',
@@ -689,7 +923,8 @@ export const TOOL_CATALOGUE = [
     category: 'Text utilities',
     status: 'available',
     summary: 'Convert text between common casing styles used in code.',
-    renderer: 'case-converter'
+    renderer: 'case-converter',
+    hidden: true
   },
   {
     id: 'uuid-generator',
@@ -697,7 +932,8 @@ export const TOOL_CATALOGUE = [
     category: 'Text utilities',
     status: 'available',
     summary: 'Generate, restore and validate UUIDs in the browser.',
-    renderer: 'uuid-generator'
+    renderer: 'uuid-generator',
+    hidden: true
   }
 ];
 

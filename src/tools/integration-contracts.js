@@ -9,11 +9,16 @@ const JSON_SOURCE_PORTS = [
   { toolId: 'data-explorer', outputId: 'output' },
   { toolId: 'csv-tsv-helper', outputId: 'output' },
   { toolId: 'url-codec', outputId: 'output' },
+  { toolId: 'text-utilities-workbench', outputId: 'regex-output' },
+  { toolId: 'text-utilities-workbench', outputId: 'diff-output' },
   { toolId: 'regex-tester', outputId: 'output' },
   { toolId: 'text-diff', outputId: 'output' },
+  { toolId: 'web-api-workbench', outputId: 'jwt-header' },
+  { toolId: 'web-api-workbench', outputId: 'jwt-payload' },
   { toolId: 'jwt-decoder', outputId: 'header' },
   { toolId: 'jwt-decoder', outputId: 'payload' },
   { toolId: 'pdf-template-field-explorer', outputId: 'fields-json' },
+  { toolId: 'model-driven-javascript-workbench', outputId: 'review-rule-summary' },
   { toolId: 'model-driven-javascript-reviewer', outputId: 'rule-summary' }
 ];
 
@@ -26,6 +31,7 @@ const MERMAID_GENERATOR_SOURCE_PORTS = [
   { toolId: 'api-workflow-to-mermaid', outputId: 'output' },
   { toolId: 'solution-package-inspector', outputId: 'mermaid' },
   { toolId: 'power-platform-solution-mermaid', outputId: 'mermaid' },
+  { toolId: 'model-driven-solution-inspector', outputId: 'mermaid' },
   { toolId: 'web-resource-dependency-mapper', outputId: 'mermaid' }
 ];
 
@@ -37,6 +43,7 @@ const MERMAID_SOURCE_PORTS = [
 ];
 
 const REQUEST_TEXT_SOURCE_PORTS = [
+  { toolId: 'web-api-workbench', outputId: 'request-output', label: 'Create request diagram', description: 'Convert this request output into a Mermaid sequence diagram.' },
   { toolId: 'curl-fetch-converter', outputId: 'output', label: 'Create request diagram', description: 'Convert this request output into a Mermaid sequence diagram.' },
   { toolId: 'dataverse-odata-query-builder', outputId: 'output', label: 'Create Dataverse diagram', description: 'Convert this Dataverse endpoint or fetch snippet into a Mermaid sequence diagram.' },
   { toolId: 'power-pages-workbench', outputId: 'web-api-output', label: 'Create Web API diagram', description: 'Convert this Power Pages Web API snippet into a Mermaid sequence diagram.' },
@@ -74,6 +81,10 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('case-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('case-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('case-converter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('web-api-workbench', 'request-output', 'support-pack-sanitiser', 'input', 'Sanitise request', 'Use this output as input for the support pack sanitiser.'),
+  createTextRoute('web-api-workbench', 'request-output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
+  createTextRoute('web-api-workbench', 'request-output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
+  createTextRoute('web-api-workbench', 'request-output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('curl-fetch-converter', 'output', 'support-pack-sanitiser', 'input', 'Sanitise request', 'Use this output as input for the support pack sanitiser.'),
   createTextRoute('curl-fetch-converter', 'output', 'regex-tester', 'text', 'Test with regex', 'Use this output as the test text for the regex tester.'),
   createTextRoute('curl-fetch-converter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
@@ -110,6 +121,18 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('power-automate-expression-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
   createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'left', 'Compare as left text', 'Use this output as the left side of a text diff.'),
   createTextRoute('power-fx-snippet-formatter', 'output', 'text-diff', 'right', 'Compare as right text', 'Use this output as the right side of a text diff.'),
+  createTextRoute('model-driven-javascript-workbench', 'review-report', 'markdown-workbench', 'input', 'Preview review', 'Open this model-driven JavaScript review in the Markdown Workbench preview mode.', '', 'preview'),
+  createTextRoute('model-driven-javascript-workbench', 'review-report', 'support-pack-sanitiser', 'input', 'Sanitise review', 'Use this review as input for the support pack sanitiser.'),
+  createTextRoute('model-driven-javascript-workbench', 'migration-report', 'markdown-workbench', 'input', 'Preview migration report', 'Open this migration report in the Markdown Workbench preview mode.', '', 'preview'),
+  createTextRoute('model-driven-javascript-workbench', 'migration-report', 'text-diff', 'left', 'Compare migration as left text', 'Use this migration report as the left side of a text diff.'),
+  createTextRoute('model-driven-javascript-workbench', 'migration-report', 'text-diff', 'right', 'Compare migration as right text', 'Use this migration report as the right side of a text diff.'),
+  createTextRoute('model-driven-javascript-workbench', 'form-event-output', 'text-diff', 'left', 'Compare handler as left text', 'Use this handler output as the left side of a text diff.'),
+  createTextRoute('model-driven-javascript-workbench', 'form-event-output', 'text-diff', 'right', 'Compare handler as right text', 'Use this handler output as the right side of a text diff.'),
+  createTextRoute('model-driven-javascript-workbench', 'web-api-output', 'support-pack-sanitiser', 'input', 'Sanitise snippet', 'Use this Xrm.WebApi snippet as input for the support pack sanitiser.'),
+  createTextRoute('model-driven-javascript-workbench', 'web-api-output', 'mermaid-studio', 'input', 'Diagram Web API call', 'Use this Xrm.WebApi snippet in Mermaid Studio API/workflow mode.', '', 'api-workflow'),
+  createTextRoute('model-driven-javascript-workbench', 'validation-output', 'text-diff', 'left', 'Compare validation as left text', 'Use this validation output as the left side of a text diff.'),
+  createTextRoute('model-driven-javascript-workbench', 'validation-output', 'text-diff', 'right', 'Compare validation as right text', 'Use this validation output as the right side of a text diff.'),
+  createTextRoute('model-driven-javascript-workbench', 'command-output', 'support-pack-sanitiser', 'input', 'Sanitise command handler', 'Use this command handler as input for the support pack sanitiser.'),
   createTextRoute('model-driven-javascript-reviewer', 'report', 'markdown-workbench', 'input', 'Preview review', 'Open this model-driven JavaScript review in the Markdown Workbench preview mode.', '', 'preview'),
   createTextRoute('model-driven-javascript-reviewer', 'report', 'support-pack-sanitiser', 'input', 'Sanitise review', 'Use this review as input for the support pack sanitiser.'),
   createTextRoute('client-api-migration-helper', 'report', 'markdown-workbench', 'input', 'Preview migration report', 'Open this migration report in the Markdown Workbench preview mode.', '', 'preview'),
@@ -122,6 +145,12 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('form-notification-validation-builder', 'output', 'text-diff', 'left', 'Compare validation as left text', 'Use this validation output as the left side of a text diff.'),
   createTextRoute('form-notification-validation-builder', 'output', 'text-diff', 'right', 'Compare validation as right text', 'Use this validation output as the right side of a text diff.'),
   createTextRoute('command-bar-javascript-builder', 'output', 'support-pack-sanitiser', 'input', 'Sanitise command handler', 'Use this command handler as input for the support pack sanitiser.'),
+  createTextRoute('model-driven-solution-inspector', 'events', 'markdown-workbench', 'input', 'Preview event report', 'Open this JavaScript event report in the Markdown Workbench preview mode.', '', 'preview'),
+  createTextRoute('model-driven-solution-inspector', 'events', 'text-diff', 'left', 'Compare event report as left text', 'Use this event report as the left side of a text diff.'),
+  createTextRoute('model-driven-solution-inspector', 'events', 'text-diff', 'right', 'Compare event report as right text', 'Use this event report as the right side of a text diff.'),
+  createTextRoute('model-driven-solution-inspector', 'dependency-report', 'markdown-workbench', 'input', 'Preview dependency report', 'Open this dependency report in the Markdown Workbench preview mode.', '', 'preview'),
+  createTextRoute('model-driven-solution-inspector', 'dependency-report', 'text-diff', 'left', 'Compare dependency report as left text', 'Use this dependency report as the left side of a text diff.'),
+  createTextRoute('model-driven-solution-inspector', 'dependency-report', 'text-diff', 'right', 'Compare dependency report as right text', 'Use this dependency report as the right side of a text diff.'),
   createTextRoute('solution-javascript-event-inspector', 'events', 'markdown-workbench', 'input', 'Preview event report', 'Open this JavaScript event report in the Markdown Workbench preview mode.', '', 'preview'),
   createTextRoute('solution-javascript-event-inspector', 'events', 'text-diff', 'left', 'Compare event report as left text', 'Use this event report as the left side of a text diff.'),
   createTextRoute('solution-javascript-event-inspector', 'events', 'text-diff', 'right', 'Compare event report as right text', 'Use this event report as the right side of a text diff.'),
@@ -129,6 +158,7 @@ const TEXT_HANDOVER_ROUTES = [
   createTextRoute('web-resource-dependency-mapper', 'report', 'text-diff', 'left', 'Compare dependency report as left text', 'Use this dependency report as the left side of a text diff.'),
   createTextRoute('web-resource-dependency-mapper', 'report', 'text-diff', 'right', 'Compare dependency report as right text', 'Use this dependency report as the right side of a text diff.'),
   createTextRoute('support-pack-sanitiser', 'output', 'mermaid-studio', 'input', 'Diagram workflow', 'Use this output in Mermaid Studio API/workflow mode.', '', 'api-workflow'),
+  createTextRoute('web-api-workbench', 'request-output', 'mermaid-studio', 'input', 'Diagram request', 'Use this output in Mermaid Studio API/workflow mode.', '', 'api-workflow'),
   createTextRoute('curl-fetch-converter', 'output', 'mermaid-studio', 'input', 'Diagram request', 'Use this output in Mermaid Studio API/workflow mode.', '', 'api-workflow'),
   createTextRoute('dataverse-odata-query-builder', 'output', 'mermaid-studio', 'input', 'Diagram Dataverse call', 'Use this output in Mermaid Studio API/workflow mode.', '', 'api-workflow'),
   createTextRoute('power-pages-workbench', 'web-api-output', 'mermaid-studio', 'input', 'Diagram Web API call', 'Use this output in Mermaid Studio API/workflow mode.', '', 'api-workflow'),
@@ -175,6 +205,39 @@ const GENERIC_JSON_TARGETS = [
     description: 'Load this output into JSON & Data Workbench explore mode.'
   }
 ];
+
+const TEXT_UTILITY_WORKBENCH_TARGETS = {
+  'regex-tester:text': {
+    inputId: 'regex-text',
+    mode: 'regex',
+    description: 'Open this output in Text Utilities Workbench regex mode.'
+  },
+  'support-pack-sanitiser:input': {
+    inputId: 'sanitise-input',
+    mode: 'sanitise',
+    description: 'Open this output in Text Utilities Workbench sanitise mode.'
+  },
+  'text-diff:left': {
+    inputId: 'diff-left',
+    mode: 'diff',
+    description: 'Use this output as the left side of a Text Utilities Workbench diff.'
+  },
+  'text-diff:right': {
+    inputId: 'diff-right',
+    mode: 'diff',
+    description: 'Use this output as the right side of a Text Utilities Workbench diff.'
+  },
+  'case-converter:input': {
+    inputId: 'case-input',
+    mode: 'case',
+    description: 'Open this output in Text Utilities Workbench case mode.'
+  }
+};
+
+const TEXT_UTILITY_WORKBENCH_SOURCES = {
+  'support-pack-sanitiser:output': 'sanitised-output',
+  'case-converter:output': 'case-output'
+};
 
 export const TOOL_INTEGRATION_CONTRACTS = [
   {
@@ -812,6 +875,97 @@ export const TOOL_INTEGRATION_CONTRACTS = [
     ]
   },
   {
+    toolId: 'text-utilities-workbench',
+    outputs: [
+      {
+        id: 'regex-output',
+        selector: '#regexOutput',
+        label: 'Output',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
+      {
+        id: 'sql-output',
+        selector: '#sqlOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      },
+      {
+        id: 'sanitised-output',
+        selector: '#supportPackOutput',
+        label: 'Sanitised output',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'diff-output',
+        selector: '#textDiffOutput',
+        label: 'Output',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
+      {
+        id: 'case-output',
+        selector: '#caseOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      },
+      {
+        id: 'uuid-output',
+        selector: '#uuidOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'regex-text',
+        selector: '#regexText',
+        label: 'Test text',
+        kind: 'text'
+      },
+      {
+        id: 'sql-input',
+        selector: '#sqlInput',
+        label: 'SQL input',
+        kind: 'text'
+      },
+      {
+        id: 'sanitise-input',
+        selector: '#supportPackInput',
+        label: 'Support pack input',
+        kind: 'text'
+      },
+      {
+        id: 'diff-left',
+        selector: '#textDiffLeft',
+        label: 'Left text',
+        kind: 'text'
+      },
+      {
+        id: 'diff-right',
+        selector: '#textDiffRight',
+        label: 'Right text',
+        kind: 'text'
+      },
+      {
+        id: 'case-input',
+        selector: '#caseInput',
+        label: 'Text input',
+        kind: 'text'
+      },
+      {
+        id: 'uuid-input',
+        selector: '#uuidInput',
+        label: 'UUID input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
     toolId: 'regex-tester',
     outputs: [
       {
@@ -853,6 +1007,53 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         id: 'right',
         selector: '#textDiffRight',
         label: 'Right text',
+        kind: 'text'
+      }
+    ]
+  },
+  {
+    toolId: 'web-api-workbench',
+    outputs: [
+      {
+        id: 'jwt-header',
+        selector: '#jwtHeaderOutput',
+        label: 'Decoded header',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
+      {
+        id: 'jwt-payload',
+        selector: '#jwtPayloadOutput',
+        label: 'Decoded payload',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
+      {
+        id: 'schedule-output',
+        selector: '#scheduleOutput',
+        label: 'Schedule output',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'request-output',
+        selector: '#curlFetchOutput',
+        label: 'Output',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'jwt',
+        selector: '#jwtInput',
+        label: 'JWT input',
+        kind: 'text'
+      },
+      {
+        id: 'request',
+        selector: '#curlFetchInput',
+        label: 'Request input',
         kind: 'text'
       }
     ]
@@ -1124,6 +1325,74 @@ export const TOOL_INTEGRATION_CONTRACTS = [
     inputs: []
   },
   {
+    toolId: 'model-driven-javascript-workbench',
+    outputs: [
+      {
+        id: 'review-report',
+        selector: '#modelDrivenJsReviewOutput',
+        label: 'Review report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'review-rule-summary',
+        selector: '#modelDrivenJsReviewOutput',
+        label: 'Rule summary JSON',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
+      {
+        id: 'migration-report',
+        selector: '#clientApiMigrationOutput',
+        label: 'Migration report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'form-event-output',
+        selector: '#formEventHandlerOutput',
+        label: 'Generated handler',
+        mediaType: 'text/plain',
+        kind: 'text'
+      },
+      {
+        id: 'web-api-output',
+        selector: '#xrmWebApiSnippetOutput',
+        label: 'Generated snippet',
+        mediaType: 'text/plain',
+        kind: 'text'
+      },
+      {
+        id: 'validation-output',
+        selector: '#formValidationOutput',
+        label: 'Generated validation',
+        mediaType: 'text/plain',
+        kind: 'text'
+      },
+      {
+        id: 'command-output',
+        selector: '#commandBarJavascriptOutput',
+        label: 'Generated command handler',
+        mediaType: 'text/plain',
+        kind: 'text'
+      }
+    ],
+    inputs: [
+      {
+        id: 'review-source',
+        selector: '#modelDrivenJsReviewInput',
+        label: 'JavaScript input',
+        kind: 'text'
+      },
+      {
+        id: 'migration-source',
+        selector: '#clientApiMigrationInput',
+        label: 'Legacy JavaScript input',
+        kind: 'text'
+      }
+    ]
+  },
+  {
     toolId: 'model-driven-javascript-reviewer',
     outputs: [
       {
@@ -1223,6 +1492,33 @@ export const TOOL_INTEGRATION_CONTRACTS = [
     inputs: []
   },
   {
+    toolId: 'model-driven-solution-inspector',
+    outputs: [
+      {
+        id: 'events',
+        selector: '#solutionJavascriptEventsOutput',
+        label: 'JavaScript event report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'dependency-report',
+        selector: '#webResourceDependencyMapOutput',
+        label: 'Dependency report',
+        mediaType: 'text/markdown',
+        kind: 'text'
+      },
+      {
+        id: 'mermaid',
+        selector: '#webResourceDependencyMermaidOutput',
+        label: 'Mermaid diagram',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      }
+    ],
+    inputs: []
+  },
+  {
     toolId: 'solution-javascript-event-inspector',
     outputs: [
       {
@@ -1257,7 +1553,7 @@ export const TOOL_INTEGRATION_CONTRACTS = [
   }
 ];
 
-export const TOOL_HANDOVER_ROUTES = [
+const BASE_TOOL_HANDOVER_ROUTES = [
   ...JSON_SOURCE_PORTS.flatMap(source => (
     GENERIC_JSON_TARGETS
       .filter(target => !shouldSkipGenericJsonRoute(source, target))
@@ -1376,6 +1672,24 @@ export const TOOL_HANDOVER_ROUTES = [
     transform: 'request-to-mermaid-sequence'
   })),
   {
+    id: 'dataverse-odata-query-builder-output-to-web-api-workbench-request',
+    sourceToolId: 'dataverse-odata-query-builder',
+    sourceOutputId: 'output',
+    targetToolId: 'web-api-workbench',
+    targetInputId: 'request',
+    targetMode: 'request',
+    acceptKinds: ['text'],
+    label: 'Convert fetch to cURL',
+    description: 'Extract the generated fetch snippet and open it in Web/API Workbench request mode.',
+    transform: 'extract-fenced-fetch',
+    setFields: [
+      {
+        selector: '#curlFetchMode',
+        value: 'fetch-to-curl'
+      }
+    ]
+  },
+  {
     id: 'dataverse-odata-query-builder-output-to-curl-fetch-converter-input',
     sourceToolId: 'dataverse-odata-query-builder',
     sourceOutputId: 'output',
@@ -1414,6 +1728,24 @@ export const TOOL_HANDOVER_ROUTES = [
     ]
   },
   {
+    id: 'power-pages-workbench-web-api-output-to-web-api-workbench-request',
+    sourceToolId: 'power-pages-workbench',
+    sourceOutputId: 'web-api-output',
+    targetToolId: 'web-api-workbench',
+    targetInputId: 'request',
+    targetMode: 'request',
+    acceptKinds: ['text'],
+    label: 'Convert safeAjax to cURL',
+    description: 'Transform the generated safeAjax call into a fetch snippet for Web/API Workbench request mode.',
+    transform: 'safeajax-to-fetch',
+    setFields: [
+      {
+        selector: '#curlFetchMode',
+        value: 'fetch-to-curl'
+      }
+    ]
+  },
+  {
     id: 'power-pages-workbench-web-api-output-to-curl-fetch-converter-input',
     sourceToolId: 'power-pages-workbench',
     sourceOutputId: 'web-api-output',
@@ -1422,6 +1754,24 @@ export const TOOL_HANDOVER_ROUTES = [
     acceptKinds: ['text'],
     label: 'Convert safeAjax to cURL',
     description: 'Transform the generated safeAjax call into a fetch snippet for the cURL/fetch converter.',
+    transform: 'safeajax-to-fetch',
+    setFields: [
+      {
+        selector: '#curlFetchMode',
+        value: 'fetch-to-curl'
+      }
+    ]
+  },
+  {
+    id: 'power-pages-web-api-snippets-output-to-web-api-workbench-request',
+    sourceToolId: 'power-pages-web-api-snippets',
+    sourceOutputId: 'output',
+    targetToolId: 'web-api-workbench',
+    targetInputId: 'request',
+    targetMode: 'request',
+    acceptKinds: ['text'],
+    label: 'Convert safeAjax to cURL',
+    description: 'Transform the generated safeAjax call into a fetch snippet for Web/API Workbench request mode.',
     transform: 'safeajax-to-fetch',
     setFields: [
       {
@@ -1700,6 +2050,11 @@ export const TOOL_HANDOVER_ROUTES = [
   }
 ];
 
+export const TOOL_HANDOVER_ROUTES = [
+  ...BASE_TOOL_HANDOVER_ROUTES,
+  ...createTextUtilityWorkbenchRoutes(BASE_TOOL_HANDOVER_ROUTES)
+];
+
 function createTextRoute(sourceToolId, sourceOutputId, targetToolId, targetInputId, label, description, transform = '', targetMode = '') {
   return {
     id: `${sourceToolId}-${sourceOutputId}-to-${targetToolId}-${targetInputId}`,
@@ -1712,6 +2067,44 @@ function createTextRoute(sourceToolId, sourceOutputId, targetToolId, targetInput
     description,
     ...(transform ? { transform } : {}),
     ...(targetMode ? { targetMode } : {})
+  };
+}
+
+function createTextUtilityWorkbenchRoutes(routes) {
+  return routes.flatMap(route => {
+    const sourceOutputId = TEXT_UTILITY_WORKBENCH_SOURCES[`${route.sourceToolId}:${route.sourceOutputId}`];
+    const target = TEXT_UTILITY_WORKBENCH_TARGETS[`${route.targetToolId}:${route.targetInputId}`];
+    const generatedRoutes = [];
+
+    if (sourceOutputId && target) {
+      generatedRoutes.push(createTextUtilityWorkbenchRoute(route, { sourceOutputId, target }));
+    } else if (sourceOutputId) {
+      generatedRoutes.push(createTextUtilityWorkbenchRoute(route, { sourceOutputId }));
+    } else if (target) {
+      generatedRoutes.push(createTextUtilityWorkbenchRoute(route, { target }));
+    }
+
+    return generatedRoutes;
+  });
+}
+
+function createTextUtilityWorkbenchRoute(route, { sourceOutputId = '', target = null } = {}) {
+  const sourceToolId = sourceOutputId ? 'text-utilities-workbench' : route.sourceToolId;
+  const resolvedSourceOutputId = sourceOutputId || route.sourceOutputId;
+  const targetToolId = target ? 'text-utilities-workbench' : route.targetToolId;
+  const targetInputId = target?.inputId || route.targetInputId;
+  const targetMode = target?.mode || route.targetMode;
+  const targetSuffix = target ? `text-utilities-workbench-${target.inputId}` : `${route.targetToolId}-${route.targetInputId}`;
+
+  return {
+    ...route,
+    id: `${sourceToolId}-${resolvedSourceOutputId}-to-${targetSuffix}${route.transform ? `-${route.transform}` : ''}`,
+    sourceToolId,
+    sourceOutputId: resolvedSourceOutputId,
+    targetToolId,
+    targetInputId,
+    ...(targetMode ? { targetMode } : {}),
+    ...(target ? { description: target.description } : {})
   };
 }
 
@@ -1750,7 +2143,25 @@ function getRouteSetFields(source, target) {
     ];
   }
 
+  if (source.toolId === 'text-utilities-workbench' && source.outputId === 'regex-output') {
+    return [
+      {
+        selector: '#dataExplorerRecordPath',
+        value: 'matches'
+      }
+    ];
+  }
+
   if (source.toolId === 'text-diff') {
+    return [
+      {
+        selector: '#dataExplorerRecordPath',
+        value: 'rows'
+      }
+    ];
+  }
+
+  if (source.toolId === 'text-utilities-workbench' && source.outputId === 'diff-output') {
     return [
       {
         selector: '#dataExplorerRecordPath',

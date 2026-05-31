@@ -49,11 +49,12 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Phase 6: Web/API
 
-- JWT decoder with claims, expiry and header inspection.
+- Web/API Workbench with JWT, schedules and requests modes.
+- JWT mode with claims, expiry and header inspection.
 - Query string builder/parser is merged into the URL & query string helper.
-- cURL/fetch converter for common request shapes.
-- Cron / RRULE Builder for recurring jobs, reminders and timezone-aware handover snippets.
-- Status: JWT Decoder & Claims Inspector, URL & query string helper, Cron / RRULE Builder and cURL/fetch converter implemented.
+- Requests mode for cURL/fetch conversion across common request shapes.
+- Schedules mode for recurring jobs, reminders and timezone-aware Cron/RRULE snippets.
+- Status: Web/API Workbench and URL & query string helper implemented, with legacy JWT Decoder & Claims Inspector, Cron / RRULE Builder and cURL/fetch converter hash links preserved.
 
 ## Phase 7: Power Platform
 
@@ -70,11 +71,14 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Solution Package Inspector preflight mode for local solution ZIP review, dependency metadata and import command checklists.
 - Power Automate Expression Formatter for Workflow Definition Language expressions.
 - Power Fx Snippet Formatter for readable formula snippets and sharing warnings.
-- Model-driven JavaScript Reviewer for local web resource risk reports.
-- Client API Migration Helper for `Xrm.Page` to `formContext` guidance.
-- Form Event Handler Builder, Xrm.WebApi Snippet Builder, Form Notification & Validation Builder and Command Bar JavaScript Builder for model-driven app client scripting.
-- Solution JavaScript Event Inspector and Web Resource Dependency Mapper for exported solution ZIP metadata.
-- Status: Power Pages Workbench, Solution Package Inspector, first wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation and model-driven JavaScript tools implemented.
+- Model-driven JavaScript Workbench for local web resource review, Client API migration and model-driven app client scripting snippets.
+- Model-driven JavaScript Workbench review mode for pasted web resource risk reports.
+- Model-driven JavaScript Workbench migration mode for `Xrm.Page` to `formContext` guidance.
+- Model-driven JavaScript Workbench builder modes for form events, Xrm.WebApi, form notifications, validation and command bar JavaScript.
+- Model-driven Solution Inspector for exported solution ZIP JavaScript event reports and web resource dependency maps.
+- Model-driven Solution Inspector events mode for JavaScript libraries, handlers and source findings.
+- Model-driven Solution Inspector dependencies mode for web resources, forms, handlers and HTML source references.
+- Status: Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, first wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation and model-driven JavaScript tools implemented.
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 
@@ -83,7 +87,7 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 - Consolidate related tools into workbenches with modes while preserving each existing capability.
 - Keep legacy hash links working through catalogue aliases instead of keeping deprecated entries visible in the menu.
 - Hide old menu entries only after their replacement workbench is implemented and tested in the same change.
-- Status: Base64 & File Converter, Image Converter & Optimiser, Markdown Workbench, Mermaid Studio, JSON & Data Workbench, Power Pages Workbench and Solution Package Inspector are consolidated with hidden legacy entries and preserved hash aliases.
+- Status: Base64 & File Converter, Image Converter & Optimiser, Markdown Workbench, Mermaid Studio, JSON & Data Workbench, Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, Web/API Workbench and Text Utilities Workbench are consolidated with hidden legacy entries and preserved hash aliases.
 
 ## Expansion Track
 
@@ -93,15 +97,16 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 
 ## Phase 8: Text Utilities
 
-- Regex tester with match group feedback.
+- Text Utilities Workbench with regex, SQL, sanitise, diff, case and UUID modes.
+- Regex mode with match group feedback and replacement previews.
 - Markdown Workbench for local preview, heading/reference review, Mermaid block extraction, table normalisation and CSV/TSV conversion.
-- SQL query formatter for formatting and linearising common SQL snippets.
-- Support Pack Sanitiser for masking sensitive values in shared logs and payloads.
-- Text diff with line-level changes.
+- SQL mode for formatting and linearising common SQL snippets.
+- Sanitise mode for masking sensitive values in shared logs and payloads.
+- Diff mode with line-level changes.
 - HTML cleaner/converter for readable plain text and Markdown output from pasted HTML.
-- Case converter for common code naming styles.
-- UUID generator, hyphen restorer and validator.
-- Status: Regex Tester, Markdown Workbench, SQL query formatter, Support Pack Sanitiser, Text diff, HTML cleaner/converter, Case converter and UUID generator/restorer implemented.
+- Case mode for common code naming styles.
+- UUID mode with generation, hyphen restoration and validation.
+- Status: Text Utilities Workbench, Markdown Workbench and HTML cleaner/converter implemented, with legacy Regex Tester, SQL query formatter, Support Pack Sanitiser, Text diff, Case converter and UUID generator/restorer hash links preserved.
 
 ## Test Expectations
 

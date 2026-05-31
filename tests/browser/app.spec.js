@@ -23,11 +23,22 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('.statusbar')).toContainText('Static local workspace');
   await expect(page.getByRole('status')).toHaveCount(0);
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
-  await expect(page.locator('#activeToolStatus')).toHaveText('34 tools');
+  await expect(page.locator('#activeToolStatus')).toHaveText('21 tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('[data-home-tool-id]')).toHaveCount(34);
+  await expect(page.locator('[data-home-tool-id]')).toHaveCount(21);
   await expect(page.locator('[data-home-tool-id="json-data-workbench"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="json-formatter"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="web-api-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="jwt-decoder"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="cron-rrule-builder"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="curl-fetch-converter"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="text-utilities-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="regex-tester"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="sql-query-formatter"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="support-pack-sanitiser"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="text-diff"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="case-converter"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="uuid-generator"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="base64-file-converter"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="file-to-base64"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="mermaid-studio"]')).toBeVisible();
@@ -37,6 +48,16 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('[data-home-tool-id="power-pages-web-api-snippets"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="solution-package-inspector"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="power-platform-solution-mermaid"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="model-driven-javascript-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="model-driven-javascript-reviewer"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="client-api-migration-helper"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="form-event-handler-builder"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="xrm-webapi-snippet-builder"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="form-notification-validation-builder"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="command-bar-javascript-builder"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="model-driven-solution-inspector"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="solution-javascript-event-inspector"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="web-resource-dependency-mapper"]')).toHaveCount(0);
   const transparency = page.locator('.home-transparency');
   await expect(transparency.getByRole('heading', { name: 'Local-first by design' })).toBeVisible();
   await expect(transparency).toContainText('The published app is plain HTML, CSS and JavaScript');
@@ -80,11 +101,14 @@ test('searches the sidebar and switches between available tools', async ({ page 
   await expect(page.locator('#toolNav').getByRole('heading', { name: 'Power Platform' })).toBeVisible();
 
   await page.getByLabel('Search tools').fill('jwt');
-  await expect(page.locator('[data-tool-id="jwt-decoder"]')).toBeVisible();
-  await expect(page.locator('[data-tool-id="jwt-decoder"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="jwt-decoder"] .tool-item-status')).toHaveText('Available');
-  await page.locator('[data-tool-id="jwt-decoder"]').click();
-  await expect(page.getByRole('heading', { name: 'JWT Decoder & Claims Inspector' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="web-api-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="web-api-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="web-api-workbench"] .tool-item-status')).toHaveText('Available');
+  await expect(page.locator('[data-tool-id="jwt-decoder"]')).toHaveCount(0);
+  await page.locator('[data-tool-id="web-api-workbench"]').click();
+  await expect(page).toHaveURL(/#web-api-workbench$/);
+  await expect(page.getByRole('heading', { name: 'Web/API Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('JWT');
 
   await page.getByLabel('Search tools').fill('file');
   await page.locator('[data-tool-id="base64-file-converter"]').click();
@@ -98,12 +122,14 @@ test('finds the support sanitiser and schedule builder from search', async ({ pa
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('support');
-  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeVisible();
-  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="text-utilities-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="text-utilities-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toHaveCount(0);
 
   await page.getByLabel('Search tools').fill('rrule');
-  await expect(page.locator('[data-tool-id="cron-rrule-builder"]')).toBeVisible();
-  await expect(page.locator('[data-tool-id="cron-rrule-builder"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="web-api-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="web-api-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="cron-rrule-builder"]')).toHaveCount(0);
 });
 
 test('returns to home from the menu and keeps search available', async ({ page }) => {
@@ -316,6 +342,10 @@ test('finds Power Platform tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="power-platform-solution-docs"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-fx-snippet-formatter"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="model-driven-javascript-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="model-driven-solution-inspector"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="solution-javascript-event-inspector"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="web-resource-dependency-mapper"]')).toHaveCount(0);
 });
 
 test('encodes and decodes URL components', async ({ page }) => {
@@ -1030,7 +1060,7 @@ test('hands JSON & Data Workbench explorer output to text diff', async ({ page }
   await page.getByRole('button', { name: 'Explore data', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /JSON output: Compare as left text/ }).click();
 
-  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
   await expect(page.getByLabel('Left text')).toHaveValue(/"@id": "1"/);
   await expect(page.getByLabel('Left text')).toHaveValue(/"name": "Ada Lovelace"/);
   await expect(page.getByLabel('Right text')).toHaveValue('');
@@ -1125,7 +1155,9 @@ test('exports CSV data as a renamed Markdown table', async ({ page }) => {
 test('runs regex matches with numbered and named groups', async ({ page }) => {
   await page.goto('/#regex-tester');
 
-  await expect(page.getByRole('heading', { name: 'Regex Tester' })).toBeVisible();
+  await expect(page).toHaveURL(/#text-utilities-workbench$/);
+  await expect(page.getByRole('heading', { name: 'Text Utilities Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Regex');
   await page.getByLabel('Pattern').fill('(?<name>[A-Z][a-z]+)\\s+(?<email>[^\\s]+@[^\\s]+)');
   await page.getByLabel('Flags').fill('g');
   await page.getByLabel('Test text').fill('Ada ada@example.test\nGrace grace@example.test');
@@ -1207,8 +1239,10 @@ test('hands regex JSON reports to JSON & Data Workbench explore mode', async ({ 
 test('formats and linearises SQL queries', async ({ page }) => {
   await page.goto('/#sql-query-formatter');
 
-  await expect(page.getByRole('heading', { name: 'SQL query formatter' })).toBeVisible();
-  await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page).toHaveURL(/#text-utilities-workbench\/sql$/);
+  await expect(page.getByRole('heading', { name: 'Text Utilities Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('SQL');
+  await expect(page.locator('[data-tool-id="text-utilities-workbench"]')).toHaveAttribute('aria-current', 'page');
   await page.getByLabel('SQL input').fill("select id,name from users where active=1 and note='x -- y' order by name");
   await page.getByRole('button', { name: 'Format SQL', exact: true }).click();
 
@@ -1238,7 +1272,9 @@ test('formats and linearises SQL queries', async ({ page }) => {
 test('sanitises support packs and reports validation errors', async ({ page }) => {
   await page.goto('/#support-pack-sanitiser');
 
-  await expect(page.getByRole('heading', { name: 'Support Pack Sanitiser' })).toBeVisible();
+  await expect(page).toHaveURL(/#text-utilities-workbench\/sanitise$/);
+  await expect(page.getByRole('heading', { name: 'Text Utilities Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Sanitise');
   await page.getByLabel('Support pack input').fill([
     'User admin@example.com called https://api.internal.local/private',
     'token=secretToken12345',
@@ -1275,7 +1311,8 @@ test('hands sanitised support text to the regex tester', async ({ page }) => {
   await expect(page.locator('#toolHandover')).toContainText('Continue with this text');
   await page.locator('#toolHandover').getByRole('button', { name: /Sanitised output: Test with regex/ }).click();
 
-  await expect(page).toHaveURL(/#regex-tester$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Regex');
   await expect(page.getByLabel('Test text')).toHaveValue(/\[EMAIL_1\]/);
   await expect(page.getByLabel('Test text')).not.toHaveValue(/admin@example\.com/);
 
@@ -1287,7 +1324,9 @@ test('hands sanitised support text to the regex tester', async ({ page }) => {
 test('generates line-level text diffs', async ({ page }) => {
   await page.goto('/#text-diff');
 
-  await expect(page.getByRole('heading', { name: 'Text diff' })).toBeVisible();
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
+  await expect(page.getByRole('heading', { name: 'Text Utilities Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Diff');
   await page.getByLabel('Left text').fill('one\ntwo\nthree');
   await page.getByLabel('Right text').fill('one\nTWO\nthree\nfour');
   await page.getByRole('button', { name: 'Compare text', exact: true }).click();
@@ -1310,16 +1349,20 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('Text utilities');
-  await expect(page.locator('[data-tool-id="text-diff"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="text-utilities-workbench"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="html-cleaner-converter"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="markdown-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="regex-tester"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="text-diff"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="case-converter"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="markdown-preview-inspector"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="markdown-table-formatter"]')).toHaveCount(0);
-  await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toBeEnabled();
-  await page.locator('[data-tool-id="text-diff"]').click();
+  await page.locator('[data-tool-id="text-utilities-workbench"]').click();
+  await page.locator('.tool-workbench-tab').filter({ hasText: 'Diff' }).click();
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
 
   await page.getByLabel('Output format').selectOption('json');
   await page.getByLabel('Ignore whitespace changes').check();
@@ -1403,7 +1446,7 @@ test('hands cleaned HTML output to a text diff input', async ({ page }) => {
   await page.getByRole('button', { name: 'Convert HTML', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as left text/ }).click();
 
-  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Release notes/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Alpha/);
   await expect(page.getByLabel('Right text')).toHaveValue('');
@@ -1563,7 +1606,9 @@ test('finds the HTML cleaner from sidebar search', async ({ page }) => {
 test('converts text into common code casing styles', async ({ page }) => {
   await page.goto('/#case-converter');
 
-  await expect(page.getByRole('heading', { name: 'Case converter' })).toBeVisible();
+  await expect(page).toHaveURL(/#text-utilities-workbench\/case$/);
+  await expect(page.getByRole('heading', { name: 'Text Utilities Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Case');
   await page.getByLabel('Text input').fill('customer account ID');
   await page.getByRole('button', { name: 'Convert case', exact: true }).click();
 
@@ -1589,7 +1634,8 @@ test('hands converted case output to a text diff input', async ({ page }) => {
   await page.getByRole('button', { name: 'Convert case', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as right text/ }).click();
 
-  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Diff');
   await expect(page.getByLabel('Left text')).toHaveValue('');
   await expect(page.getByLabel('Right text')).toHaveValue('customer_account_id');
 });
@@ -1598,9 +1644,12 @@ test('finds case converter and converts each line separately', async ({ page }) 
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('Text utilities');
-  await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
-  await page.locator('[data-tool-id="case-converter"]').click();
+  await expect(page.locator('[data-tool-id="text-utilities-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="case-converter"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toHaveCount(0);
+  await page.locator('[data-tool-id="text-utilities-workbench"]').click();
+  await page.locator('.tool-workbench-tab').filter({ hasText: 'Case' }).click();
+  await expect(page).toHaveURL(/#text-utilities-workbench\/case$/);
 
   await page.getByLabel('Output format').selectOption('kebab');
   await page.getByLabel('Convert each line separately').check();
@@ -1623,7 +1672,9 @@ test('finds case converter and converts each line separately', async ({ page }) 
 test('generates UUID v4 values in the browser', async ({ page }) => {
   await page.goto('/#uuid-generator');
 
-  await expect(page.getByRole('heading', { name: 'UUID generator' })).toBeVisible();
+  await expect(page).toHaveURL(/#text-utilities-workbench\/uuid$/);
+  await expect(page.getByRole('heading', { name: 'Text Utilities Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('UUID');
   await page.getByLabel('UUID count').fill('2');
   await page.getByRole('button', { name: 'Generate UUIDs', exact: true }).click();
 
@@ -1666,8 +1717,11 @@ test('validates UUID input and reports invalid values', async ({ page }) => {
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('uuid');
-  await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
-  await page.locator('[data-tool-id="uuid-generator"]').click();
+  await expect(page.locator('[data-tool-id="text-utilities-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="uuid-generator"]')).toHaveCount(0);
+  await page.locator('[data-tool-id="text-utilities-workbench"]').click();
+  await page.locator('.tool-workbench-tab').filter({ hasText: 'UUID' }).click();
+  await expect(page).toHaveURL(/#text-utilities-workbench\/uuid$/);
 
   await page.getByLabel('UUID input').fill([
     'f47ac10b-58cc-4372-a567-0e02b2c3d479',
@@ -1809,7 +1863,9 @@ test('decodes JWT claims and reports local verification warnings', async ({ page
     roles: ['Admin']
   });
 
-  await expect(page.getByRole('heading', { name: 'JWT Decoder & Claims Inspector' })).toBeVisible();
+  await expect(page).toHaveURL(/#web-api-workbench$/);
+  await expect(page.getByRole('heading', { name: 'Web/API Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('JWT');
   await page.getByLabel('JWT input').fill(token);
   await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
 
@@ -1845,7 +1901,9 @@ test('reports JWT expiry and invalid token errors', async ({ page }) => {
 test('builds cron and RRULE schedules with warnings and validation', async ({ page }) => {
   await page.goto('/#cron-rrule-builder');
 
-  await expect(page.getByRole('heading', { name: 'Cron / RRULE Builder' })).toBeVisible();
+  await expect(page).toHaveURL(/#web-api-workbench\/schedule$/);
+  await expect(page.getByRole('heading', { name: 'Web/API Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Schedules');
   await page.getByLabel('Schedule type').selectOption('weekly');
   await page.getByLabel('Interval').fill('1');
   await page.getByLabel('Hour').fill('9');
@@ -1878,7 +1936,9 @@ test('builds cron and RRULE schedules with warnings and validation', async ({ pa
 test('converts cURL requests to fetch snippets', async ({ page }) => {
   await page.goto('/#curl-fetch-converter');
 
-  await expect(page.getByRole('heading', { name: 'cURL/fetch converter' })).toBeVisible();
+  await expect(page).toHaveURL(/#web-api-workbench\/request$/);
+  await expect(page.getByRole('heading', { name: 'Web/API Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Requests');
   await page.getByLabel('Request input').fill("curl -X POST https://api.example.test/items -H 'Content-Type: application/json' --data-raw '{\"name\":\"Contoso\"}'");
   await page.getByRole('button', { name: 'Convert request', exact: true }).click();
 
@@ -1900,8 +1960,11 @@ test('converts fetch snippets to cURL and reports converter errors', async ({ pa
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('curl');
-  await expect(page.locator('[data-tool-id="curl-fetch-converter"]')).toBeEnabled();
-  await page.locator('[data-tool-id="curl-fetch-converter"]').click();
+  await expect(page.locator('[data-tool-id="web-api-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="curl-fetch-converter"]')).toHaveCount(0);
+  await page.locator('[data-tool-id="web-api-workbench"]').click();
+  await page.locator('.tool-workbench-tab').filter({ hasText: 'Requests' }).click();
+  await expect(page).toHaveURL(/#web-api-workbench\/request$/);
 
   await page.getByLabel('Conversion mode').selectOption('fetch-to-curl');
   await page.getByLabel('Request input').fill([
@@ -1934,7 +1997,7 @@ test('hands converted request output to the support sanitiser', async ({ page })
   await page.getByRole('button', { name: 'Convert request', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Sanitise request/ }).click();
 
-  await expect(page).toHaveURL(/#support-pack-sanitiser$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/sanitise$/);
   await expect(page.getByLabel('Support pack input')).toHaveValue(/api\.internal\.local/);
   await expect(page.getByLabel('Support pack input')).toHaveValue(/secretToken12345/);
 
@@ -1973,7 +2036,7 @@ test('hands Power Pages Web API snippets to the support sanitiser', async ({ pag
   await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Sanitise snippet/ }).click();
 
-  await expect(page).toHaveURL(/#support-pack-sanitiser$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/sanitise$/);
   await expect(page.getByLabel('Support pack input')).toHaveValue(/webapi\.safeAjax/);
   await expect(page.getByLabel('Support pack input')).toHaveValue(/Webapi\/account\/enabled/);
 });
@@ -1990,7 +2053,8 @@ test('hands Power Pages Web API snippets to the cURL/fetch converter', async ({ 
   await page.getByRole('button', { name: 'Generate snippet', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Convert safeAjax to cURL/ }).click();
 
-  await expect(page).toHaveURL(/#curl-fetch-converter$/);
+  await expect(page).toHaveURL(/#web-api-workbench\/request$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Requests');
   await expect(page.getByLabel('Conversion mode')).toHaveValue('fetch-to-curl');
   await expect(page.getByLabel('Request input')).toHaveValue(/^const response = await fetch/);
   await expect(page.getByLabel('Request input')).toHaveValue(/\/_api\/accounts/);
@@ -2186,7 +2250,7 @@ test('hands Dataverse OData reports to the support sanitiser', async ({ page }) 
   await expect(page.locator('#toolHandover')).toContainText('Continue with this text');
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Sanitise query/ }).click();
 
-  await expect(page).toHaveURL(/#support-pack-sanitiser$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/sanitise$/);
   await expect(page.getByLabel('Support pack input')).toHaveValue(/Dataverse OData/);
   await expect(page.getByLabel('Support pack input')).toHaveValue(/\/api\/data\/v9\.2\/accounts/);
 });
@@ -2200,7 +2264,8 @@ test('extracts Dataverse OData fetch snippets into the cURL/fetch converter', as
   await page.getByRole('button', { name: 'Build query', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Convert fetch to cURL/ }).click();
 
-  await expect(page).toHaveURL(/#curl-fetch-converter$/);
+  await expect(page).toHaveURL(/#web-api-workbench\/request$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Requests');
   await expect(page.getByLabel('Conversion mode')).toHaveValue('fetch-to-curl');
   await expect(page.getByLabel('Request input')).toHaveValue(/^const response = await fetch/);
   await expect(page.getByLabel('Request input')).not.toHaveValue(/# Dataverse OData query/);
@@ -2298,7 +2363,7 @@ test('hands Power Platform CLI output to text diff', async ({ page }) => {
   await page.getByRole('button', { name: 'Build command', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as left text/ }).click();
 
-  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
   await expect(page.getByLabel('Left text')).toHaveValue(/pac solution export/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Core Solution/);
   await expect(page.getByLabel('Right text')).toHaveValue('');
@@ -2500,7 +2565,7 @@ test('hands Power Automate expression output to text diff', async ({ page }) => 
   await page.getByRole('button', { name: 'Format expression', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as right text/ }).click();
 
-  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
   await expect(page.getByLabel('Left text')).toHaveValue('');
   await expect(page.getByLabel('Right text')).toHaveValue(/concat\(/);
   await expect(page.getByLabel('Right text')).toHaveValue(/triggerOutputs/);
@@ -2548,7 +2613,7 @@ test('hands Power Fx output to text diff', async ({ page }) => {
   await page.getByRole('button', { name: 'Format formula', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Compare as left text/ }).click();
 
-  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Patch\(/);
   await expect(page.getByLabel('Left text')).toHaveValue(/Accounts/);
   await expect(page.getByLabel('Right text')).toHaveValue('');
@@ -2557,7 +2622,9 @@ test('hands Power Fx output to text diff', async ({ page }) => {
 test('reviews model-driven JavaScript and builds migration reports', async ({ page }) => {
   await page.goto('/#model-driven-javascript-reviewer');
 
-  await expect(page.getByRole('heading', { name: 'Model-driven JavaScript Reviewer' })).toBeVisible();
+  await expect(page).toHaveURL(/#model-driven-javascript-workbench$/);
+  await expect(page.getByRole('heading', { name: 'Model-driven JavaScript Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Review');
   await page.getByLabel('JavaScript input').fill([
     'function onLoad() {',
     '  var name = Xrm.Page.getAttribute("name").getValue();',
@@ -2582,6 +2649,8 @@ test('reviews model-driven JavaScript and builds migration reports', async ({ pa
   await expect(page.getByLabel('JSON input')).toHaveValue(/deprecated-xrm-page/);
 
   await page.goto('/#client-api-migration-helper');
+  await expect(page).toHaveURL(/#model-driven-javascript-workbench\/migration$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Migration');
   await page.getByLabel('Legacy JavaScript input').fill('function onLoad(){ var name = Xrm.Page.getAttribute("name").getValue(); }');
   await page.getByRole('button', { name: 'Build migration report' }).click();
 
@@ -2593,6 +2662,9 @@ test('reviews model-driven JavaScript and builds migration reports', async ({ pa
 test('builds model-driven JavaScript snippets', async ({ page }) => {
   await page.goto('/#form-event-handler-builder');
 
+  await expect(page).toHaveURL(/#model-driven-javascript-workbench\/form-events$/);
+  await expect(page.getByRole('heading', { name: 'Model-driven JavaScript Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Form events');
   await page.getByLabel('Event type').selectOption('onchange');
   await page.getByLabel('Namespace').fill('Contoso.Account');
   await page.getByLabel('Function name').fill('onNameChange');
@@ -2603,6 +2675,8 @@ test('builds model-driven JavaScript snippets', async ({ page }) => {
   await expect(page.locator('#formEventHandlerOutput')).toHaveValue(/Contoso.Account.onNameChange/);
 
   await page.goto('/#xrm-webapi-snippet-builder');
+  await expect(page).toHaveURL(/#model-driven-javascript-workbench\/web-api$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Web API');
   await page.getByLabel('Operation').selectOption('retrieveMultipleRecords');
   await page.getByLabel('Table logical name').fill('account');
   await page.getByLabel('Function name').fill('retrieveAccounts');
@@ -2614,6 +2688,8 @@ test('builds model-driven JavaScript snippets', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Xrm.WebApi snippet generated successfully.');
 
   await page.goto('/#form-notification-validation-builder');
+  await expect(page).toHaveURL(/#model-driven-javascript-workbench\/validation$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Validation');
   await page.getByLabel('Validation rule').selectOption('maxLength');
   await page.getByLabel('Field logical name').fill('name');
   await page.getByLabel('Maximum length').fill('50');
@@ -2623,6 +2699,8 @@ test('builds model-driven JavaScript snippets', async ({ page }) => {
   await expect(page.locator('#formValidationOutput')).toHaveValue(/preventDefault/);
 
   await page.goto('/#command-bar-javascript-builder');
+  await expect(page).toHaveURL(/#model-driven-javascript-workbench\/command-bar$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Command bar');
   await page.getByLabel('Command context').selectOption('grid');
   await page.getByLabel('Table logical name').fill('account');
   await page.getByRole('button', { name: 'Generate command handler' }).click();
@@ -2634,6 +2712,9 @@ test('builds model-driven JavaScript snippets', async ({ page }) => {
 test('inspects solution JavaScript events and maps web resource dependencies', async ({ page }) => {
   await page.goto('/#solution-javascript-event-inspector');
 
+  await expect(page).toHaveURL(/#model-driven-solution-inspector$/);
+  await expect(page.getByRole('heading', { name: 'Model-driven Solution Inspector' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Events');
   await page.setInputFiles('#solutionJavascriptEventsFileInput', {
     name: 'model-driven.zip',
     mimeType: 'application/zip',
@@ -2652,6 +2733,9 @@ test('inspects solution JavaScript events and maps web resource dependencies', a
   await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Contoso.Account.onLoad/);
 
   await page.goto('/#web-resource-dependency-mapper');
+  await expect(page).toHaveURL(/#model-driven-solution-inspector\/dependencies$/);
+  await expect(page.getByRole('heading', { name: 'Model-driven Solution Inspector' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Dependencies');
   await page.setInputFiles('#webResourceDependencyFileInput', {
     name: 'model-driven.zip',
     mimeType: 'application/zip',
@@ -3072,7 +3156,7 @@ test('hands Mermaid template output to the editor and text diff', async ({ page 
   await expect(page.locator('#mermaidPreview svg')).toBeVisible();
 
   await page.locator('#toolHandover').getByRole('button', { name: /Mermaid source: Compare as left text/ }).click();
-  await expect(page).toHaveURL(/#text-diff$/);
+  await expect(page).toHaveURL(/#text-utilities-workbench\/diff$/);
   await expect(page.getByLabel('Left text')).toHaveValue(/^sequenceDiagram/);
 });
 

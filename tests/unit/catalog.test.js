@@ -73,9 +73,9 @@ test('validates the real catalogue and keeps the current visible tool count', ()
 
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
-  assert.equal(TOOL_CATALOGUE.length, 55);
-  assert.equal(getVisibleTools().length, 34);
-  assert.equal(getAvailableTools().length, 34);
+  assert.equal(TOOL_CATALOGUE.length, 59);
+  assert.equal(getVisibleTools().length, 21);
+  assert.equal(getAvailableTools().length, 21);
   assert.equal(getToolById('base64-to-file').hidden, true);
   assert.equal(getToolById('file-to-base64').hidden, true);
   assert.equal(getToolById('image-converter').hidden, true);
@@ -88,6 +88,9 @@ test('validates the real catalogue and keeps the current visible tool count', ()
   assert.equal(getToolById('json-diff').hidden, true);
   assert.equal(getToolById('json-schema-validator').hidden, true);
   assert.equal(getToolById('data-explorer').hidden, true);
+  assert.equal(getToolById('jwt-decoder').hidden, true);
+  assert.equal(getToolById('cron-rrule-builder').hidden, true);
+  assert.equal(getToolById('curl-fetch-converter').hidden, true);
   assert.equal(getToolById('fetchxml-liquid-builder').hidden, true);
   assert.equal(getToolById('power-pages-web-api-snippets').hidden, true);
   assert.equal(getToolById('power-pages-site-settings').hidden, true);
@@ -95,8 +98,22 @@ test('validates the real catalogue and keeps the current visible tool count', ()
   assert.equal(getToolById('power-platform-solution-mermaid').hidden, true);
   assert.equal(getToolById('power-platform-solution-docs').hidden, true);
   assert.equal(getToolById('power-platform-solution-import-preflight').hidden, true);
+  assert.equal(getToolById('model-driven-javascript-reviewer').hidden, true);
+  assert.equal(getToolById('client-api-migration-helper').hidden, true);
+  assert.equal(getToolById('form-event-handler-builder').hidden, true);
+  assert.equal(getToolById('xrm-webapi-snippet-builder').hidden, true);
+  assert.equal(getToolById('form-notification-validation-builder').hidden, true);
+  assert.equal(getToolById('command-bar-javascript-builder').hidden, true);
+  assert.equal(getToolById('solution-javascript-event-inspector').hidden, true);
+  assert.equal(getToolById('web-resource-dependency-mapper').hidden, true);
   assert.equal(getToolById('markdown-preview-inspector').hidden, true);
   assert.equal(getToolById('markdown-table-formatter').hidden, true);
+  assert.equal(getToolById('regex-tester').hidden, true);
+  assert.equal(getToolById('sql-query-formatter').hidden, true);
+  assert.equal(getToolById('support-pack-sanitiser').hidden, true);
+  assert.equal(getToolById('text-diff').hidden, true);
+  assert.equal(getToolById('case-converter').hidden, true);
+  assert.equal(getToolById('uuid-generator').hidden, true);
 });
 
 test('resolves the phase 1 legacy hashes to consolidated workbench modes', () => {
@@ -170,6 +187,21 @@ test('resolves the phase 1 legacy hashes to consolidated workbench modes', () =>
     mode: 'explore',
     canonicalHash: '#json-data-workbench/explore'
   });
+  assert.deepEqual(resolveSummary('#jwt-decoder'), {
+    toolId: 'web-api-workbench',
+    mode: 'jwt',
+    canonicalHash: '#web-api-workbench'
+  });
+  assert.deepEqual(resolveSummary('#cron-rrule-builder'), {
+    toolId: 'web-api-workbench',
+    mode: 'schedule',
+    canonicalHash: '#web-api-workbench/schedule'
+  });
+  assert.deepEqual(resolveSummary('#curl-fetch-converter'), {
+    toolId: 'web-api-workbench',
+    mode: 'request',
+    canonicalHash: '#web-api-workbench/request'
+  });
   assert.deepEqual(resolveSummary('#fetchxml-liquid-builder'), {
     toolId: 'power-pages-workbench',
     mode: 'fetchxml',
@@ -204,6 +236,76 @@ test('resolves the phase 1 legacy hashes to consolidated workbench modes', () =>
     toolId: 'solution-package-inspector',
     mode: 'preflight',
     canonicalHash: '#solution-package-inspector/preflight'
+  });
+  assert.deepEqual(resolveSummary('#model-driven-javascript-reviewer'), {
+    toolId: 'model-driven-javascript-workbench',
+    mode: 'review',
+    canonicalHash: '#model-driven-javascript-workbench'
+  });
+  assert.deepEqual(resolveSummary('#client-api-migration-helper'), {
+    toolId: 'model-driven-javascript-workbench',
+    mode: 'migration',
+    canonicalHash: '#model-driven-javascript-workbench/migration'
+  });
+  assert.deepEqual(resolveSummary('#form-event-handler-builder'), {
+    toolId: 'model-driven-javascript-workbench',
+    mode: 'form-events',
+    canonicalHash: '#model-driven-javascript-workbench/form-events'
+  });
+  assert.deepEqual(resolveSummary('#xrm-webapi-snippet-builder'), {
+    toolId: 'model-driven-javascript-workbench',
+    mode: 'web-api',
+    canonicalHash: '#model-driven-javascript-workbench/web-api'
+  });
+  assert.deepEqual(resolveSummary('#form-notification-validation-builder'), {
+    toolId: 'model-driven-javascript-workbench',
+    mode: 'validation',
+    canonicalHash: '#model-driven-javascript-workbench/validation'
+  });
+  assert.deepEqual(resolveSummary('#command-bar-javascript-builder'), {
+    toolId: 'model-driven-javascript-workbench',
+    mode: 'command-bar',
+    canonicalHash: '#model-driven-javascript-workbench/command-bar'
+  });
+  assert.deepEqual(resolveSummary('#solution-javascript-event-inspector'), {
+    toolId: 'model-driven-solution-inspector',
+    mode: 'events',
+    canonicalHash: '#model-driven-solution-inspector'
+  });
+  assert.deepEqual(resolveSummary('#web-resource-dependency-mapper'), {
+    toolId: 'model-driven-solution-inspector',
+    mode: 'dependencies',
+    canonicalHash: '#model-driven-solution-inspector/dependencies'
+  });
+  assert.deepEqual(resolveSummary('#regex-tester'), {
+    toolId: 'text-utilities-workbench',
+    mode: 'regex',
+    canonicalHash: '#text-utilities-workbench'
+  });
+  assert.deepEqual(resolveSummary('#sql-query-formatter'), {
+    toolId: 'text-utilities-workbench',
+    mode: 'sql',
+    canonicalHash: '#text-utilities-workbench/sql'
+  });
+  assert.deepEqual(resolveSummary('#support-pack-sanitiser'), {
+    toolId: 'text-utilities-workbench',
+    mode: 'sanitise',
+    canonicalHash: '#text-utilities-workbench/sanitise'
+  });
+  assert.deepEqual(resolveSummary('#text-diff'), {
+    toolId: 'text-utilities-workbench',
+    mode: 'diff',
+    canonicalHash: '#text-utilities-workbench/diff'
+  });
+  assert.deepEqual(resolveSummary('#case-converter'), {
+    toolId: 'text-utilities-workbench',
+    mode: 'case',
+    canonicalHash: '#text-utilities-workbench/case'
+  });
+  assert.deepEqual(resolveSummary('#uuid-generator'), {
+    toolId: 'text-utilities-workbench',
+    mode: 'uuid',
+    canonicalHash: '#text-utilities-workbench/uuid'
   });
 });
 

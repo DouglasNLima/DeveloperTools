@@ -49,6 +49,8 @@ import {
   renderModelDrivenJavaScriptReviewer,
   renderXrmWebApiSnippetBuilder
 } from './tools/model-driven-javascript.ui.js';
+import { renderModelDrivenJavaScriptWorkbench } from './tools/model-driven-javascript-workbench.ui.js';
+import { renderModelDrivenSolutionInspector } from './tools/model-driven-solution-inspector.ui.js';
 import {
   renderSolutionJavaScriptEventInspector,
   renderWebResourceDependencyMapper
@@ -70,9 +72,11 @@ import { renderRegexTester } from './tools/regex-tester.ui.js';
 import { renderSolutionPackageInspector } from './tools/solution-package-inspector.ui.js';
 import { renderSqlFormatter } from './tools/sql-formatter.ui.js';
 import { renderSupportPackSanitiser } from './tools/support-pack-sanitiser.ui.js';
+import { renderTextUtilitiesWorkbench } from './tools/text-utilities-workbench.ui.js';
 import { renderTextDiff } from './tools/text-diff.ui.js';
 import { renderUrlCodec } from './tools/url-codec.ui.js';
 import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
+import { renderWebApiWorkbench } from './tools/web-api-workbench.ui.js';
 
 const renderers = {
   'base64-file-converter': renderBase64FileConverter,
@@ -102,7 +106,9 @@ const renderers = {
   'command-bar-javascript-builder': renderCommandBarJavaScriptBuilder,
   'form-event-handler-builder': renderFormEventHandlerBuilder,
   'form-notification-validation-builder': renderFormNotificationValidationBuilder,
+  'model-driven-javascript-workbench': renderModelDrivenJavaScriptWorkbench,
   'model-driven-javascript-reviewer': renderModelDrivenJavaScriptReviewer,
+  'model-driven-solution-inspector': renderModelDrivenSolutionInspector,
   'api-workflow-to-mermaid': renderApiWorkflowToMermaid,
   'data-to-mermaid': renderDataToMermaid,
   'mermaid-editor': renderMermaidEditor,
@@ -126,8 +132,10 @@ const renderers = {
   'sql-query-formatter': renderSqlFormatter,
   'support-pack-sanitiser': renderSupportPackSanitiser,
   'text-diff': renderTextDiff,
+  'text-utilities-workbench': renderTextUtilitiesWorkbench,
   'url-codec': renderUrlCodec,
   'uuid-generator': renderUuidGenerator,
+  'web-api-workbench': renderWebApiWorkbench,
   'web-resource-dependency-mapper': renderWebResourceDependencyMapper,
   'xrm-webapi-snippet-builder': renderXrmWebApiSnippetBuilder
 };
