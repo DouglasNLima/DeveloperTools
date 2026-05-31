@@ -262,7 +262,7 @@ function buildSolutionOutputLayout({ outputId, label, prefix, actionLabel }) {
 }
 
 function buildDetails(prefix) {
-  const labels = ['Solution', 'Web resources', 'Handlers', 'Forms', 'Warnings', 'Output size'];
+  const labels = ['Solution', 'Web resources', 'Libraries', 'Handlers', 'Source files', 'Findings', 'Forms', 'Warnings', 'Output size'];
   return `
     <div class="detail-grid" aria-live="polite">
       ${labels.map(label => `
@@ -286,7 +286,10 @@ function setDetails(details, result) {
   const values = {
     Solution: result.solution.name,
     'Web resources': result.summary.webResourceCount.toLocaleString('en-GB'),
+    Libraries: (result.summary.libraryCount || 0).toLocaleString('en-GB'),
     Handlers: result.summary.handlerCount.toLocaleString('en-GB'),
+    'Source files': (result.summary.sourceFileCount || 0).toLocaleString('en-GB'),
+    Findings: (result.summary.libraryFindingCount || result.summary.sourceReferenceCount || 0).toLocaleString('en-GB'),
     Forms: result.summary.formCount.toLocaleString('en-GB'),
     Warnings: result.summary.warningCount === 0 ? 'None' : result.summary.warningCount.toLocaleString('en-GB'),
     'Output size': result.outputSizeLabel

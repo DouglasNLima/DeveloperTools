@@ -2469,6 +2469,16 @@ test('reviews model-driven JavaScript and builds migration reports', async ({ pa
   await expect(page.locator('#modelDrivenJsReviewOutput')).toHaveValue(/Deprecated Xrm.Page usage/);
   await expect(page.locator('#toolHandover')).toContainText('Review report: Preview review');
 
+  await page.getByLabel('Output mode').selectOption('rule-summary-json');
+  await page.getByRole('button', { name: 'Analyse JavaScript' }).click();
+
+  await expect(page.locator('#modelDrivenJsReviewOutput')).toHaveValue(/"rules"/);
+  await expect(page.locator('#modelDrivenJsReviewRulesDetail')).toHaveText(/\d+/);
+  await expect(page.locator('#toolHandover')).toContainText('Rule summary JSON: Format JSON');
+  await page.locator('#toolHandover').getByRole('button', { name: /Rule summary JSON: Format JSON/ }).click();
+  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page.getByLabel('JSON input')).toHaveValue(/deprecated-xrm-page/);
+
   await page.goto('/#client-api-migration-helper');
   await page.getByLabel('Legacy JavaScript input').fill('function onLoad(){ var name = Xrm.Page.getAttribute("name").getValue(); }');
   await page.getByRole('button', { name: 'Build migration report' }).click();
@@ -2530,8 +2540,13 @@ test('inspects solution JavaScript events and maps web resource dependencies', a
   await page.getByRole('button', { name: 'Analyse JavaScript events' }).click();
 
   await expect(page.locator('#solutionJavascriptEventsWebresourcesDetail')).toHaveText('1');
+  await expect(page.locator('#solutionJavascriptEventsLibrariesDetail')).toHaveText('1');
   await expect(page.locator('#solutionJavascriptEventsHandlersDetail')).toHaveText('2');
+  await expect(page.locator('#solutionJavascriptEventsSourcefilesDetail')).toHaveText('2');
+  await expect(page.locator('#solutionJavascriptEventsFindingsDetail')).toHaveText(/\d+/);
   await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Model-driven JavaScript event inspection/);
+  await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Library inventory/);
+  await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Per-library review findings/);
   await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Contoso.Account.onLoad/);
 
   await page.goto('/#web-resource-dependency-mapper');
@@ -2543,7 +2558,10 @@ test('inspects solution JavaScript events and maps web resource dependencies', a
   await page.getByRole('button', { name: 'Build dependency map' }).click();
 
   await expect(page.locator('#webResourceDependencyMapOutput')).toHaveValue(/Web resource dependency map/);
+  await expect(page.locator('#webResourceDependencyMapOutput')).toHaveValue(/Source file references/);
   await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/flowchart LR/);
+  await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/HTML script/);
+  await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/contoso_\/account\.js/);
   await expect(page.locator('#toolHandover')).toContainText('Mermaid diagram: Preview and export');
 });
 
@@ -3267,6 +3285,9 @@ function createModelDrivenJavascriptSolutionZip() {
       '    <Entity>',
       '      <FormXml>',
       '        <systemform name="Account main">',
+      '          <formLibraries>',
+      '            <Library name="$webresource:contoso_/account.js" rank="1" />',
+      '          </formLibraries>',
       '          <events>',
       '            <event name="onload">',
       '              <Handlers>',
@@ -3284,6 +3305,18 @@ function createModelDrivenJavascriptSolutionZip() {
       '    </Entity>',
       '  </Entities>',
       '</ImportExportXml>'
+    ].join('\n')],
+    ['WebResources/contoso_/account.js', [
+      'Contoso.Account.onSave = function (executionContext) {',
+      '  return Xrm.WebApi.retrieveMultipleRecords("account", "?$select=name");',
+      '};'
+    ].join('\n')],
+    ['WebResources/contoso_/page.html', [
+      '<!doctype html>',
+      '<html>',
+      '<head><script src="/WebResources/contoso_/account.js"></script></head>',
+      '<body data-script="$webresource:contoso_/account.js"></body>',
+      '</html>'
     ].join('\n')]
   ];
 

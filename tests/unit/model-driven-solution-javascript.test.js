@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildWebResourceSourceDependencyMap,
   buildWebResourceDependencyMap,
+  parseFormLibraries,
   parseJavaScriptWebResources,
   parseSolutionJavaScriptModel,
+  parseWebResourceSourceFiles,
   processSolutionJavaScriptEventsArchive,
   processWebResourceDependencyMapArchive
 } from '../../src/tools/model-driven-solution-javascript.js';
@@ -16,8 +19,11 @@ test('parses JavaScript web resources and form event handlers from customization
 
   assert.equal(model.webResources.length, 1);
   assert.equal(model.webResources[0].name, 'contoso_/account.js');
+  assert.equal(model.libraries.length, 1);
+  assert.equal(model.libraries[0].libraryName, 'contoso_/account.js');
   assert.equal(model.formHandlers.length, 2);
   assert.equal(model.formHandlers[0].functionName, 'Contoso.Account.onLoad');
+  assert.equal(model.formHandlers[0].libraryOnForm, true);
   assert.equal(model.formHandlers[0].passExecutionContext, true);
   assert.equal(model.formHandlers[1].passExecutionContext, false);
 });
@@ -26,8 +32,15 @@ test('processes solution JavaScript event reports from stored ZIP archives', asy
   const result = await processSolutionJavaScriptEventsArchive(createSolutionZip());
 
   assert.equal(result.summary.webResourceCount, 1);
+  assert.equal(result.summary.libraryCount, 1);
   assert.equal(result.summary.handlerCount, 2);
+  assert.equal(result.summary.sourceFileCount, 2);
+  assert.equal(result.webResourceSources.length, 2);
+  assert.equal(result.libraryFindings.length, 1);
+  assert.ok(result.libraryFindings[0].findings.some(finding => finding.ruleId === 'retrieve-multiple-missing-paging'));
   assert.match(result.reportMarkdown, /Model-driven JavaScript event inspection/);
+  assert.match(result.reportMarkdown, /Library inventory/);
+  assert.match(result.reportMarkdown, /Per-library review findings/);
   assert.match(result.reportMarkdown, /Pass execution context/);
   assert.ok(result.warnings.some(warning => warning.includes('does not show Pass execution context')));
 });
@@ -36,9 +49,42 @@ test('builds web resource dependency Markdown and Mermaid outputs', async () => 
   const result = await processWebResourceDependencyMapArchive(createSolutionZip());
 
   assert.match(result.markdown, /Web resource dependency map/);
+  assert.match(result.markdown, /Source file references/);
   assert.match(result.mermaid, /flowchart LR/);
   assert.match(result.mermaid, /Contoso.Account.onLoad/);
+  assert.match(result.mermaid, /HTML script/);
+  assert.match(result.mermaid, /contoso_\/account\.js/);
   assert.equal(result.summary.handlerCount, 2);
+  assert.equal(result.summary.sourceReferenceCount, 2);
+});
+
+test('parses web resource source files and source references', () => {
+  const sources = parseWebResourceSourceFiles([
+    {
+      path: 'WebResources/contoso_/account.js',
+      text: 'const icon = "$webresource:contoso_/icons/save.svg";'
+    },
+    {
+      path: 'WebResources/contoso_/page.html',
+      text: '<script src="/WebResources/contoso_/account.js"></script>'
+    }
+  ]);
+  const dependencyMap = buildWebResourceSourceDependencyMap({ webResourceSources: sources });
+
+  assert.deepEqual(sources.map(source => source.webResourceName), ['contoso_/account.js', 'contoso_/page.html']);
+  assert.ok(dependencyMap.references.some(reference => reference.referenceType === 'html-script' && reference.target === 'contoso_/account.js'));
+  assert.ok(dependencyMap.references.some(reference => reference.referenceType === '$webresource' && reference.target === 'contoso_/icons/save.svg'));
+});
+
+test('flags handlers that are not backed by form libraries', () => {
+  const libraries = parseFormLibraries(createCustomizationsXml(), [{ name: 'contoso_/account.js', displayName: 'Account script', type: '3' }]);
+  const model = parseSolutionJavaScriptModel(createCustomizationsXml().replace(
+    '<Library name="$webresource:contoso_/account.js" rank="1" />',
+    '<Library name="$webresource:contoso_/unused.js" rank="1" />'
+  ));
+
+  assert.equal(libraries.length, 1);
+  assert.equal(model.formHandlers.every(handler => handler.libraryOnForm), false);
 });
 
 test('handles empty metadata without claiming live validation', () => {
@@ -65,6 +111,9 @@ function createCustomizationsXml() {
     '    <Entity>',
     '      <FormXml>',
     '        <systemform name="Account main">',
+    '          <formLibraries>',
+    '            <Library name="$webresource:contoso_/account.js" rank="1" />',
+    '          </formLibraries>',
     '          <events>',
     '            <event name="onload">',
     '              <Handlers>',
@@ -100,7 +149,19 @@ function createSolutionZip() {
       '  </SolutionManifest>',
       '</ImportExportXml>'
     ].join('\n')],
-    ['customizations.xml', createCustomizationsXml()]
+    ['customizations.xml', createCustomizationsXml()],
+    ['WebResources/contoso_/account.js', [
+      'Contoso.Account.onSave = function (executionContext) {',
+      '  return Xrm.WebApi.retrieveMultipleRecords("account", "?$select=name");',
+      '};'
+    ].join('\n')],
+    ['WebResources/contoso_/page.html', [
+      '<!doctype html>',
+      '<html>',
+      '<head><script src="/WebResources/contoso_/account.js"></script></head>',
+      '<body data-script="$webresource:contoso_/account.js"></body>',
+      '</html>'
+    ].join('\n')]
   ]);
 }
 

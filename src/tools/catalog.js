@@ -156,7 +156,7 @@ export const TOOL_CATALOGUE = [
     title: 'Model-driven JavaScript Reviewer',
     category: 'Power Platform',
     status: 'available',
-    summary: 'Review model-driven app JavaScript web resources for Client API risks and migration warnings.',
+    summary: 'Review model-driven app JavaScript for Client API, async OnSave and command-context risks.',
     renderer: 'model-driven-javascript-reviewer'
   },
   {
@@ -204,7 +204,7 @@ export const TOOL_CATALOGUE = [
     title: 'Solution JavaScript Event Inspector',
     category: 'Power Platform',
     status: 'available',
-    summary: 'Inspect exported solution ZIP files for model-driven JavaScript web resources and form events.',
+    summary: 'Inspect exported solution ZIP files for JavaScript libraries, handlers and source findings.',
     renderer: 'solution-javascript-event-inspector'
   },
   {
@@ -212,7 +212,7 @@ export const TOOL_CATALOGUE = [
     title: 'Web Resource Dependency Mapper',
     category: 'Power Platform',
     status: 'available',
-    summary: 'Map JavaScript web resources, handlers and forms from exported solution metadata.',
+    summary: 'Map JavaScript web resources, handlers, forms and HTML source references from solution exports.',
     renderer: 'web-resource-dependency-mapper'
   },
   {

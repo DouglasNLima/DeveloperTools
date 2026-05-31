@@ -5,6 +5,99 @@ const DOTTED_IDENTIFIER = /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*$/;
 const GUID_PATTERN = /\{?[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\}?/gi;
 const URL_PATTERN = /https?:\/\/[^\s'"`<>),]+/gi;
 
+const REVIEW_RULE_METADATA = {
+  'deprecated-xrm-page': {
+    category: 'client-api',
+    confidence: 'high',
+    remediation: 'Pass execution context to the handler and use executionContext.getFormContext() instead of Xrm.Page.'
+  },
+  'missing-context-parameter': {
+    category: 'handler-registration',
+    confidence: 'medium',
+    remediation: 'Declare executionContext for form handlers, PrimaryControl for form commands, or SelectedControl for grid commands.'
+  },
+  'unguarded-form-member': {
+    category: 'client-api',
+    confidence: 'high',
+    remediation: 'Store the attribute or control in a variable and check it exists before calling member methods.'
+  },
+  'unhandled-webapi-promise': {
+    category: 'async-handling',
+    confidence: 'high',
+    remediation: 'Await the Xrm.WebApi call in try/catch, or return the promise chain with a catch handler.'
+  },
+  'webapi-error-handling': {
+    category: 'async-handling',
+    confidence: 'medium',
+    remediation: 'Surface failures with try/catch, Xrm.Navigation.openErrorDialog or a form notification.'
+  },
+  'hard-coded-url': {
+    category: 'environment',
+    confidence: 'high',
+    remediation: 'Use Xrm.Utility.getGlobalContext().getClientUrl(), configuration or relative web resource paths.'
+  },
+  'hard-coded-guid': {
+    category: 'environment',
+    confidence: 'medium',
+    remediation: 'Resolve records by configuration, alternate keys or environment-specific data rather than hard-coded IDs.'
+  },
+  'global-handler-namespace': {
+    category: 'maintainability',
+    confidence: 'medium',
+    remediation: 'Expose handlers through one publisher namespace, for example Contoso.Account.onLoad.'
+  },
+  'unsupported-dom-access': {
+    category: 'unsupported-api',
+    confidence: 'high',
+    remediation: 'Use supported Client API methods instead of reading or changing the host page DOM.'
+  },
+  'async-onsave-unreturned-promise': {
+    category: 'async-onsave',
+    confidence: 'medium',
+    remediation: 'Make the OnSave handler async and await the asynchronous work, or return the promise so save handling is explicit.'
+  },
+  'onsave-preventdefault-no-eventargs': {
+    category: 'async-onsave',
+    confidence: 'high',
+    remediation: 'Read executionContext.getEventArgs() before calling preventDefault() and keep cancellation in an obvious validation branch.'
+  },
+  'onsave-preventdefault-unclear-branch': {
+    category: 'async-onsave',
+    confidence: 'medium',
+    remediation: 'Keep preventDefault() inside a clear failing validation branch and return immediately after cancelling the save.'
+  },
+  'onsave-missing-eventargs': {
+    category: 'async-onsave',
+    confidence: 'medium',
+    remediation: 'Read executionContext.getEventArgs() in OnSave handlers so save mode and cancellation behaviour are explicit.'
+  },
+  'repeated-form-member-access': {
+    category: 'client-api',
+    confidence: 'medium',
+    remediation: 'Read each attribute or control once into a local variable, guard it, then reuse the variable.'
+  },
+  'missing-depth-check': {
+    category: 'event-recursion',
+    confidence: 'medium',
+    remediation: 'Check executionContext.getDepth() before saving or setting values from a handler that may retrigger events.'
+  },
+  'retrieve-multiple-missing-paging': {
+    category: 'webapi',
+    confidence: 'medium',
+    remediation: 'Pass a maxPageSize value and handle nextLink when retrieveMultipleRecords can return more than one page.'
+  },
+  'command-grid-form-context-assumption': {
+    category: 'command-context',
+    confidence: 'medium',
+    remediation: 'Use SelectedControl grid APIs for grid commands and PrimaryControl form APIs only for form commands.'
+  }
+};
+
+export const MODEL_DRIVEN_REVIEW_OUTPUT_MODES = [
+  { value: 'report', label: 'Review report' },
+  { value: 'rule-summary-json', label: 'Rule summary JSON' }
+];
+
 export const FORM_EVENT_TYPES = [
   { value: 'onload', label: 'OnLoad' },
   { value: 'onsave', label: 'OnSave' },
@@ -40,16 +133,20 @@ export function analyseModelDrivenJavaScript(options = {}) {
     ...findHandlerContextRisks(source, functions),
     ...findUnsafeAttributeAccess(source),
     ...findWebApiHandlingRisks(source),
+    ...findAsyncOnSaveRisks(source, functions),
+    ...findClientApiQualityRisks(source, functions),
     ...findHardCodedEnvironmentValues(source),
     ...findGlobalNamespaceRisks(source, functions),
     ...findDomAccessRisks(source)
-  ];
+  ].map(addReviewMetadata);
   const sortedFindings = findings.sort(compareFindings);
+  const ruleSummary = buildJavaScriptRuleSummary(sortedFindings);
   const reportMarkdown = buildJavaScriptReviewMarkdown({
     fileName,
     source,
     findings: sortedFindings,
-    functions
+    functions,
+    ruleSummary
   });
   const outputBytes = new TextEncoder().encode(reportMarkdown).length;
 
@@ -57,11 +154,46 @@ export function analyseModelDrivenJavaScript(options = {}) {
     fileName,
     functions,
     findings: sortedFindings,
+    ruleSummary,
     reportMarkdown,
     outputBytes,
     outputSizeLabel: formatBytes(outputBytes),
     summary: summariseFindings(sortedFindings)
   };
+}
+
+export function buildJavaScriptRuleSummary(findings = []) {
+  return findings.reduce((summary, finding) => {
+    const ruleId = finding.ruleId || finding.code || 'unknown-rule';
+    const severity = finding.severity || 'info';
+    const category = finding.category || 'general';
+    const confidence = finding.confidence || 'medium';
+
+    summary.total += 1;
+    summary.severities[severity] = (summary.severities[severity] || 0) + 1;
+    summary.categories[category] = (summary.categories[category] || 0) + 1;
+    summary.confidence[confidence] = (summary.confidence[confidence] || 0) + 1;
+
+    if (!summary.rules[ruleId]) {
+      summary.rules[ruleId] = {
+        ruleId,
+        title: finding.title || ruleId,
+        category,
+        severity,
+        confidence,
+        count: 0
+      };
+    }
+
+    summary.rules[ruleId].count += 1;
+    return summary;
+  }, {
+    total: 0,
+    severities: { high: 0, medium: 0, low: 0, info: 0 },
+    categories: {},
+    confidence: { high: 0, medium: 0, low: 0 },
+    rules: {}
+  });
 }
 
 export function buildClientApiMigrationReport(options = {}) {
@@ -416,6 +548,186 @@ function findWebApiHandlingRisks(source) {
   return findings;
 }
 
+function findAsyncOnSaveRisks(source, functions) {
+  const findings = [];
+
+  functions.forEach(candidate => {
+    const body = readFunctionBody(source, candidate.index);
+    const name = candidate.name.toLocaleLowerCase('en-GB');
+    const isOnSaveCandidate = name.includes('onsave') || /\b(?:getEventArgs|preventDefault|getSaveMode)\s*\(/.test(body);
+
+    if (!isOnSaveCandidate) {
+      return;
+    }
+
+    const signature = source.slice(Math.max(0, candidate.index - 40), source.indexOf('{', candidate.index));
+    const hasAsyncWork = /\b(?:Xrm\.WebApi(?:\.(?:online|offline))?\.|fetch\s*\(|Promise\.)/.test(body);
+    const hasAwait = /\bawait\b/.test(body);
+    const returnsAsyncWork = /\breturn\s+(?:await\s+)?(?:Xrm\.WebApi(?:\.(?:online|offline))?\.|fetch\s*\(|Promise\.|[A-Za-z_$][\w$.]*\s*\()/.test(body);
+    const isAsyncFunction = /\basync\s+function\b/.test(signature);
+    const hasEventArgs = /\bgetEventArgs\s*\(/.test(body);
+    const preventIndex = body.search(/\bpreventDefault\s*\(/);
+
+    if (hasAsyncWork && !hasAwait && !returnsAsyncWork) {
+      findings.push({
+        severity: 'high',
+        code: 'async-onsave-unreturned-promise',
+        title: 'OnSave async work is not awaited or returned',
+        message: `${candidate.name} appears to perform asynchronous work during save without returning or awaiting it.`,
+        recommendation: 'Make the handler async and await the work, or return the promise chain so save handling is explicit.',
+        line: candidate.line
+      });
+    } else if (hasAsyncWork && !isAsyncFunction && !returnsAsyncWork) {
+      findings.push({
+        severity: 'medium',
+        code: 'async-onsave-unreturned-promise',
+        title: 'OnSave async work is not explicitly returned',
+        message: `${candidate.name} performs asynchronous work but is not declared async and does not clearly return the promise.`,
+        recommendation: 'Declare an async OnSave handler and await the asynchronous validation or persistence call.',
+        line: candidate.line
+      });
+    }
+
+    if (preventIndex >= 0 && !hasEventArgs) {
+      findings.push({
+        severity: 'high',
+        code: 'onsave-preventdefault-no-eventargs',
+        title: 'preventDefault without event arguments',
+        message: `${candidate.name} calls preventDefault(), but the event arguments are not read from executionContext.getEventArgs().`,
+        recommendation: 'Read const eventArgs = executionContext.getEventArgs(); before calling eventArgs.preventDefault().',
+        line: candidate.line
+      });
+    } else if (preventIndex >= 0 && !isPreventDefaultClearlyBranched(body, preventIndex)) {
+      findings.push({
+        severity: 'medium',
+        code: 'onsave-preventdefault-unclear-branch',
+        title: 'Save cancellation branch is unclear',
+        message: `${candidate.name} calls preventDefault(), but the cancellation branch does not clearly return after blocking the save.`,
+        recommendation: 'Keep preventDefault() inside the failing validation branch and return immediately after cancelling the save.',
+        line: getLineNumber(source, candidate.index + preventIndex)
+      });
+    }
+
+    if (!hasEventArgs && (name.includes('onsave') || /\bdata\.save\s*\(/.test(body))) {
+      findings.push({
+        severity: 'medium',
+        code: 'onsave-missing-eventargs',
+        title: 'OnSave handler does not read event arguments',
+        message: `${candidate.name} looks like a save handler but does not read executionContext.getEventArgs().`,
+        recommendation: 'Read event arguments in OnSave handlers so save mode and preventDefault behaviour are explicit.',
+        line: candidate.line
+      });
+    }
+  });
+
+  return findings;
+}
+
+function findClientApiQualityRisks(source, functions) {
+  return [
+    ...findRepeatedFormMemberAccess(source),
+    ...findMissingDepthChecks(source, functions),
+    ...findRetrieveMultiplePagingRisks(source),
+    ...findCommandContextRisks(source, functions)
+  ];
+}
+
+function findRepeatedFormMemberAccess(source) {
+  const accessCounts = new Map();
+  const pattern = /\b(?:formContext|Xrm\.Page)\.(getAttribute|getControl)\(\s*(["'])([^"']+)\2\s*\)/g;
+  let match = pattern.exec(source);
+
+  while (match) {
+    const key = `${match[1]}:${match[3]}`;
+    const entries = accessCounts.get(key) || [];
+    entries.push({
+      kind: match[1],
+      name: match[3],
+      line: getLineNumber(source, match.index)
+    });
+    accessCounts.set(key, entries);
+    match = pattern.exec(source);
+  }
+
+  return [...accessCounts.values()]
+    .filter(entries => entries.length > 1)
+    .map(entries => ({
+      severity: 'low',
+      code: 'repeated-form-member-access',
+      title: 'Repeated form member lookup',
+      message: `${entries[0].kind}("${entries[0].name}") is called ${entries.length} times. Repeated lookups make guards harder to review.`,
+      recommendation: 'Read the attribute or control once into a local variable, check it exists, then reuse the variable.',
+      line: entries[0].line
+    }));
+}
+
+function findMissingDepthChecks(source, functions) {
+  return functions
+    .filter(candidate => {
+      const body = readFunctionBody(source, candidate.index);
+      const mutatesForm = /\b(?:formContext|Xrm\.Page)\.data\.save\s*\(|\.setValue\s*\(/.test(body);
+      const hasDepthCheck = /\bgetDepth\s*\(/.test(body);
+      return mutatesForm && !hasDepthCheck;
+    })
+    .map(candidate => ({
+      severity: 'medium',
+      code: 'missing-depth-check',
+      title: 'Handler mutates form state without a depth check',
+      message: `${candidate.name} saves or sets values without checking executionContext.getDepth().`,
+      recommendation: 'Check executionContext.getDepth() before save or setValue logic that may retrigger handlers.',
+      line: candidate.line
+    }));
+}
+
+function findRetrieveMultiplePagingRisks(source) {
+  const findings = [];
+  const pattern = /\bXrm\.WebApi(?:\.(?:online|offline))?\.retrieveMultipleRecords\s*\(/g;
+  let match = pattern.exec(source);
+
+  while (match) {
+    const statement = readStatement(source, match.index);
+    const surrounding = source.slice(match.index, Math.min(source.length, match.index + 1000));
+    const hasPagingSignal = /\b(?:maxPageSize|nextLink|@odata\.nextLink)\b/i.test(surrounding)
+      || /\$top=/i.test(statement)
+      || /retrieveMultipleRecords\s*\([^,]+,[^,]+,\s*[^)]+\)/i.test(statement);
+
+    if (!hasPagingSignal) {
+      findings.push({
+        severity: 'medium',
+        code: 'retrieve-multiple-missing-paging',
+        title: 'retrieveMultipleRecords paging is not obvious',
+        message: 'retrieveMultipleRecords can return paged results, but this call does not show maxPageSize or nextLink handling.',
+        recommendation: 'Pass maxPageSize and loop through nextLink when a table can return more than one page.',
+        line: getLineNumber(source, match.index)
+      });
+    }
+
+    match = pattern.exec(source);
+  }
+
+  return findings;
+}
+
+function findCommandContextRisks(source, functions) {
+  return functions
+    .filter(candidate => {
+      const body = readFunctionBody(source, candidate.index);
+      const parameterText = candidate.parameters.join(' ').toLocaleLowerCase('en-GB');
+      const isGridCommand = /\b(?:selectedcontrol|gridcontext|selecteditems)\b/.test(parameterText);
+      const assumesForm = /\b(?:getFormContext\s*\(|formContext\.data\.entity|primaryControl\.data\.entity|\.data\.entity\.getId\s*\()/.test(body);
+
+      return isGridCommand && assumesForm;
+    })
+    .map(candidate => ({
+      severity: 'medium',
+      code: 'command-grid-form-context-assumption',
+      title: 'Grid command may assume form context',
+      message: `${candidate.name} accepts a grid command context but appears to use form record APIs.`,
+      recommendation: 'Use SelectedControl.getGrid().getSelectedRows() for grid commands, or register a form command with PrimaryControl.',
+      line: candidate.line
+    }));
+}
+
 function findHardCodedEnvironmentValues(source) {
   const findings = [];
 
@@ -537,8 +849,10 @@ function buildMigrationHandlerSkeleton(options = {}) {
   ].join('\n');
 }
 
-function buildJavaScriptReviewMarkdown({ fileName, source, findings, functions }) {
+function buildJavaScriptReviewMarkdown({ fileName, source, findings, functions, ruleSummary }) {
   const summary = summariseFindings(findings);
+  const categoryRows = Object.entries(ruleSummary.categories)
+    .sort(([left], [right]) => left.localeCompare(right, 'en-GB'));
   const lines = [
     '# Model-driven JavaScript review',
     '',
@@ -554,6 +868,20 @@ function buildJavaScriptReviewMarkdown({ fileName, source, findings, functions }
     `| Low | ${summary.low} |`,
     `| Info | ${summary.info} |`,
     '',
+    '## Rule summary',
+    '',
+    '| Category | Count |',
+    '| --- | ---: |',
+    ...(categoryRows.length > 0
+      ? categoryRows.map(([category, count]) => `| ${escapeMarkdownCell(category)} | ${count} |`)
+      : ['| No rule categories detected | 0 |']),
+    '',
+    '| Confidence | Count |',
+    '| --- | ---: |',
+    `| High | ${ruleSummary.confidence.high || 0} |`,
+    `| Medium | ${ruleSummary.confidence.medium || 0} |`,
+    `| Low | ${ruleSummary.confidence.low || 0} |`,
+    '',
     '## Findings',
     ''
   ];
@@ -565,10 +893,14 @@ function buildJavaScriptReviewMarkdown({ fileName, source, findings, functions }
       lines.push(
         `### ${finding.title}`,
         '',
+        `- Rule ID: ${finding.ruleId}`,
+        `- Category: ${finding.category}`,
         `- Severity: ${capitalise(finding.severity)}`,
+        `- Confidence: ${capitalise(finding.confidence)}`,
         `- Line: ${finding.line || '-'}`,
         `- Detail: ${finding.message}`,
         `- Recommendation: ${finding.recommendation}`,
+        `- Suggested remediation: ${finding.remediation}`,
         ''
       );
     });
@@ -635,10 +967,11 @@ function buildMigrationMarkdown({ analysis, replacements, handlerSnippet }) {
 }
 
 function buildEventHandlerCode({ eventType, namespace, functionName, fieldName, controlName }) {
+  const isAsyncOnSave = eventType === 'onsave';
   const lines = [
     ...buildNamespaceInitialiser(namespace),
     '',
-    `${namespace}.${functionName} = function (executionContext) {`,
+    `${namespace}.${functionName} = ${isAsyncOnSave ? 'async ' : ''}function (executionContext) {`,
     '  const formContext = executionContext.getFormContext();'
   ];
 
@@ -651,6 +984,12 @@ function buildEventHandlerCode({ eventType, namespace, functionName, fieldName, 
   } else if (eventType === 'onsave') {
     lines.push(
       '  const eventArgs = executionContext.getEventArgs();',
+      '  const saveMode = eventArgs.getSaveMode ? eventArgs.getSaveMode() : null;',
+      '',
+      '  if (executionContext.getDepth && executionContext.getDepth() > 1) {',
+      '    return;',
+      '  }',
+      '',
       `  const attribute = formContext.getAttribute("${fieldName || 'name'}");`,
       '  const value = attribute ? attribute.getValue() : null;',
       '',
@@ -660,10 +999,22 @@ function buildEventHandlerCode({ eventType, namespace, functionName, fieldName, 
       '    return;',
       '  }',
       '',
-      '  formContext.ui.clearFormNotification("save_validation");'
+      '  try {',
+      '    // Replace this with async validation that must complete before save continues.',
+      '    await Promise.resolve({ saveMode });',
+      '    formContext.ui.clearFormNotification("save_validation");',
+      '  } catch (error) {',
+      '    eventArgs.preventDefault();',
+      '    formContext.ui.setFormNotification(error.message || "Save validation failed.", "ERROR", "save_validation");',
+      '  }'
     );
   } else if (eventType === 'onchange') {
     lines.push(
+      '',
+      '  if (executionContext.getDepth && executionContext.getDepth() > 1) {',
+      '    return;',
+      '  }',
+      '',
       `  const attribute = formContext.getAttribute("${fieldName || 'name'}");`,
       `  const control = formContext.getControl("${controlName || fieldName || 'name'}");`,
       '  const value = attribute ? attribute.getValue() : null;',
@@ -725,8 +1076,17 @@ function buildWebApiCode({ operation, entityName, recordId, select, filter, pars
     );
   } else if (operation === 'retrieveMultipleRecords') {
     lines.push(
-      `    const result = await Xrm.WebApi.retrieveMultipleRecords("${entityName}", "${query || '?$select=name'}");`,
-      '    return result.entities;'
+      '    const maxPageSize = 50;',
+      `    const rows = [];`,
+      `    let result = await Xrm.WebApi.retrieveMultipleRecords("${entityName}", "${query || '?$select=name'}", maxPageSize);`,
+      '    rows.push(...result.entities);',
+      '',
+      '    while (result.nextLink) {',
+      `      result = await Xrm.WebApi.retrieveMultipleRecords("${entityName}", result.nextLink, maxPageSize);`,
+      '      rows.push(...result.entities);',
+      '    }',
+      '',
+      '    return rows;'
     );
   } else if (operation === 'createRecord') {
     lines.push(
@@ -813,6 +1173,11 @@ function buildCommandCode({ contextType, namespace, functionName, entityName, us
       '    await Xrm.Navigation.openAlertDialog({ text: "Select at least one row first." });',
       '    return;',
       '  }',
+      '',
+      '  const selectedRecordIds = [];',
+      '  selectedRows.forEach(row => {',
+      '    selectedRecordIds.push(row.getData().getEntity().getId().replace(/[{}]/g, ""));',
+      '  });',
       ''
     );
   }
@@ -847,8 +1212,7 @@ function buildCommandCode({ contextType, namespace, functionName, entityName, us
     } else {
       lines.push(
         '  const updates = [];',
-        '  selectedRows.forEach(row => {',
-        '    const id = row.getData().getEntity().getId().replace(/[{}]/g, "");',
+        '  selectedRecordIds.forEach(id => {',
         `    updates.push(Xrm.WebApi.updateRecord("${entityName}", id, {`,
         '      description: "Updated from command bar"',
         '    }));',
@@ -1053,6 +1417,28 @@ function collectPatternFindings(source, pattern, createFinding) {
   }
 
   return findings;
+}
+
+function addReviewMetadata(finding) {
+  const ruleId = finding.ruleId || finding.code || 'unknown-rule';
+  const metadata = REVIEW_RULE_METADATA[ruleId] || {};
+  const remediation = finding.remediation || metadata.remediation || finding.recommendation || 'Review this finding before publishing.';
+
+  return {
+    ...finding,
+    ruleId,
+    category: finding.category || metadata.category || 'general',
+    confidence: finding.confidence || metadata.confidence || 'medium',
+    recommendation: finding.recommendation || remediation,
+    remediation
+  };
+}
+
+function isPreventDefaultClearlyBranched(body, preventIndex) {
+  const before = body.slice(Math.max(0, preventIndex - 120), preventIndex);
+  const after = body.slice(preventIndex, Math.min(body.length, preventIndex + 160));
+
+  return /\bif\s*\([^)]*\)\s*\{?[\s\S]*$/.test(before) && /\breturn\b/.test(after);
 }
 
 function getLineNumber(source, index) {

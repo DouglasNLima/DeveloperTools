@@ -104,6 +104,15 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 - Generate Markdown event reports and Mermaid web resource dependency maps.
 - Status: implemented with unit and browser coverage.
 
+## Phase 11: Model-driven JavaScript Hardening Pack
+
+- Extend JavaScript review findings with stable rule IDs, categories, confidence and remediation text.
+- Add async OnSave, recursion-depth, retrieveMultipleRecords paging and command-context risk checks.
+- Read JavaScript and HTML web resource source files from exported solution ZIPs where present.
+- Correlate form libraries, handlers and source findings while preserving exported-metadata-only wording.
+- Include HTML script and `$webresource:` source references in web resource Mermaid dependency maps.
+- Status: implemented with unit and browser coverage.
+
 ## Candidate Next Tools
 
 - Dataverse FetchXML to OData helper.

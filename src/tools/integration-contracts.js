@@ -9,7 +9,8 @@ const JSON_SOURCE_PORTS = [
   { toolId: 'text-diff', outputId: 'output' },
   { toolId: 'jwt-decoder', outputId: 'header' },
   { toolId: 'jwt-decoder', outputId: 'payload' },
-  { toolId: 'pdf-template-field-explorer', outputId: 'fields-json' }
+  { toolId: 'pdf-template-field-explorer', outputId: 'fields-json' },
+  { toolId: 'model-driven-javascript-reviewer', outputId: 'rule-summary' }
 ];
 
 const MERMAID_GENERATOR_SOURCE_PORTS = [
@@ -796,6 +797,13 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         label: 'Review report',
         mediaType: 'text/markdown',
         kind: 'text'
+      },
+      {
+        id: 'rule-summary',
+        selector: '#modelDrivenJsReviewOutput',
+        label: 'Rule summary JSON',
+        mediaType: 'application/json',
+        kind: 'json'
       }
     ],
     inputs: [

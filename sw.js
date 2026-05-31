@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v27';
+const CACHE_NAME = 'developer-tools-static-v28';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [

@@ -2,6 +2,7 @@ import {
   COMMAND_BAR_CONTEXTS,
   FORM_EVENT_TYPES,
   FORM_VALIDATION_RULES,
+  MODEL_DRIVEN_REVIEW_OUTPUT_MODES,
   XRM_WEBAPI_OPERATIONS,
   analyseModelDrivenJavaScript,
   buildClientApiMigrationReport,
@@ -20,6 +21,10 @@ export function renderModelDrivenJavaScriptReviewer(container) {
         <textarea id="modelDrivenJsReviewInput" spellcheck="false" placeholder="function onLoad(executionContext) {&#10;  const formContext = executionContext.getFormContext();&#10;}"></textarea>
       </div>
 
+      <div class="form-grid">
+        ${selectField('modelDrivenJsReviewOutputMode', 'Output mode', MODEL_DRIVEN_REVIEW_OUTPUT_MODES)}
+      </div>
+
       <div class="button-row">
         <button id="analyseModelDrivenJsButton" class="primary" type="button">Analyse JavaScript</button>
         <button id="clearModelDrivenJsReviewButton" class="secondary" type="button">Clear</button>
@@ -34,7 +39,7 @@ export function renderModelDrivenJavaScriptReviewer(container) {
       </div>
 
       <textarea id="modelDrivenJsReviewOutput" spellcheck="false" readonly placeholder="The review report will appear here."></textarea>
-      ${buildDetailsHtml('modelDrivenJsReview', ['High', 'Medium', 'Low', 'Functions', 'Output size'])}
+      ${buildDetailsHtml('modelDrivenJsReview', ['High', 'Medium', 'Low', 'Rules', 'Functions', 'Output size'])}
       <div id="modelDrivenJsReviewStatus" class="status-message" role="status" aria-live="polite">Ready.</div>
     </form>
   `;
@@ -47,15 +52,20 @@ export function renderModelDrivenJavaScriptReviewer(container) {
     clearId: '#clearModelDrivenJsReviewButton',
     actionId: '#analyseModelDrivenJsButton',
     statusId: '#modelDrivenJsReviewStatus',
-    fileName: 'model-driven-javascript-review.md',
+    fileName: () => value(container, '#modelDrivenJsReviewOutputMode') === 'rule-summary-json'
+      ? 'model-driven-javascript-rule-summary.json'
+      : 'model-driven-javascript-review.md',
     run: input => analyseModelDrivenJavaScript({ source: input }),
-    readOutput: result => result.reportMarkdown,
+    readOutput: result => value(container, '#modelDrivenJsReviewOutputMode') === 'rule-summary-json'
+      ? JSON.stringify(result.ruleSummary, null, 2)
+      : result.reportMarkdown,
     success: 'Model-driven JavaScript review completed.',
     emptyCopy: 'There is no JavaScript review report to copy.',
     details: result => ({
       High: result.summary.high.toLocaleString('en-GB'),
       Medium: result.summary.medium.toLocaleString('en-GB'),
       Low: result.summary.low.toLocaleString('en-GB'),
+      Rules: Object.keys(result.ruleSummary.rules).length.toLocaleString('en-GB'),
       Functions: result.functions.length.toLocaleString('en-GB'),
       'Output size': result.outputSizeLabel
     })
@@ -317,7 +327,7 @@ function bindTextAnalysisTool(container, options) {
       const result = options.run(input.value);
       output.value = options.readOutput(result);
       copyButton.disabled = false;
-      setDownload(downloadButton, objectUrl, options.fileName, output.value, nextUrl => { objectUrl = nextUrl; });
+      setDownload(downloadButton, objectUrl, readFileName(options.fileName, result), output.value, nextUrl => { objectUrl = nextUrl; });
       setDetails(details, options.details(result));
       setStatus(status, options.success, 'success');
       dispatchOutputChange(output);
@@ -351,6 +361,10 @@ function bindTextAnalysisTool(container, options) {
     outputHighlight.destroy();
     clearDownload(downloadButton, objectUrl);
   };
+}
+
+function readFileName(fileName, result) {
+  return typeof fileName === 'function' ? fileName(result) : fileName;
 }
 
 function bindSnippetTool(container, options) {

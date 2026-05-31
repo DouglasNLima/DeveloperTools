@@ -1,19 +1,25 @@
 import { formatBytes } from './base64.js';
+import { analyseModelDrivenJavaScript, buildJavaScriptRuleSummary } from './model-driven-javascript.js';
 import {
   escapeMarkdownTableCell,
   formatSolutionFileName,
-  readPowerPlatformSolutionArchive
+  readPowerPlatformSolutionArchive,
+  readZipArchive
 } from './power-platform-solution.js';
 
 const JAVASCRIPT_WEB_RESOURCE_TYPE = new Set(['3', 'script', 'javascript', 'js']);
 
 export async function processSolutionJavaScriptEventsArchive(input, options = {}) {
   const archive = await readPowerPlatformSolutionArchive(input, options);
-  const model = parseSolutionJavaScriptModel(archive.sourceFiles.customizationsXml, archive.solution);
+  const webResourceSourceEntries = await readWebResourceSourceEntries(input, options);
+  const webResourceSources = parseWebResourceSourceFiles(webResourceSourceEntries);
+  const model = parseSolutionJavaScriptModel(archive.sourceFiles.customizationsXml, archive.solution, webResourceSources);
+  const libraryFindings = buildLibraryFindings(model.webResourceSources);
   const warnings = buildSolutionJavaScriptWarnings(model, archive.warnings);
   const reportMarkdown = buildSolutionJavaScriptEventsMarkdown({
     solution: archive.solution,
     model,
+    libraryFindings,
     warnings,
     zip: archive.zip
   });
@@ -22,14 +28,20 @@ export async function processSolutionJavaScriptEventsArchive(input, options = {}
   return {
     solution: archive.solution,
     webResources: model.webResources,
+    libraries: model.libraries,
     formHandlers: model.formHandlers,
+    webResourceSources: model.webResourceSources,
+    libraryFindings,
     warnings,
     reportMarkdown,
     outputBytes,
     outputSizeLabel: formatBytes(outputBytes),
     summary: {
       webResourceCount: model.webResources.length,
+      libraryCount: model.libraries.length,
       handlerCount: model.formHandlers.length,
+      sourceFileCount: model.webResourceSources.length,
+      libraryFindingCount: libraryFindings.reduce((count, item) => count + item.findingCount, 0),
       formCount: new Set(model.formHandlers.map(handler => handler.formName)).size,
       warningCount: warnings.length
     }
@@ -41,7 +53,10 @@ export async function processWebResourceDependencyMapArchive(input, options = {}
   const dependencyMap = buildWebResourceDependencyMap({
     solution: events.solution,
     webResources: events.webResources,
+    libraries: events.libraries,
     formHandlers: events.formHandlers,
+    webResourceSources: events.webResourceSources,
+    libraryFindings: events.libraryFindings,
     warnings: events.warnings
   });
 
@@ -54,21 +69,28 @@ export async function processWebResourceDependencyMapArchive(input, options = {}
 export function buildWebResourceDependencyMap(options = {}) {
   const solution = options.solution || { name: 'Power Platform solution' };
   const webResources = Array.isArray(options.webResources) ? options.webResources : [];
+  const libraries = Array.isArray(options.libraries) ? options.libraries : [];
   const formHandlers = Array.isArray(options.formHandlers) ? options.formHandlers : [];
+  const webResourceSources = Array.isArray(options.webResourceSources) ? options.webResourceSources : [];
   const warnings = [...(options.warnings || [])];
-  const markdown = buildDependencyMarkdown({ solution, webResources, formHandlers, warnings });
-  const mermaid = buildDependencyMermaid({ solution, webResources, formHandlers });
+  const sourceDependencyMap = buildWebResourceSourceDependencyMap({ webResourceSources });
+  const markdown = buildDependencyMarkdown({ solution, webResources, libraries, formHandlers, sourceDependencyMap, warnings });
+  const mermaid = buildDependencyMermaid({ solution, webResources, libraries, formHandlers, webResourceSources, sourceDependencyMap });
   const outputBytes = new TextEncoder().encode(`${markdown}\n\n${mermaid}`).length;
 
   return {
     markdown,
     mermaid,
+    sourceReferences: sourceDependencyMap.references,
     warnings,
     outputBytes,
     outputSizeLabel: formatBytes(outputBytes),
     summary: {
       webResourceCount: webResources.length,
+      libraryCount: libraries.length,
       handlerCount: formHandlers.length,
+      sourceFileCount: webResourceSources.length,
+      sourceReferenceCount: sourceDependencyMap.references.length,
       formCount: new Set(formHandlers.map(handler => handler.formName)).size,
       warningCount: warnings.length
     }
@@ -83,13 +105,17 @@ export function buildWebResourceDependencyFileName(solutionName, extension = 'md
   return formatSolutionFileName(solutionName, extension === 'mmd' ? 'web-resource-dependencies' : 'web-resource-dependency-map', extension);
 }
 
-export function parseSolutionJavaScriptModel(customizationsXml = '', solution = {}) {
+export function parseSolutionJavaScriptModel(customizationsXml = '', solution = {}, webResourceSources = []) {
   const webResources = parseJavaScriptWebResources(customizationsXml);
-  const formHandlers = parseFormEventHandlers(customizationsXml, webResources);
+  const libraries = parseFormLibraries(customizationsXml, webResources);
+  const correlatedSources = correlateWebResourceSources(webResourceSources, webResources);
+  const formHandlers = correlateHandlersToLibraries(parseFormEventHandlers(customizationsXml, webResources), libraries);
 
   return {
     solution,
     webResources,
+    libraries,
+    webResourceSources: correlatedSources,
     formHandlers
   };
 }
@@ -163,6 +189,97 @@ export function parseFormEventHandlers(customizationsXml = '', webResources = []
   }));
 }
 
+export function parseFormLibraries(customizationsXml = '', webResources = []) {
+  const systemForms = extractXmlElementBlocks(customizationsXml, 'systemform');
+  const libraries = [];
+
+  systemForms.forEach((formBlock, formIndex) => {
+    const formName = readSystemFormName(formBlock, formIndex);
+    const libraryTags = matchLibraryTags(formBlock.content);
+
+    libraryTags.forEach((libraryTag, libraryIndex) => {
+      const attrs = parseXmlAttributes(libraryTag);
+      const libraryName = normaliseLibraryName(firstValue(
+        attrs.name,
+        attrs.libraryname,
+        attrs.library,
+        attrs.webresourcename,
+        attrs.uniqueid
+      ));
+
+      if (!libraryName) {
+        return;
+      }
+
+      const matchedResource = findMatchingResource(libraryName, webResources);
+      libraries.push({
+        id: `library-${libraries.length + 1}`,
+        formName,
+        libraryName,
+        matchedWebResource: matchedResource?.name || '',
+        sourcePath: 'customizations.xml',
+        rank: firstValue(attrs.rank, attrs.order, attrs.sequence, String(libraryIndex + 1))
+      });
+    });
+  });
+
+  return dedupeBy(libraries, library => `${library.formName.toLocaleLowerCase('en-GB')}::${library.libraryName.toLocaleLowerCase('en-GB')}`);
+}
+
+export function parseWebResourceSourceFiles(zipEntries = []) {
+  return zipEntries
+    .map((entry, index) => {
+      const path = normaliseZipPath(entry.path || entry.name || '');
+      const text = String(entry.text || '');
+      const webResourceName = normaliseWebResourceSourceName(path);
+      const lowerName = webResourceName.toLocaleLowerCase('en-GB');
+      const type = lowerName.endsWith('.js') ? 'javascript' : 'html';
+
+      return {
+        id: `source-${index + 1}`,
+        path,
+        webResourceName,
+        type,
+        text,
+        uncompressedSize: entry.uncompressedSize || new TextEncoder().encode(text).length
+      };
+    })
+    .filter(source => source.path && source.webResourceName && ['javascript', 'html'].includes(source.type));
+}
+
+export function buildWebResourceSourceDependencyMap(options = {}) {
+  const webResourceSources = Array.isArray(options.webResourceSources) ? options.webResourceSources : [];
+  const references = [];
+
+  webResourceSources.forEach(source => {
+    const sourceName = source.webResourceName || source.path;
+
+    extractHtmlScriptReferences(source).forEach(reference => {
+      references.push({
+        id: `source-reference-${references.length + 1}`,
+        sourcePath: source.path,
+        sourceName,
+        target: reference,
+        referenceType: 'html-script'
+      });
+    });
+
+    extractWebResourceReferences(source.text).forEach(reference => {
+      references.push({
+        id: `source-reference-${references.length + 1}`,
+        sourcePath: source.path,
+        sourceName,
+        target: reference,
+        referenceType: '$webresource'
+      });
+    });
+  });
+
+  return {
+    references: dedupeBy(references, reference => `${reference.sourceName.toLocaleLowerCase('en-GB')}::${reference.referenceType}::${reference.target.toLocaleLowerCase('en-GB')}`)
+  };
+}
+
 function parseEventHandlersFromXml(xml, formName, webResources) {
   const eventBlocks = extractXmlElementBlocks(xml, 'event');
   const handlers = [];
@@ -198,6 +315,76 @@ function parseEventHandlersFromXml(xml, formName, webResources) {
   return handlers;
 }
 
+async function readWebResourceSourceEntries(input, options = {}) {
+  const bytes = await normaliseArchiveBytes(input);
+  const zip = await readZipArchive(bytes, options);
+
+  return zip.readMatchingText(path => {
+    const lowerPath = normaliseZipPath(path).toLocaleLowerCase('en-GB');
+    const isSourceFile = /\.(?:js|html?)$/.test(lowerPath);
+    const looksLikeWebResource = lowerPath.startsWith('webresources/')
+      || lowerPath.includes('/webresources/')
+      || lowerPath.includes('webresource');
+
+    return isSourceFile && looksLikeWebResource;
+  });
+}
+
+function buildLibraryFindings(webResourceSources = []) {
+  return webResourceSources
+    .filter(source => source.type === 'javascript')
+    .map(source => {
+      if (!String(source.text || '').trim()) {
+        return {
+          id: `library-finding-${source.id}`,
+          sourcePath: source.path,
+          webResourceName: source.webResourceName,
+          matchedWebResource: source.matchedWebResource || '',
+          findings: [],
+          ruleSummary: buildJavaScriptRuleSummary([]),
+          findingCount: 0,
+          reportMarkdown: 'No JavaScript source text was available for this exported web resource.'
+        };
+      }
+
+      const analysis = analyseModelDrivenJavaScript({
+        source: source.text,
+        fileName: source.webResourceName || source.path
+      });
+
+      return {
+        id: `library-finding-${source.id}`,
+        sourcePath: source.path,
+        webResourceName: source.webResourceName,
+        matchedWebResource: source.matchedWebResource || '',
+        findings: analysis.findings,
+        ruleSummary: analysis.ruleSummary,
+        findingCount: analysis.findings.length,
+        reportMarkdown: analysis.reportMarkdown
+      };
+    });
+}
+
+function correlateWebResourceSources(webResourceSources, webResources) {
+  return webResourceSources.map(source => {
+    const matchedResource = findMatchingResource(source.webResourceName, webResources);
+
+    return {
+      ...source,
+      matchedWebResource: matchedResource?.name || ''
+    };
+  });
+}
+
+function correlateHandlersToLibraries(formHandlers, libraries) {
+  const libraryLookup = new Set(libraries.map(library => buildFormLibraryKey(library.formName, library.libraryName)));
+
+  return formHandlers.map(handler => ({
+    ...handler,
+    libraryOnForm: handler.libraryName ? libraryLookup.has(buildFormLibraryKey(handler.formName, handler.libraryName)) : false
+  }));
+}
+
 function buildSolutionJavaScriptWarnings(model, archiveWarnings = []) {
   const warnings = [...archiveWarnings.filter(warning => !/Workflows\/\*\.json/i.test(warning))];
 
@@ -221,12 +408,24 @@ function buildSolutionJavaScriptWarnings(model, archiveWarnings = []) {
     if (handler.libraryName && !handler.matchedWebResource) {
       warnings.push(`${handler.functionName} references ${handler.libraryName}, but no matching JavaScript web resource was detected.`);
     }
+
+    if (handler.libraryName && !handler.libraryOnForm) {
+      warnings.push(`${handler.functionName} references ${handler.libraryName}, but that library was not detected in the exported form library inventory.`);
+    }
+  });
+
+  model.libraries.forEach(library => {
+    const isUsed = model.formHandlers.some(handler => buildFormLibraryKey(handler.formName, handler.libraryName) === buildFormLibraryKey(library.formName, library.libraryName));
+
+    if (!isUsed) {
+      warnings.push(`${library.libraryName} is listed on ${library.formName}, but no exported form event handler references it.`);
+    }
   });
 
   return dedupeStrings(warnings);
 }
 
-function buildSolutionJavaScriptEventsMarkdown({ solution, model, warnings, zip }) {
+function buildSolutionJavaScriptEventsMarkdown({ solution, model, libraryFindings, warnings, zip }) {
   const lines = [
     '# Model-driven JavaScript event inspection',
     '',
@@ -239,7 +438,10 @@ function buildSolutionJavaScriptEventsMarkdown({ solution, model, warnings, zip 
     '| Area | Count |',
     '| --- | ---: |',
     `| JavaScript web resources | ${model.webResources.length} |`,
+    `| Form libraries | ${model.libraries.length} |`,
     `| Form event handlers | ${model.formHandlers.length} |`,
+    `| Web resource source files | ${model.webResourceSources.length} |`,
+    `| Per-library review findings | ${libraryFindings.reduce((count, item) => count + item.findingCount, 0)} |`,
     `| Forms with handlers | ${new Set(model.formHandlers.map(handler => handler.formName)).size} |`,
     `| Archive entries | ${zip.entryCount || 0} |`,
     `| Warnings | ${warnings.length} |`,
@@ -257,21 +459,71 @@ function buildSolutionJavaScriptEventsMarkdown({ solution, model, warnings, zip 
       ].map(escapeMarkdownTableCell).join(' | ').replace(/^/, '| ').replace(/$/, ' |'))
       : ['| No JavaScript web resources detected | - | - | - |']),
     '',
+    '## Library inventory',
+    '',
+    '| Form | Library | Matched web resource | Rank |',
+    '| --- | --- | --- | ---: |',
+    ...(model.libraries.length > 0
+      ? model.libraries.map(library => [
+        library.formName,
+        library.libraryName,
+        library.matchedWebResource || '-',
+        library.rank || '-'
+      ].map(escapeMarkdownTableCell).join(' | ').replace(/^/, '| ').replace(/$/, ' |'))
+      : ['| No form libraries detected | - | - | - |']),
+    '',
     '## Form event handlers',
     '',
-    '| Form | Event | Library | Function | Pass execution context | Enabled | Rank |',
-    '| --- | --- | --- | --- | --- | --- | ---: |',
+    '| Form | Event | Library | Library on form | Function | Pass execution context | Enabled | Rank |',
+    '| --- | --- | --- | --- | --- | --- | --- | ---: |',
     ...(model.formHandlers.length > 0
       ? model.formHandlers.map(handler => [
         handler.formName,
         handler.eventName,
         handler.libraryName || '-',
+        handler.libraryName ? (handler.libraryOnForm ? 'Yes' : 'No') : '-',
         handler.functionName,
         handler.passExecutionContext ? 'Yes' : 'No',
         handler.enabled ? 'Yes' : 'No',
         handler.rank || '-'
       ].map(escapeMarkdownTableCell).join(' | ').replace(/^/, '| ').replace(/$/, ' |'))
-      : ['| No form event handlers detected | - | - | - | - | - | - |']),
+      : ['| No form event handlers detected | - | - | - | - | - | - | - |']),
+    '',
+    '## Handler inventory',
+    '',
+    ...(model.formHandlers.length > 0
+      ? model.formHandlers.map(handler => `- ${handler.formName}: ${handler.eventName} -> ${handler.functionName} (${handler.libraryName || 'no library'})`)
+      : ['No handler inventory entries were detected from exported metadata.']),
+    '',
+    '## Web resource source files',
+    '',
+    '| Source path | Web resource name | Type | Matched metadata | Size |',
+    '| --- | --- | --- | --- | ---: |',
+    ...(model.webResourceSources.length > 0
+      ? model.webResourceSources.map(source => [
+        source.path,
+        source.webResourceName,
+        source.type,
+        source.matchedWebResource || '-',
+        source.uncompressedSize.toLocaleString('en-GB')
+      ].map(escapeMarkdownTableCell).join(' | ').replace(/^/, '| ').replace(/$/, ' |'))
+      : ['| No JavaScript or HTML web resource source files were detected | - | - | - | - |']),
+    '',
+    '## Per-library review findings',
+    '',
+    ...(libraryFindings.length > 0
+      ? libraryFindings.flatMap(item => [
+        `### ${item.webResourceName}`,
+        '',
+        `Findings: ${item.findingCount}`,
+        `Matched metadata: ${item.matchedWebResource || 'No'}`,
+        '',
+        ...(item.findings.length > 0
+          ? item.findings.slice(0, 12).map(finding => `- ${finding.ruleId}: ${finding.title} (${finding.severity}, ${finding.confidence})`)
+          : ['No reviewer findings detected in this JavaScript source file.']),
+        ''
+      ])
+      : ['No JavaScript source files were available for per-library review.']),
     '',
     '## Warnings',
     '',
@@ -280,6 +532,7 @@ function buildSolutionJavaScriptEventsMarkdown({ solution, model, warnings, zip 
     '## Review notes',
     '',
     '- This is an exported metadata inspection, not a live Dataverse validation.',
+    '- Source-file findings are based only on JavaScript and HTML files found inside the exported solution ZIP.',
     '- Confirm each handler registration in the maker portal after import.',
     '- Keep form libraries ordered so shared namespaces load before handlers.'
   ];
@@ -287,7 +540,7 @@ function buildSolutionJavaScriptEventsMarkdown({ solution, model, warnings, zip 
   return lines.join('\n');
 }
 
-function buildDependencyMarkdown({ solution, webResources, formHandlers, warnings }) {
+function buildDependencyMarkdown({ solution, webResources, libraries, formHandlers, sourceDependencyMap, warnings }) {
   const lines = [
     '# Web resource dependency map',
     '',
@@ -329,6 +582,40 @@ function buildDependencyMarkdown({ solution, webResources, formHandlers, warning
 
   lines.push(
     '',
+    '## Form libraries',
+    ''
+  );
+
+  if (libraries.length === 0) {
+    lines.push('No form libraries were detected from exported metadata.');
+  } else {
+    libraries.forEach(library => {
+      lines.push(`- ${library.formName}: ${library.libraryName}${library.matchedWebResource ? '' : ' (metadata match not found)'}`);
+    });
+  }
+
+  lines.push(
+    '',
+    '## Source file references',
+    '',
+    '| Source | Reference type | Target |',
+    '| --- | --- | --- |'
+  );
+
+  if (sourceDependencyMap.references.length === 0) {
+    lines.push('| No source-file references detected | - | - |');
+  } else {
+    sourceDependencyMap.references.forEach(reference => {
+      lines.push([
+        reference.sourceName,
+        reference.referenceType,
+        reference.target
+      ].map(escapeMarkdownTableCell).join(' | ').replace(/^/, '| ').replace(/$/, ' |'));
+    });
+  }
+
+  lines.push(
+    '',
     '## Warnings',
     '',
     ...(warnings.length > 0 ? warnings.map(warning => `- ${warning}`) : ['No dependency warnings detected.'])
@@ -337,19 +624,31 @@ function buildDependencyMarkdown({ solution, webResources, formHandlers, warning
   return lines.join('\n');
 }
 
-function buildDependencyMermaid({ solution, webResources, formHandlers }) {
+function buildDependencyMermaid({ solution, webResources, libraries, formHandlers, webResourceSources, sourceDependencyMap }) {
   const lines = [
     'flowchart LR',
     `  SOL["${escapeMermaidLabel(solution.name || 'Power Platform solution')}"]`
   ];
   const resourceIds = new Map();
   const formIds = new Map();
+  const sourceIds = new Map();
 
   webResources.forEach((resource, index) => {
     const id = `WR${index + 1}`;
     resourceIds.set(resource.name, id);
     lines.push(`  ${id}["${escapeMermaidLabel(resource.name)}"]`);
     lines.push(`  SOL --> ${id}`);
+  });
+
+  libraries.forEach((library, index) => {
+    const formId = getOrCreateFormNode(library.formName, formIds, lines);
+    const resourceId = getOrCreateResourceNode(library.matchedWebResource || library.libraryName, resourceIds, lines);
+    lines.push(`  ${resourceId} -->|form library| ${formId}`);
+
+    if (!library.matchedWebResource) {
+      lines.push(`  LIB${index + 1}["${escapeMermaidLabel(library.libraryName)}"]`);
+      lines.push(`  SOL --> LIB${index + 1}`);
+    }
   });
 
   formHandlers.forEach((handler, index) => {
@@ -361,7 +660,22 @@ function buildDependencyMermaid({ solution, webResources, formHandlers }) {
     lines.push(`  ${handlerId} --> ${formId}`);
   });
 
-  if (formHandlers.length === 0 && webResources.length === 0) {
+  webResourceSources.forEach(source => {
+    const sourceId = getOrCreateSourceNode(source, sourceIds, resourceIds, lines);
+    lines.push(`  SOL --> ${sourceId}`);
+  });
+
+  sourceDependencyMap.references.forEach(reference => {
+    const source = webResourceSources.find(item => item.webResourceName === reference.sourceName || item.path === reference.sourcePath);
+    const sourceId = source
+      ? getOrCreateSourceNode(source, sourceIds, resourceIds, lines)
+      : getOrCreateResourceNode(reference.sourceName, resourceIds, lines);
+    const targetId = getOrCreateResourceNode(reference.target, resourceIds, lines);
+    const label = reference.referenceType === 'html-script' ? 'HTML script' : '$webresource';
+    lines.push(`  ${sourceId} -->|${label}| ${targetId}`);
+  });
+
+  if (formHandlers.length === 0 && webResources.length === 0 && webResourceSources.length === 0) {
     lines.push('  EMPTY["No JavaScript dependencies detected"]');
     lines.push('  SOL --> EMPTY');
   }
@@ -391,6 +705,130 @@ function getOrCreateResourceNode(name, resourceIds, lines) {
   }
 
   return resourceIds.get(key);
+}
+
+function getOrCreateSourceNode(source, sourceIds, resourceIds, lines) {
+  if (source.matchedWebResource) {
+    return getOrCreateResourceNode(source.matchedWebResource, resourceIds, lines);
+  }
+
+  const key = source.webResourceName || source.path || 'Unknown source file';
+
+  if (!sourceIds.has(key)) {
+    const id = `SRC${sourceIds.size + 1}`;
+    sourceIds.set(key, id);
+    lines.push(`  ${id}["${escapeMermaidLabel(key)}"]`);
+  }
+
+  return sourceIds.get(key);
+}
+
+async function normaliseArchiveBytes(input) {
+  if (input instanceof Uint8Array) {
+    return input;
+  }
+
+  if (input instanceof ArrayBuffer) {
+    return new Uint8Array(input);
+  }
+
+  if (input && typeof input.arrayBuffer === 'function') {
+    return new Uint8Array(await input.arrayBuffer());
+  }
+
+  if (Array.isArray(input)) {
+    return new Uint8Array(input);
+  }
+
+  throw new Error('Choose a valid exported solution ZIP file.');
+}
+
+function readSystemFormName(formBlock, formIndex) {
+  const formAttrs = parseXmlAttributes(formBlock.attributes);
+
+  return decodeXmlEntities(firstValue(
+    formAttrs.name,
+    formAttrs.formname,
+    formAttrs.objecttypecode,
+    readXmlText(formBlock.content, 'Name'),
+    readFirstXmlAttribute(formBlock.content, 'LocalizedName', 'description'),
+    `Form ${formIndex + 1}`
+  ));
+}
+
+function matchLibraryTags(xml) {
+  const tags = [];
+  const pattern = /<Library\b([^>]*)\/?>/gi;
+  let match = pattern.exec(xml || '');
+
+  while (match) {
+    tags.push(match[1]);
+    match = pattern.exec(xml || '');
+  }
+
+  return tags;
+}
+
+function normaliseZipPath(value) {
+  return String(value || '').replace(/\\/g, '/').replace(/^\/+/, '');
+}
+
+function normaliseWebResourceSourceName(path) {
+  const normalisedPath = normaliseZipPath(path);
+  const match = /(?:^|\/)WebResources\/(.+)$/i.exec(normalisedPath);
+  return normaliseLibraryName(match ? match[1] : normalisedPath);
+}
+
+function extractHtmlScriptReferences(source) {
+  if (source.type !== 'html') {
+    return [];
+  }
+
+  const references = [];
+  const pattern = /<script\b[^>]*\bsrc\s*=\s*(["'])(.*?)\1/gi;
+  let match = pattern.exec(source.text || '');
+
+  while (match) {
+    const target = normaliseReferenceTarget(match[2]);
+
+    if (target && target !== source.webResourceName) {
+      references.push(target);
+    }
+
+    match = pattern.exec(source.text || '');
+  }
+
+  return dedupeStrings(references);
+}
+
+function extractWebResourceReferences(text = '') {
+  const references = [];
+  const pattern = /\$webresource:([A-Za-z0-9_./-]+\.(?:js|html?|css|png|jpg|jpeg|gif|svg))/gi;
+  let match = pattern.exec(text || '');
+
+  while (match) {
+    references.push(normaliseReferenceTarget(match[1]));
+    match = pattern.exec(text || '');
+  }
+
+  return dedupeStrings(references);
+}
+
+function normaliseReferenceTarget(value) {
+  const text = decodeXmlEntities(String(value || '').trim())
+    .replace(/^['"]|['"]$/g, '')
+    .replace(/\\/g, '/')
+    .replace(/^\.\//, '')
+    .replace(/^\.\.\//, '')
+    .replace(/^\/+/, '')
+    .replace(/^WebResources\//i, '')
+    .replace(/^\$webresource:/i, '');
+
+  return normaliseLibraryName(text.split(/[?#]/)[0]);
+}
+
+function buildFormLibraryKey(formName, libraryName) {
+  return `${String(formName || '').toLocaleLowerCase('en-GB')}::${normaliseLibraryName(libraryName).toLocaleLowerCase('en-GB')}`;
 }
 
 function isJavaScriptWebResource(resource) {
