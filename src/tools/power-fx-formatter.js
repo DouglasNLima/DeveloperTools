@@ -194,11 +194,52 @@ export function validatePowerFxSyntax(formula) {
 export function extractPowerFxFunctionNames(formula) {
   const names = [];
   const seen = new Set();
-  const functionPattern = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
-  let match = functionPattern.exec(formula);
+  let quote = null;
 
-  while (match) {
-    const name = match[1];
+  for (let index = 0; index < formula.length; index += 1) {
+    const character = formula[index];
+    const next = formula[index + 1];
+
+    if (quote) {
+      if (character === quote) {
+        if (quote === '"' && next === '"') {
+          index += 1;
+        } else {
+          quote = null;
+        }
+      }
+
+      continue;
+    }
+
+    if (character === '"' || character === '\'') {
+      quote = character;
+      continue;
+    }
+
+    if (!/[A-Za-z_]/.test(character)) {
+      continue;
+    }
+
+    const startIndex = index;
+    index += 1;
+
+    while (index < formula.length && /[A-Za-z0-9_]/.test(formula[index])) {
+      index += 1;
+    }
+
+    const name = formula.slice(startIndex, index);
+    let probeIndex = index;
+
+    while (/\s/.test(formula[probeIndex] || '')) {
+      probeIndex += 1;
+    }
+
+    if (formula[probeIndex] !== '(') {
+      index -= 1;
+      continue;
+    }
+
     const key = name.toLowerCase();
 
     if (!seen.has(key)) {
@@ -206,7 +247,7 @@ export function extractPowerFxFunctionNames(formula) {
       names.push(name);
     }
 
-    match = functionPattern.exec(formula);
+    index -= 1;
   }
 
   return names;

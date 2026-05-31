@@ -273,11 +273,52 @@ export function validateExpressionSyntax(expression) {
 export function extractFunctionNames(expression) {
   const names = [];
   const seen = new Set();
-  const functionPattern = /\b([A-Za-z_][A-Za-z0-9_]*)\s*\(/g;
-  let match = functionPattern.exec(expression);
+  let quote = null;
 
-  while (match) {
-    const name = match[1];
+  for (let index = 0; index < expression.length; index += 1) {
+    const character = expression[index];
+    const next = expression[index + 1];
+
+    if (quote) {
+      if (character === quote) {
+        if (quote === '\'' && next === '\'') {
+          index += 1;
+        } else {
+          quote = null;
+        }
+      }
+
+      continue;
+    }
+
+    if (character === '\'' || character === '"') {
+      quote = character;
+      continue;
+    }
+
+    if (!/[A-Za-z_]/.test(character)) {
+      continue;
+    }
+
+    const startIndex = index;
+    index += 1;
+
+    while (index < expression.length && /[A-Za-z0-9_]/.test(expression[index])) {
+      index += 1;
+    }
+
+    const name = expression.slice(startIndex, index);
+    let probeIndex = index;
+
+    while (/\s/.test(expression[probeIndex] || '')) {
+      probeIndex += 1;
+    }
+
+    if (expression[probeIndex] !== '(') {
+      index -= 1;
+      continue;
+    }
+
     const key = name.toLowerCase();
 
     if (!seen.has(key)) {
@@ -285,7 +326,7 @@ export function extractFunctionNames(expression) {
       names.push(name);
     }
 
-    match = functionPattern.exec(expression);
+    index -= 1;
   }
 
   return names;

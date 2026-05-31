@@ -20,8 +20,8 @@ export function renderDataExplorer(container) {
         </div>
 
         <div class="field-stack">
-          <label for="dataExplorerRecordPath">JSON record path</label>
-          <input id="dataExplorerRecordPath" type="text" spellcheck="false" placeholder="items or data.records" />
+          <label for="dataExplorerRecordPath">Record path</label>
+          <input id="dataExplorerRecordPath" type="text" spellcheck="false" placeholder="items, data.records or /rows/row" />
         </div>
 
         <div id="dataExplorerFileDropZone" class="drop-zone">
@@ -38,9 +38,9 @@ export function renderDataExplorer(container) {
         <textarea id="dataExplorerInput" spellcheck="false" placeholder='{"items":[{"name":"Ada","role":"Engineer"}]}'></textarea>
       </div>
 
-      <div class="data-query-panel" aria-label="Guided JSON filters">
+      <div class="data-query-panel" aria-label="Guided filters">
         <div class="data-query-panel-header">
-          <strong>Guided JSON filters</strong>
+          <strong>Guided filters</strong>
           <button id="addDataFilterButton" class="secondary" type="button">Add filter</button>
         </div>
         <div id="dataFilterList" class="data-filter-list"></div>
@@ -197,7 +197,7 @@ export function renderDataExplorer(container) {
     details.columns.textContent = result.gridColumns.length.toLocaleString('en-GB');
     details.size.textContent = result.outputSizeLabel;
     details.warnings.textContent = result.warnings.length === 0 ? 'None' : `${result.warnings.length} warning${result.warnings.length === 1 ? '' : 's'}`;
-    details.queryMode.textContent = result.inputFormat === 'xml' ? 'XML grid' : 'JSON filters';
+    details.queryMode.textContent = result.inputFormat === 'xml' ? 'XML filters' : 'JSON filters';
     setIssues(result.warnings);
   }
 
@@ -395,13 +395,12 @@ export function renderDataExplorer(container) {
   }
 
   function syncQueryControls() {
-    const xmlSelected = inputFormat.value === 'xml';
     filterList.querySelectorAll('input, select, button').forEach(element => {
-      element.disabled = xmlSelected;
+      element.disabled = false;
     });
-    addFilterButton.disabled = xmlSelected;
-    sortField.disabled = xmlSelected;
-    sortDirection.disabled = xmlSelected;
+    addFilterButton.disabled = false;
+    sortField.disabled = false;
+    sortDirection.disabled = false;
   }
 
   addFilterButton.addEventListener('click', () => addFilterRow());

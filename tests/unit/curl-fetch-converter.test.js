@@ -102,6 +102,51 @@ test('parses common fetch snippets', () => {
   assert.equal(request.body, '{"name":"Updated"}');
 });
 
+test('parses Headers objects, array pairs and simple JSON.stringify literals', () => {
+  const objectHeaders = parseFetchSnippet(`
+    fetch("https://api.example.test/items", {
+      method: "POST",
+      headers: new Headers({
+        "Content-Type": "application/json",
+        "X-Trace": "abc:123"
+      }),
+      body: JSON.stringify({ ok: true, count: 2, name: "Contoso" })
+    })
+  `);
+  const arrayHeaders = parseFetchSnippet(`
+    fetch("https://api.example.test/items", {
+      headers: new Headers([
+        ["Accept", "application/json"],
+        ["X-Trace", "abc"]
+      ])
+    })
+  `);
+
+  assert.deepEqual(objectHeaders.headers, [
+    { name: 'Content-Type', value: 'application/json' },
+    { name: 'X-Trace', value: 'abc:123' }
+  ]);
+  assert.equal(objectHeaders.body, '{"ok":true,"count":2,"name":"Contoso"}');
+  assert.deepEqual(arrayHeaders.headers, [
+    { name: 'Accept', value: 'application/json' },
+    { name: 'X-Trace', value: 'abc' }
+  ]);
+});
+
+test('warns when fetch headers or bodies are dynamic', () => {
+  const request = parseFetchSnippet(`
+    fetch("https://api.example.test/items", {
+      headers: buildHeaders(),
+      body: JSON.stringify(payload)
+    })
+  `);
+
+  assert.deepEqual(request.headers, []);
+  assert.equal(request.body, '');
+  assert.match(request.warnings.join('\n'), /Dynamic fetch headers were not converted/);
+  assert.match(request.warnings.join('\n'), /dynamic fetch body/i);
+});
+
 test('converts fetch snippets to cURL commands', () => {
   const result = convertFetchToCurl(`
     fetch('https://api.example.test/items', {

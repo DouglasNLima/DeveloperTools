@@ -182,3 +182,125 @@ test('warns when selected grid columns are not present', () => {
   assert.deepEqual(result.gridColumns, ['name', 'missing']);
   assert.match(result.warnings.join('\n'), /Selected column not found: missing/);
 });
+
+test('filters, sorts, limits and selects XML rows by simple record path', () => {
+  const document = createXmlDocument('contacts', [
+    createXmlElement('contact', { id: '1' }, [
+      createXmlElement('name', {}, [], 'Ada Lovelace'),
+      createXmlElement('status', {}, [], 'active'),
+      createXmlElement('age', {}, [], '36'),
+      createXmlElement('address', {}, [
+        createXmlElement('city', {}, [], 'London')
+      ])
+    ]),
+    createXmlElement('contact', { id: '2' }, [
+      createXmlElement('name', {}, [], 'Grace Hopper'),
+      createXmlElement('status', {}, [], 'active'),
+      createXmlElement('age', {}, [], '85'),
+      createXmlElement('address', {}, [
+        createXmlElement('city', {}, [], 'Arlington')
+      ])
+    ]),
+    createXmlElement('contact', { id: '3' }, [
+      createXmlElement('name', {}, [], 'Katherine Johnson'),
+      createXmlElement('status', {}, [], 'retired'),
+      createXmlElement('age', {}, [], '101'),
+      createXmlElement('address', {}, [
+        createXmlElement('city', {}, [], 'White Sulphur Springs')
+      ])
+    ])
+  ]);
+
+  const result = processDataExplorer({
+    input: '<contacts />',
+    inputFormat: 'xml',
+    recordPath: '/contacts/contact',
+    parseXmlDocument: () => document,
+    filters: [
+      { field: 'status', operator: 'equals', value: 'active' }
+    ],
+    sort: {
+      field: 'age',
+      direction: 'desc'
+    },
+    selectedColumns: '@id,name,address.city',
+    limit: '1'
+  });
+
+  assert.equal(result.inputFormat, 'xml');
+  assert.equal(result.recordPath, '/contacts/contact');
+  assert.equal(result.sourceCount, 3);
+  assert.equal(result.filteredCount, 2);
+  assert.equal(result.matchedCount, 1);
+  assert.deepEqual(result.outputRecords.map(record => record.name), ['Grace Hopper']);
+  assert.deepEqual(result.gridColumns, ['@id', 'name', 'address.city']);
+  assert.deepEqual(result.gridRows[0], {
+    '@id': '2',
+    name: 'Grace Hopper',
+    'address.city': 'Arlington'
+  });
+  assert.match(result.warnings.join('\n'), /Result limit applied/);
+});
+
+test('matches XML rows by element name and reports missing XML paths', () => {
+  const document = createXmlDocument('contacts', [
+    createXmlElement('contact', { id: '1' }, [
+      createXmlElement('name', {}, [], 'Ada Lovelace')
+    ])
+  ]);
+
+  const result = processDataExplorer({
+    input: '<contacts />',
+    inputFormat: 'xml',
+    recordPath: 'contact',
+    parseXmlDocument: () => document
+  });
+
+  assert.equal(result.recordPath, '/contact');
+  assert.equal(result.sourceCount, 1);
+  assert.equal(result.outputRecords[0].name, 'Ada Lovelace');
+  assert.throws(
+    () => processDataExplorer({
+      input: '<contacts />',
+      inputFormat: 'xml',
+      recordPath: '/contacts/account',
+      parseXmlDocument: () => document
+    }),
+    /XML record path \/contacts\/account did not match any elements/
+  );
+});
+
+function createXmlDocument(rootName, children = []) {
+  return {
+    documentElement: createXmlElement(rootName, {}, children)
+  };
+}
+
+function createXmlElement(name, attributes = {}, children = [], text = '') {
+  const element = {
+    nodeType: 1,
+    localName: name,
+    nodeName: name,
+    attributes: Object.entries(attributes).map(([attributeName, value]) => ({
+      name: attributeName,
+      value
+    })),
+    childNodes: [],
+    parentElement: null
+  };
+  const textValue = String(text);
+
+  if (textValue) {
+    element.childNodes.push({
+      nodeType: 3,
+      nodeValue: textValue
+    });
+  }
+
+  children.forEach(child => {
+    child.parentElement = element;
+    element.childNodes.push(child);
+  });
+
+  return element;
+}

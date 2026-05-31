@@ -72,27 +72,26 @@ export function processJsonData(input, options = {}) {
 
 export function processXmlData(input, options = {}) {
   const document = parseXmlInput(input, options.parseXmlDocument);
-  const extracted = extractXmlRecords(document);
+  const extracted = resolveXmlRecords(document, options.recordPath);
+  const filters = normaliseFilters(options.filters);
+  const sort = normaliseSort(options.sort);
   const selectedColumns = normaliseSelectedColumns(options.selectedColumns);
   const limit = normaliseLimit(options.limit);
   const warnings = [...extracted.warnings];
-
-  if (normaliseFilters(options.filters).length > 0 || normaliseSort(options.sort).field) {
-    warnings.push('XML query filters are not applied in this version; the XML rows were flattened for review.');
-  }
-
   const flattenedRecords = extracted.records.map(record => flattenRecord(record));
-  const outputRecords = limit ? flattenedRecords.slice(0, limit) : flattenedRecords;
+  const filteredRecords = applyFilters(flattenedRecords, filters);
+  const sortedRecords = applySort(filteredRecords, sort);
+  const outputRecords = limit ? sortedRecords.slice(0, limit) : sortedRecords;
 
-  if (limit && flattenedRecords.length > outputRecords.length) {
-    warnings.push(`Result limit applied: showing ${outputRecords.length.toLocaleString('en-GB')} of ${flattenedRecords.length.toLocaleString('en-GB')} XML rows.`);
+  if (limit && filteredRecords.length > outputRecords.length) {
+    warnings.push(`Result limit applied: showing ${outputRecords.length.toLocaleString('en-GB')} of ${filteredRecords.length.toLocaleString('en-GB')} matching XML rows.`);
   }
 
   return buildExplorerResult({
     inputFormat: 'xml',
     recordPath: extracted.recordPath,
     sourceCount: flattenedRecords.length,
-    filteredCount: flattenedRecords.length,
+    filteredCount: filteredRecords.length,
     outputRecords,
     selectedColumns,
     warnings
@@ -295,6 +294,32 @@ export function extractXmlRecords(document) {
   return {
     recordPath: buildXmlPath(group.elements[0]),
     records: group.elements.map(element => xmlElementToRecord(element)),
+    warnings: []
+  };
+}
+
+export function resolveXmlRecords(document, recordPath = '') {
+  const root = document?.documentElement;
+
+  if (!root) {
+    throw new Error('XML input does not contain a root element.');
+  }
+
+  const trimmedPath = String(recordPath ?? '').trim();
+
+  if (!trimmedPath) {
+    return extractXmlRecords(document);
+  }
+
+  const elements = findXmlElementsByPath(root, trimmedPath);
+
+  if (elements.length === 0) {
+    throw new Error(`XML record path ${normaliseXmlRecordPathLabel(trimmedPath)} did not match any elements.`);
+  }
+
+  return {
+    recordPath: normaliseXmlRecordPathLabel(trimmedPath),
+    records: elements.map(element => xmlElementToRecord(element)),
     warnings: []
   };
 }
@@ -713,6 +738,84 @@ function buildXmlPath(element) {
   }
 
   return `/${parts.join('/')}`;
+}
+
+function findXmlElementsByPath(root, path) {
+  const segments = normaliseXmlRecordPathSegments(path);
+  const rootName = getXmlElementName(root);
+
+  if (segments.length === 1) {
+    const matches = [];
+    visitXmlElement(root, element => {
+      if (isXmlNameMatch(element, segments[0])) {
+        matches.push(element);
+      }
+    });
+    return matches;
+  }
+
+  if (String(path).trim().startsWith('/')) {
+    if (!isSegmentNameMatch(rootName, segments[0])) {
+      return [];
+    }
+
+    return findXmlDescendantsBySegments([root], segments.slice(1));
+  }
+
+  if (isSegmentNameMatch(rootName, segments[0])) {
+    return findXmlDescendantsBySegments([root], segments.slice(1));
+  }
+
+  const startingElements = [];
+  visitXmlElement(root, element => {
+    if (isXmlNameMatch(element, segments[0])) {
+      startingElements.push(element);
+    }
+  });
+
+  return findXmlDescendantsBySegments(startingElements, segments.slice(1));
+}
+
+function findXmlDescendantsBySegments(elements, segments) {
+  return segments.reduce((currentElements, segment) => (
+    currentElements.flatMap(element => getElementChildren(element).filter(child => isXmlNameMatch(child, segment)))
+  ), elements);
+}
+
+function normaliseXmlRecordPathSegments(path) {
+  const trimmed = String(path ?? '').trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  const source = trimmed
+    .replace(/^\/+/, '')
+    .replace(/\/+$/g, '')
+    .replace(/\./g, '/');
+  const segments = source.split('/').map(segment => segment.trim()).filter(Boolean);
+
+  if (segments.length === 0) {
+    throw new Error('XML record path must include at least one element name.');
+  }
+
+  return segments;
+}
+
+function normaliseXmlRecordPathLabel(path) {
+  return `/${normaliseXmlRecordPathSegments(path).join('/')}`;
+}
+
+function isXmlNameMatch(element, segment) {
+  return isSegmentNameMatch(getXmlElementName(element), segment);
+}
+
+function isSegmentNameMatch(name, segment) {
+  return String(name || '').toLocaleLowerCase('en-GB') === String(segment || '').toLocaleLowerCase('en-GB');
+}
+
+function getXmlElementName(element) {
+  return element?.localName || element?.nodeName || '';
 }
 
 function getXmlDepth(element) {

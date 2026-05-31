@@ -84,6 +84,16 @@ test('warns for unknown Power Fx functions', () => {
   assert.match(result.warnings[0], /CustomFxThing/);
 });
 
+test('does not detect function-looking text inside Power Fx strings or quoted identifiers', () => {
+  const result = formatPowerFxSnippet({
+    input: 'If("CustomFxThing(", Lower(Name), \'QuotedIdentifier(\')'
+  });
+
+  assert.deepEqual(result.functions, ['If', 'Lower']);
+  assert.equal(result.summary.unknownFunctionCount, 0);
+  assert.equal(result.warnings.filter(warning => /CustomFxThing|QuotedIdentifier/.test(warning)).length, 0);
+});
+
 test('builds Power Fx review and commented output modes', () => {
   const review = formatPowerFxSnippet({
     input: 'ClearCollect(colAccounts, Filter(Accounts, "A" in Name))',

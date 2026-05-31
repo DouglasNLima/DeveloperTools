@@ -96,6 +96,16 @@ test('warns for unknown workflow functions', () => {
   assert.match(result.warnings[0], /customFunction/);
 });
 
+test('does not detect function-looking text inside Power Automate strings', () => {
+  const result = formatPowerAutomateExpression({
+    input: "concat('customFunction(', \"anotherFake(\", variables('name'))"
+  });
+
+  assert.deepEqual(result.functions, ['concat', 'variables']);
+  assert.equal(result.summary.unknownFunctionCount, 0);
+  assert.equal(result.warnings.filter(warning => /customFunction|anotherFake/.test(warning)).length, 0);
+});
+
 test('builds safe field expression templates', () => {
   assert.equal(
     buildPowerAutomateExpressionTemplate({
