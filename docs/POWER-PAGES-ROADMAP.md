@@ -4,7 +4,7 @@ This mini-roadmap focuses on Power Pages work that can be supported locally in t
 
 For broader Power Platform utilities, see [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md).
 
-Status: the implemented Power Pages phases are consolidated in the Power Pages Workbench, with legacy route aliases preserved for the original standalone tools.
+Status: the implemented Power Pages phases are consolidated in the Power Pages Workbench, with legacy route aliases preserved for the original standalone tools. The visible catalogue entry is Power Pages Workbench; FetchXML Formatter & Liquid Builder, Power Pages Web API Snippet Generator, Site Settings Helper and Table Permissions Checklist remain compatibility hash routes.
 
 ## References
 
@@ -21,6 +21,7 @@ Status: the implemented Power Pages phases are consolidated in the Power Pages W
 - Warn when self-closing tags are present, because Power Pages Liquid FetchXML is safer with explicit closing tags.
 - Generate a `{% fetchxml variableName %}` block and matching `{% endfetchxml %}` tag.
 - Keep the output copyable and downloadable for quick use in web templates.
+- Status: implemented as the FetchXML mode in Power Pages Workbench, with JSON & Data Workbench XML handovers.
 
 ## Phase 2: Power Pages Web API Snippet Generator
 

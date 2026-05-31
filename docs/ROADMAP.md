@@ -2,10 +2,17 @@
 
 This roadmap keeps the suite focused on practical, local developer utilities. Every implemented tool must run fully in the browser and include unit and browser coverage in the same change.
 
+## Current Catalogue Snapshot
+
+- The app menu currently exposes 21 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
+- There are currently no visible planned tools; planned roadmap previews remain supported for future entries.
+- The catalogue preserves 38 hidden legacy alias entries so older hash links continue to resolve to the current workbench and mode.
+- Renderer mappings, catalogue aliases and handover contracts are covered by unit tests, and user-visible navigation and handover flows are covered by Playwright tests.
+
 ## Phase 1: Foundation
 
 - Modular static app structure with `index.html` as the GitHub Pages entry point.
-- Scalable sidebar navigation with search, categories and planned tool previews.
+- Scalable sidebar navigation with search, categories and planned tool preview support.
 - Installable offline PWA support for Microsoft Edge and other Chromium browsers.
 - Base64 & File Converter workbench, preserving Base64-to-file and file-to-Base64 modes from the original prototype.
 - Test setup covering pure utility logic and browser-level workflows.
@@ -44,8 +51,8 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 ## Phase 5: Documents
 
 - PDF Template Field Explorer for local fillable PDF form inspection.
-- Future PDF helpers for field mapping review and template handover workflows.
-- Status: PDF Template Field Explorer implemented with vendored PDF.js assets and field mapping handovers.
+- PDF field review notes, required/optional tagging, mapping export and template handover workflows.
+- Status: PDF Template Field Explorer implemented with vendored PDF.js assets, field mapping handovers and Markdown handover exports.
 
 ## Phase 6: Web/API
 
@@ -112,5 +119,6 @@ See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADM
 
 - Unit tests cover pure parsing, formatting, conversion, validation and edge cases.
 - Browser tests cover navigation, tool interaction, accessibility-critical state and important error states.
+- Documentation tests keep the README available-tool list aligned with the visible catalogue and keep legacy aliases documented as compatibility routes.
 - Planned tools do not require tests until they become available tools.
 - A tool is not considered complete until `npm test` passes.

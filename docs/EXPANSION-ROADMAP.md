@@ -24,7 +24,7 @@ This roadmap expands the current suite before adding many new standalone tools. 
 - Add Power Pages upload/download profile reminders.
 - Add an ALM checklist output mode for pull request and release handover.
 - Keep commands copy-only; the app must never execute `pac`.
-- Status: planned.
+- Status: partially implemented for solution export, import, pack, unpack, checker and Power Pages upload/download commands; clone, sync, version and a dedicated ALM checklist output mode remain planned.
 
 ## Phase 3: Power Automate Expression Formatter
 

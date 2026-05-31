@@ -2,22 +2,14 @@
 
 A local-first suite of small developer utilities for day-to-day technical work. The app is designed to run entirely in the browser, with no backend, no CDN and no external runtime services.
 
-The current foundation includes:
+## Available Tools
+
+The catalogue currently exposes these available tools in the app menu:
 
 - Base64 & File Converter
 - Image Converter & Optimiser
 - Image OCR
 - Mermaid Studio
-- Hashes/checksums
-- URL & query string helper
-- JSON & Data Workbench
-- JSON shape/schema generation
-- CSV/TSV helper
-- PDF Template Field Explorer
-- Web/API Workbench
-- Markdown Workbench
-- Text Utilities Workbench
-- HTML cleaner/converter
 - Power Pages Workbench
 - Dataverse OData Query Builder
 - Power Platform CLI Command Builder
@@ -26,6 +18,18 @@ The current foundation includes:
 - Power Fx Snippet Formatter
 - Model-driven JavaScript Workbench
 - Model-driven Solution Inspector
+- URL & query string helper
+- Hashes/checksums
+- JSON & Data Workbench
+- PDF Template Field Explorer
+- CSV/TSV helper
+- Web/API Workbench
+- Text Utilities Workbench
+- Markdown Workbench
+- HTML cleaner/converter
+
+The implemented platform capabilities around those tools include:
+
 - A scalable tool menu with roadmap previews
 - Session-based handovers between compatible tools
 - Unit and browser test scaffolding for future tools
@@ -54,8 +58,19 @@ npm run test:unit
 npm run test:browser
 ```
 
-Tools that produce compatible JSON, XML, Mermaid, Markdown, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, Text Utilities Workbench regex and diff modes, Web/API Workbench JWT mode, PDF field mappings, JSON & Data Workbench modes and the Model-driven JavaScript Workbench rule summary can move into compatible JSON, Mermaid or text tools; PDF field mappings and JSON & Data Workbench explorer output can be transformed into CSV input; formatted FetchXML and FetchXML embedded in Liquid blocks from the Power Pages Workbench can move into JSON & Data Workbench explore mode; generated Dataverse OData, Power Pages Web API and Xrm.WebApi reports can extract request snippets or request flow into Mermaid Studio; generated Mermaid, including selected diagrams from exported Power Platform solutions and Model-driven Solution Inspector web resource dependency maps with HTML web resource references, can move into Mermaid Studio editor mode or Text Utilities Workbench diff mode; Markdown-like reports, including Solution Package Inspector import preflight reports, solution documentation and model-driven JavaScript reports, can move into the Markdown Workbench preview mode, Markdown tables can move through the Markdown Workbench table mode and CSV/TSV helper, Mermaid blocks found in Markdown can move into Mermaid Studio editor mode, and Markdown source can move into Text Utilities Workbench diff mode; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the Base64 & File Converter file creator mode. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
-The catalogue supports canonical tool routes, mode routes and legacy route aliases so future workbench consolidations can preserve older hash links while keeping consolidated tools visible in the menu.
+## Handovers And Routes
+
+Tools that produce compatible JSON, XML, Mermaid, Markdown, text, CSV or Base64 outputs can hand populated output to another local tool during the same browser session. The main handover paths are:
+
+- JSON, schema, XML, PDF field mappings and data reports into JSON & Data Workbench, CSV/TSV helper, Mermaid Studio or text comparison tools.
+- Request snippets and endpoint reports from Web/API, Dataverse, Power Pages and model-driven JavaScript tools into request conversion, URL inspection, sanitising or Mermaid workflows.
+- Mermaid and Markdown reports into Mermaid Studio, Markdown Workbench, CSV/TSV helper and Text Utilities Workbench.
+- Sanitised text, cleaned HTML, converted case output and generated API or Power Platform snippets into compatible text tools.
+- Base64 output into the Base64 & File Converter file creator mode.
+
+Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
+
+The catalogue currently has 21 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -199,6 +214,9 @@ tests/
   unit/
 docs/
   ROADMAP.md
+  EXPANSION-ROADMAP.md
+  POWER-PAGES-ROADMAP.md
+  POWER-PLATFORM-ROADMAP.md
 AGENTS.md
 ```
 

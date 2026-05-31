@@ -2,7 +2,7 @@
 
 This roadmap covers Power Platform tools beyond the first Power Pages mini-roadmap. Every tool remains static, local-first and browser-only. The app can help compose snippets, commands and review artefacts, but it must not connect to Dataverse, call a tenant API, authenticate a user or run Power Platform CLI commands.
 
-Status: the implemented solution ZIP phases are consolidated in the Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools.
+Status: the implemented solution ZIP phases are consolidated in the visible Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the visible Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the visible Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools as compatibility hash routes, not separate menu entries.
 
 ## References
 
@@ -65,7 +65,7 @@ Status: the implemented solution ZIP phases are consolidated in the Solution Pac
 - Read exported solution ZIP files locally in the browser.
 - Detect cloud flows, child flow calls, business process flows, business rules, classic workflows, custom actions and plug-in steps from solution metadata and `Workflows/*.json` files.
 - Generate semantic Mermaid diagrams and an automation dependency map with explicit and probable Dataverse trigger relations.
-- Produce a Markdown inventory and hand selected diagrams to the Mermaid editor/exporter.
+- Produce a Markdown inventory and hand selected diagrams to Mermaid Studio.
 - Status: implemented with unit and browser coverage, including dependency maps for flow-to-flow calls and Dataverse update to plug-in paths.
 
 ## Phase 6: Power Platform Solution Documentation Generator
@@ -73,7 +73,7 @@ Status: the implemented solution ZIP phases are consolidated in the Solution Pac
 - Reuse the local solution ZIP reader created for Mermaid generation.
 - Generate operational Markdown documentation with solution metadata, process inventory, environment variables, connection references and review warnings.
 - Avoid printing environment variable values directly; report value presence states instead.
-- Hand generated documentation to the Markdown preview and Text diff tools.
+- Hand generated documentation to Markdown Workbench preview mode and Text Utilities Workbench diff mode.
 - Status: implemented with unit and browser coverage.
 
 ## Phase 7: Power Platform Solution Import Preflight
@@ -121,7 +121,7 @@ Status: the implemented solution ZIP phases are consolidated in the Solution Pac
 - Solution settings file helper.
 - Power Automate trigger condition builder.
 - Power Pages deployment profile helper.
-- ALM pull request checklist for solutions and sites.
+- ALM pull request checklist for solutions and sites. Status: planned.
 
 ## Delivery Rules
 
