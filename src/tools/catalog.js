@@ -24,6 +24,14 @@ export const TOOL_CATALOGUE = [
     renderer: 'image-converter'
   },
   {
+    id: 'image-resizer-compressor',
+    title: 'Image resizer & compressor',
+    category: 'Encoding & files',
+    status: 'available',
+    summary: 'Resize and compress local images by percentage, dimensions or target file size.',
+    renderer: 'image-resizer-compressor'
+  },
+  {
     id: 'image-ocr',
     title: 'Image OCR',
     category: 'Encoding & files',

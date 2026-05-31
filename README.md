@@ -7,6 +7,7 @@ The current foundation includes:
 - Base64 to file
 - File to Base64
 - Image converter
+- Image resizer & compressor
 - Image OCR
 - Mermaid editor & exporter
 - Mermaid template builder
@@ -127,6 +128,8 @@ src/
     hash-checksums.ui.js
     image-converter.js
     image-converter.ui.js
+    image-resizer.js
+    image-resizer.ui.js
     image-ocr.js
     image-ocr.ui.js
     integration-contracts.js

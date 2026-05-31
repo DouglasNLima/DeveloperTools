@@ -435,6 +435,17 @@ test('accepts dropped files in every file-capable tool', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('2 image files selected.');
   await page.getByRole('button', { name: 'Convert images', exact: true }).click();
   await expect(page.locator('#imageConvertedCount')).toHaveText('2');
+
+  await page.goto('/#image-resizer-compressor');
+  await dropFile(page, '#imageResizerDropZone', {
+    name: 'pixel.png',
+    mimeType: 'image/png',
+    buffer: SAMPLE_PNG
+  });
+
+  await expect(page.locator('#imageResizerStatus')).toContainText('1 image file selected.');
+  await page.getByRole('button', { name: 'Resize images', exact: true }).click();
+  await expect(page.locator('.image-result-card.success')).toHaveCount(1);
 });
 
 test('parses and builds query strings', async ({ page }) => {
@@ -2751,6 +2762,100 @@ test('reports Image converter validation errors', async ({ page }) => {
   await expect(page.locator('.image-result-card.error')).toContainText('Choose SVG, PNG, JPEG or WebP');
 });
 
+test('opens Image resizer & compressor from the catalogue and previews percentage resizing', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByLabel('Search tools').fill('resizer');
+  await page.locator('[data-tool-id="image-resizer-compressor"]').click();
+
+  await expect(page).toHaveURL(/#image-resizer-compressor$/);
+  await expect(page.getByRole('heading', { name: 'Image resizer & compressor' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="image-resizer-compressor"]')).toHaveAttribute('aria-current', 'page');
+
+  await page.setInputFiles('#imageResizerFileInput', {
+    name: 'banner.png',
+    mimeType: 'image/png',
+    buffer: await createGradientPng(page, 400, 300)
+  });
+
+  await expect(page.getByRole('status')).toContainText('1 image file selected.');
+  await expect(page.locator('#imageResizerOutputSizeDetail')).toHaveText(/(?:bytes|KB|MB)$/);
+  await expect(page.locator('#imageResizerDimensionsDetail')).toHaveText('200 x 150 px');
+
+  await page.locator('#imageResizeScaleRange').fill('25');
+
+  await expect(page.locator('#imageResizeScaleInput')).toHaveValue('25');
+  await expect(page.locator('#imageResizerDimensionsDetail')).toHaveText('100 x 75 px');
+  await page.getByRole('button', { name: 'Resize images', exact: true }).click();
+
+  await expect(page.locator('#imageResizerStatus')).toContainText('Image resizing completed successfully.');
+  await expect(page.locator('.image-result-card.success')).toHaveCount(1);
+  await expect(page.locator('.image-download-link[download="banner.resized.jpg"]')).toBeVisible();
+  await expect(page.locator('.image-result-card.success')).toHaveAttribute('data-output-width', '100');
+  await expect(page.locator('.image-result-card.success')).toHaveAttribute('data-output-height', '75');
+});
+
+test('resizes images by maximum dimensions while preserving aspect ratio', async ({ page }) => {
+  await page.goto('/#image-resizer-compressor');
+
+  await page.getByLabel('Mode', { exact: true }).selectOption('dimensions');
+  await page.getByLabel('Max width (px)').fill('120');
+  await page.getByLabel('Max height (px)').fill('120');
+  await page.setInputFiles('#imageResizerFileInput', {
+    name: 'landscape.png',
+    mimeType: 'image/png',
+    buffer: await createGradientPng(page, 400, 300)
+  });
+  await page.getByRole('button', { name: 'Resize images', exact: true }).click();
+
+  const resultCard = page.locator('.image-result-card.success');
+  await expect(page.locator('#imageResizerStatus')).toContainText('Image resizing completed successfully.');
+  await expect(resultCard).toHaveAttribute('data-output-width', '120');
+  await expect(resultCard).toHaveAttribute('data-output-height', '90');
+  await expect(resultCard).toContainText('120 x 90 px');
+});
+
+test('compresses images towards a target file size', async ({ page }) => {
+  await page.goto('/#image-resizer-compressor');
+
+  await page.getByLabel('Mode', { exact: true }).selectOption('target-size');
+  await page.getByLabel('Output format', { exact: true }).selectOption('jpeg');
+  await page.getByLabel('Target size').fill('12');
+  await page.setInputFiles('#imageResizerFileInput', {
+    name: 'pattern.png',
+    mimeType: 'image/png',
+    buffer: await createGradientPng(page, 1000, 700)
+  });
+
+  await expect(page.locator('#imageResizerTargetDetail')).toHaveText('12.00 KB');
+  await page.getByRole('button', { name: 'Resize images', exact: true }).click();
+
+  const resultCard = page.locator('.image-result-card.success');
+  await expect(page.locator('#imageResizerStatus')).toContainText('Image resizing completed successfully.');
+  await expect(resultCard).toHaveCount(1);
+
+  const outputBytes = Number(await resultCard.getAttribute('data-output-bytes'));
+  expect(outputBytes).toBeLessThanOrEqual(12 * 1024);
+});
+
+test('reports Image resizer validation errors', async ({ page }) => {
+  await page.goto('/#image-resizer-compressor');
+
+  await page.getByRole('button', { name: 'Resize images', exact: true }).click();
+  await expect(page.locator('#imageResizerStatus')).toContainText('Select one or more image files before resizing.');
+
+  await page.getByLabel('Mode', { exact: true }).selectOption('target-size');
+  await page.getByLabel('Target size').fill('0.5');
+  await page.setInputFiles('#imageResizerFileInput', {
+    name: 'banner.png',
+    mimeType: 'image/png',
+    buffer: await createGradientPng(page, 400, 300)
+  });
+  await page.getByRole('button', { name: 'Resize images', exact: true }).click();
+
+  await expect(page.locator('#imageResizerStatus')).toContainText('Target file size must be between 1 KB and 100 MB.');
+});
+
 test('extracts text from a local image with browser OCR', async ({ page }) => {
   test.setTimeout(120000);
   await page.goto('/#image-ocr');
@@ -3528,6 +3633,37 @@ async function createOcrPng(page, text) {
 
     return canvas.toDataURL('image/png').split(',')[1];
   }, text);
+
+  return Buffer.from(base64, 'base64');
+}
+
+async function createGradientPng(page, width, height) {
+  const base64 = await page.evaluate(dimensions => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    canvas.width = dimensions.width;
+    canvas.height = dimensions.height;
+
+    const gradient = context.createLinearGradient(0, 0, dimensions.width, dimensions.height);
+    gradient.addColorStop(0, '#0f766e');
+    gradient.addColorStop(0.45, '#f59e0b');
+    gradient.addColorStop(1, '#be123c');
+    context.fillStyle = gradient;
+    context.fillRect(0, 0, dimensions.width, dimensions.height);
+
+    for (let y = 0; y < dimensions.height; y += 24) {
+      for (let x = 0; x < dimensions.width; x += 24) {
+        const red = (x * 17 + y * 3) % 255;
+        const green = (x * 5 + y * 11) % 255;
+        const blue = (x * 13 + y * 7) % 255;
+        context.fillStyle = `rgba(${red}, ${green}, ${blue}, 0.42)`;
+        context.fillRect(x, y, 16, 16);
+      }
+    }
+
+    return canvas.toDataURL('image/png').split(',')[1];
+  }, { width, height });
 
   return Buffer.from(base64, 'base64');
 }
