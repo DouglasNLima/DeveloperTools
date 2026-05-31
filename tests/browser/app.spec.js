@@ -23,8 +23,20 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('.statusbar')).toContainText('Static local workspace');
   await expect(page.getByRole('status')).toHaveCount(0);
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
+  await expect(page.locator('#activeToolStatus')).toHaveText('34 tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('[data-home-tool-id="json-formatter"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id]')).toHaveCount(34);
+  await expect(page.locator('[data-home-tool-id="json-data-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="json-formatter"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="base64-file-converter"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="file-to-base64"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="mermaid-studio"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="mermaid-editor"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="power-pages-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="fetchxml-liquid-builder"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="power-pages-web-api-snippets"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="solution-package-inspector"]')).toBeVisible();
+  await expect(page.locator('[data-home-tool-id="power-platform-solution-mermaid"]')).toHaveCount(0);
   const transparency = page.locator('.home-transparency');
   await expect(transparency.getByRole('heading', { name: 'Local-first by design' })).toBeVisible();
   await expect(transparency).toContainText('The published app is plain HTML, CSS and JavaScript');
@@ -38,14 +50,15 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(transparency.locator('.home-library-card').filter({ hasText: 'Not loaded by published app' })).toHaveCount(3);
   expect(await page.locator('#activeToolStatus').evaluate(element => getComputedStyle(element).color))
     .toMatch(/rgb\((2, 122, 72|101, 217, 159)\)/);
-  expect(await page.locator('[data-home-tool-id="json-formatter"] .home-tool-status').evaluate(element => getComputedStyle(element).color))
+  expect(await page.locator('[data-home-tool-id="json-data-workbench"] .home-tool-status').evaluate(element => getComputedStyle(element).color))
     .toMatch(/rgb\((2, 122, 72|101, 217, 159)\)/);
 
-  await page.locator('[data-home-tool-id="json-formatter"]').click();
+  await page.locator('[data-home-tool-id="json-data-workbench"]').click();
 
-  await expect(page).toHaveURL(/#json-formatter$/);
-  await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
-  await expect(page.locator('[data-tool-id="json-formatter"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.getByRole('heading', { name: 'JSON & Data Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Format');
+  await expect(page.locator('[data-tool-id="json-data-workbench"]')).toHaveAttribute('aria-current', 'page');
 });
 
 test('preserves direct tool links and falls back to home for unknown hashes', async ({ page }) => {
@@ -74,10 +87,11 @@ test('searches the sidebar and switches between available tools', async ({ page 
   await expect(page.getByRole('heading', { name: 'JWT Decoder & Claims Inspector' })).toBeVisible();
 
   await page.getByLabel('Search tools').fill('file');
-  await page.locator('[data-tool-id="file-to-base64"]').click();
+  await page.locator('[data-tool-id="base64-file-converter"]').click();
 
-  await expect(page.getByRole('heading', { name: 'File to Base64' })).toBeVisible();
-  await expect(page.locator('[data-tool-id="file-to-base64"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'Base64 & File Converter' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="base64-file-converter"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Base64 to file');
 });
 
 test('finds the support sanitiser and schedule builder from search', async ({ page }) => {
@@ -103,14 +117,16 @@ test('returns to home from the menu and keeps search available', async ({ page }
 
   await page.getByLabel('Search tools').fill('Power Platform');
 
-  await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toBeVisible();
-  await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-pages-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="power-pages-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toHaveCount(0);
 });
 
 test('returns to home from the Developer Tools title link', async ({ page }) => {
   await page.goto('/#json-formatter');
 
-  await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.getByRole('heading', { name: 'JSON & Data Workbench' })).toBeVisible();
   await page.locator('.sidebar .brand-home-link').click();
 
   await expect(page).toHaveURL(/\/$/);
@@ -135,11 +151,11 @@ test('collapses the desktop tool menu and persists compact navigation', async ({
   await expect(sidebar.getByRole('button', { name: 'Expand tool menu' })).toHaveAttribute('aria-pressed', 'true');
   await expect(sidebar.getByRole('button', { name: 'Expand tool menu' })).toHaveAttribute('title', 'Expand tool menu');
   await expect(page.locator('#toolSidebar .search-field')).toBeHidden();
-  await expect(page.locator('[data-tool-id="json-formatter"] .tool-item-title')).toBeHidden();
-  await expect(page.locator('[data-tool-id="json-formatter"] .tool-item-summary')).toBeHidden();
-  await expect(page.locator('[data-tool-id="json-formatter"] .tool-item-status')).toBeHidden();
+  await expect(page.locator('[data-tool-id="json-data-workbench"] .tool-item-title')).toBeHidden();
+  await expect(page.locator('[data-tool-id="json-data-workbench"] .tool-item-summary')).toBeHidden();
+  await expect(page.locator('[data-tool-id="json-data-workbench"] .tool-item-status')).toBeHidden();
 
-  const compactItemBox = await page.locator('[data-tool-id="json-formatter"]').boundingBox();
+  const compactItemBox = await page.locator('[data-tool-id="json-data-workbench"]').boundingBox();
   expect(compactItemBox).not.toBeNull();
   expect(Math.abs(compactItemBox.width - compactItemBox.height)).toBeLessThanOrEqual(2);
   expect(await page.evaluate(() => window.localStorage.getItem('developer-tools-sidebar-collapsed'))).toBe('true');
@@ -249,7 +265,7 @@ test('serves the app shell and hash routes offline after service worker installa
     await page.goto('/');
 
     await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
-    await expect(page.locator('[data-home-tool-id="json-formatter"]')).toBeVisible();
+    await expect(page.locator('[data-home-tool-id="json-data-workbench"]')).toBeVisible();
 
     await page.goto('/#url-codec');
 
@@ -286,15 +302,18 @@ test('finds Power Platform tools in the sidebar', async ({ page }) => {
 
   await page.getByLabel('Search tools').fill('Power Platform');
 
-  await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toBeVisible();
-  await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="power-pages-site-settings"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-pages-workbench"]')).toBeVisible();
+  await expect(page.locator('[data-tool-id="power-pages-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="fetchxml-liquid-builder"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="power-pages-web-api-snippets"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="power-pages-site-settings"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="power-pages-table-permissions"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="dataverse-odata-query-builder"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-platform-cli-command-builder"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="power-platform-solution-import-preflight"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="power-platform-solution-mermaid"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="power-platform-solution-docs"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="solution-package-inspector"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-platform-solution-import-preflight"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="power-platform-solution-mermaid"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="power-platform-solution-docs"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-fx-snippet-formatter"]')).toBeEnabled();
 });
@@ -487,7 +506,7 @@ test('reports URL helper validation errors', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('must use key=value format');
 });
 
-test('hands parsed URL query JSON to Data Explorer', async ({ page }) => {
+test('hands parsed URL query JSON to JSON & Data Workbench explore mode', async ({ page }) => {
   await page.goto('/#url-codec');
 
   await page.getByLabel('Mode', { exact: true }).selectOption('parse-query');
@@ -495,7 +514,9 @@ test('hands parsed URL query JSON to Data Explorer', async ({ page }) => {
   await page.getByRole('button', { name: 'Process', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.getByRole('heading', { name: 'JSON & Data Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('json');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"key": "q"/);
 
@@ -507,12 +528,15 @@ test('finds the JSON formatter and processes formatted and minified output', asy
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('JSON');
-  await expect(page.locator('[data-tool-id="json-formatter"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="json-diff"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="json-schema-validator"]')).toBeEnabled();
-  await page.locator('[data-tool-id="json-formatter"]').click();
+  await expect(page.locator('[data-tool-id="json-data-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="json-formatter"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="json-diff"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="json-schema-validator"]')).toHaveCount(0);
+  await page.locator('[data-tool-id="json-data-workbench"]').click();
 
-  await expect(page.getByRole('heading', { name: 'JSON formatter/validator' })).toBeVisible();
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.getByRole('heading', { name: 'JSON & Data Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Format');
   await page.getByLabel('JSON input').fill('{"b":2,"a":{"d":4,"c":[1,true,null]}}');
   await page.getByLabel('Sort object keys').check();
   await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
@@ -545,6 +569,7 @@ test('finds the JSON formatter and processes formatted and minified output', asy
 
 test('generates JSON shape and schema output from the JSON formatter', async ({ page }) => {
   await page.goto('/#json-formatter');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
 
   await page.getByLabel('JSON input', { exact: true }).fill(JSON.stringify({
     items: [
@@ -570,6 +595,7 @@ test('generates JSON shape and schema output from the JSON formatter', async ({ 
 
 test('searches JSON paths from the JSON formatter', async ({ page }) => {
   await page.goto('/#json-formatter');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
 
   await page.getByLabel('JSON input', { exact: true }).fill(JSON.stringify({
     items: [
@@ -593,6 +619,7 @@ test('searches JSON paths from the JSON formatter', async ({ page }) => {
 
 test('syntax highlights structured text areas without changing textarea values', async ({ page }) => {
   await page.goto('/#json-formatter');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
 
   await page.getByLabel('JSON input').fill('{"name":"Ada","active":true}');
   await expect(page.locator('[data-syntax-editor-for="jsonInput"] .syntax-token--key').first()).toHaveText('"name"');
@@ -602,6 +629,7 @@ test('syntax highlights structured text areas without changing textarea values',
   await expect(page.locator('#jsonOutput')).toHaveValue(/"active": true/);
 
   await page.goto('/#fetchxml-liquid-builder');
+  await expect(page).toHaveURL(/#power-pages-workbench$/);
   await page.getByLabel('FetchXML input').fill('<fetch><entity name="account" /></fetch>');
   await expect(page.locator('[data-syntax-editor-for="fetchXmlInput"] .syntax-token--tag').first()).toHaveText('fetch');
   await expect(page.locator('[data-syntax-editor-for="fetchXmlInput"] .syntax-token--attribute').first()).toHaveText('name');
@@ -614,6 +642,7 @@ test('syntax highlights structured text areas without changing textarea values',
 
 test('reports JSON formatter validation errors with context', async ({ page }) => {
   await page.goto('/#json-formatter');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
 
   await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
 
@@ -630,6 +659,7 @@ test('reports JSON formatter validation errors with context', async ({ page }) =
 
 test('shows JSON handovers only after compatible output is populated', async ({ page }) => {
   await page.goto('/#json-formatter');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
 
   await expect(page.locator('#toolHandover')).toBeHidden();
 
@@ -646,8 +676,9 @@ test('shows JSON handovers only after compatible output is populated', async ({ 
   await expect(page.locator('#toolHandover').getByRole('button', { name: /Explore JSON records/ })).toBeVisible();
 });
 
-test('hands JSON formatter output to Data Explorer and restores the breadcrumb state', async ({ page }) => {
+test('hands JSON formatter output to the explore mode and restores the breadcrumb state', async ({ page }) => {
   await page.goto('/#json-formatter');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
 
   const records = [
     { name: 'Ada Lovelace', status: 'active' },
@@ -659,23 +690,26 @@ test('hands JSON formatter output to Data Explorer and restores the breadcrumb s
   await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Explore JSON records/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('json');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue(JSON.stringify(records, null, 2));
 
   await page.getByRole('button', { name: 'Explore data', exact: true }).click();
   await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('2');
 
-  await expect(page.locator('#handoverTrail')).toContainText('JSON formatter/validator');
-  await page.locator('#handoverTrail').getByRole('button', { name: 'JSON formatter/validator' }).click();
+  await expect(page.locator('#handoverTrail')).toContainText('JSON & Data Workbench');
+  await page.locator('#handoverTrail').getByRole('button', { name: 'JSON & Data Workbench' }).click();
 
-  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Format');
   await expect(page.getByLabel('JSON input')).toHaveValue(inputJson);
   await expect(page.locator('#jsonOutput')).toHaveValue(JSON.stringify(records, null, 2));
 });
 
 test('hands generated JSON Schema to the schema validator input', async ({ page }) => {
   await page.goto('/#json-formatter');
+  await expect(page).toHaveURL(/#json-data-workbench$/);
 
   await page.getByLabel('JSON input').fill('{"name":"Ada","active":true}');
   await page.getByLabel('Shape/schema output').selectOption('schema');
@@ -684,20 +718,22 @@ test('hands generated JSON Schema to the schema validator input', async ({ page 
   await expect(page.locator('#toolHandover').getByRole('button', { name: /Use as JSON Schema/ })).toBeVisible();
   await page.locator('#toolHandover').getByRole('button', { name: /Use as JSON Schema/ }).click();
 
-  await expect(page).toHaveURL(/#json-schema-validator$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/schema$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Schema');
   await expect(page.getByLabel('JSON Schema input')).toHaveValue(/"\$schema": "https:\/\/json-schema.org\/draft\/2020-12\/schema"/);
   await expect(page.getByLabel('JSON Schema input')).toHaveValue(/"required": \[/);
   await expect(page.getByLabel('JSON input', { exact: true })).toHaveValue('');
 });
 
-test('hands CSV JSON output to Data Explorer', async ({ page }) => {
+test('hands CSV JSON output to JSON & Data Workbench explore mode', async ({ page }) => {
   await page.goto('/#csv-tsv-helper');
 
   await page.getByLabel('CSV/TSV input').fill('name,email\nAda Lovelace,ada@example.test\nGrace Hopper,grace@example.test');
   await page.getByRole('button', { name: 'Process data', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Explore JSON records/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('json');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"name": "Ada Lovelace"/);
 
@@ -705,7 +741,7 @@ test('hands CSV JSON output to Data Explorer', async ({ page }) => {
   await expect(page.locator('#dataExplorerSourceDetail')).toHaveText('2');
 });
 
-test('hands decoded JWT payload to the JSON formatter', async ({ page }) => {
+test('hands decoded JWT payload to JSON & Data Workbench format mode', async ({ page }) => {
   await page.goto('/#jwt-decoder');
 
   await page.getByLabel('JWT input').fill(makeJwt({
@@ -716,12 +752,13 @@ test('hands decoded JWT payload to the JSON formatter', async ({ page }) => {
   await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Decoded payload: Format JSON/ }).click();
 
-  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Format');
   await expect(page.getByLabel('JSON input')).toHaveValue(/"sub": "user-123"/);
   await expect(page.getByLabel('JSON input')).toHaveValue(/"roles": \[/);
 });
 
-test('hands decoded JWT header to the JSON formatter', async ({ page }) => {
+test('hands decoded JWT header to JSON & Data Workbench format mode', async ({ page }) => {
   await page.goto('/#jwt-decoder');
 
   await page.getByLabel('JWT input').fill(makeJwt({
@@ -734,7 +771,8 @@ test('hands decoded JWT header to the JSON formatter', async ({ page }) => {
   await page.getByRole('button', { name: 'Decode JWT', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Decoded header: Format JSON/ }).click();
 
-  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Format');
   await expect(page.getByLabel('JSON input')).toHaveValue(/"alg": "RS256"/);
   await expect(page.getByLabel('JSON input')).toHaveValue(/"kid": "key-1"/);
   await expect(page.getByLabel('JSON input')).not.toHaveValue(/"sub": "user-123"/);
@@ -743,7 +781,9 @@ test('hands decoded JWT header to the JSON formatter', async ({ page }) => {
 test('generates JSON structural diff reports', async ({ page }) => {
   await page.goto('/#json-diff');
 
-  await expect(page.getByRole('heading', { name: 'JSON diff' })).toBeVisible();
+  await expect(page).toHaveURL(/#json-data-workbench\/diff$/);
+  await expect(page.getByRole('heading', { name: 'JSON & Data Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Compare');
   await page.getByLabel('Left JSON').fill('{"name":"Contoso","tags":["a"],"legacy":1}');
   await page.getByLabel('Right JSON').fill('{"name":"Fabrikam","tags":["a","b"],"rating":5}');
   await page.getByRole('button', { name: 'Compare JSON', exact: true }).click();
@@ -766,6 +806,7 @@ test('generates JSON structural diff reports', async ({ page }) => {
 
 test('reports JSON diff validation errors by side', async ({ page }) => {
   await page.goto('/#json-diff');
+  await expect(page).toHaveURL(/#json-data-workbench\/diff$/);
 
   await page.getByRole('button', { name: 'Compare JSON', exact: true }).click();
 
@@ -784,7 +825,9 @@ test('reports JSON diff validation errors by side', async ({ page }) => {
 test('validates JSON against a JSON Schema with path-level errors', async ({ page }) => {
   await page.goto('/#json-schema-validator');
 
-  await expect(page.getByRole('heading', { name: 'JSON Schema validator' })).toBeVisible();
+  await expect(page).toHaveURL(/#json-data-workbench\/schema$/);
+  await expect(page.getByRole('heading', { name: 'JSON & Data Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Schema');
   await page.getByLabel('JSON input', { exact: true }).fill(JSON.stringify({
     items: [
       {
@@ -847,6 +890,7 @@ test('validates JSON against a JSON Schema with path-level errors', async ({ pag
 
 test('reports JSON Schema validator parsing errors and schema warnings', async ({ page }) => {
   await page.goto('/#json-schema-validator');
+  await expect(page).toHaveURL(/#json-data-workbench\/schema$/);
 
   await page.getByRole('button', { name: 'Validate JSON', exact: true }).click();
 
@@ -869,14 +913,18 @@ test('reports JSON Schema validator parsing errors and schema warnings', async (
   await expect(page.locator('#jsonSchemaValidatorOutput')).toHaveValue(/\^/);
 });
 
-test('finds the data explorer and queries JSON records', async ({ page }) => {
+test('finds JSON & Data Workbench explore mode and queries JSON records', async ({ page }) => {
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('data explorer');
-  await expect(page.locator('[data-tool-id="data-explorer"]')).toBeEnabled();
-  await page.locator('[data-tool-id="data-explorer"]').click();
+  await expect(page.locator('[data-tool-id="json-data-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="data-explorer"]')).toHaveCount(0);
+  await page.locator('[data-tool-id="json-data-workbench"]').click();
+  await page.locator('.tool-workbench-tab').filter({ hasText: 'Explore' }).click();
 
-  await expect(page.getByRole('heading', { name: 'JSON/XML data explorer' })).toBeVisible();
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.getByRole('heading', { name: 'JSON & Data Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await page.getByLabel('JSON or XML input').fill(JSON.stringify({
     data: {
       records: [
@@ -926,6 +974,7 @@ test('finds the data explorer and queries JSON records', async ({ page }) => {
 
 test('reports data explorer validation errors', async ({ page }) => {
   await page.goto('/#data-explorer');
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
 
   await page.getByRole('button', { name: 'Explore data', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Enter JSON or XML input before exploring data.');
@@ -942,6 +991,7 @@ test('reports data explorer validation errors', async ({ page }) => {
 
 test('flattens XML data into a grid and JSON export', async ({ page }) => {
   await page.goto('/#data-explorer');
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
 
   await page.getByLabel('Input format').selectOption('xml');
   await page.getByLabel('JSON or XML input').fill([
@@ -966,8 +1016,9 @@ test('flattens XML data into a grid and JSON export', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('XML data explored successfully.');
 });
 
-test('hands Data Explorer JSON output to text diff', async ({ page }) => {
+test('hands JSON & Data Workbench explorer output to text diff', async ({ page }) => {
   await page.goto('/#data-explorer');
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
 
   await page.getByLabel('Input format').selectOption('xml');
   await page.getByLabel('JSON or XML input').fill([
@@ -985,8 +1036,9 @@ test('hands Data Explorer JSON output to text diff', async ({ page }) => {
   await expect(page.getByLabel('Right text')).toHaveValue('');
 });
 
-test('hands Data Explorer JSON output to the CSV helper', async ({ page }) => {
+test('hands JSON & Data Workbench explorer output to the CSV helper', async ({ page }) => {
   await page.goto('/#data-explorer');
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
 
   await page.getByLabel('Input format').selectOption('json');
   await page.getByLabel('JSON or XML input').fill(JSON.stringify([
@@ -1133,7 +1185,7 @@ test('loads regex examples and previews replacements', async ({ page }) => {
   await expect(page.locator('#downloadRegexButton')).toHaveAttribute('download', 'regex-replacement-preview.md');
 });
 
-test('hands regex JSON reports to Data Explorer', async ({ page }) => {
+test('hands regex JSON reports to JSON & Data Workbench explore mode', async ({ page }) => {
   await page.goto('/#regex-tester');
 
   await page.getByLabel('Pattern').fill('(?<name>[A-Z][a-z]+)\\s+(?<email>[^\\s]+@[^\\s]+)');
@@ -1142,7 +1194,8 @@ test('hands regex JSON reports to Data Explorer', async ({ page }) => {
   await page.getByRole('button', { name: 'Run test', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('json');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"matches": \[/);
 
@@ -1262,8 +1315,9 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.locator('[data-tool-id="case-converter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="uuid-generator"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="support-pack-sanitiser"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="markdown-preview-inspector"]')).toBeEnabled();
-  await expect(page.locator('[data-tool-id="markdown-table-formatter"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="markdown-workbench"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="markdown-preview-inspector"]')).toHaveCount(0);
+  await expect(page.locator('[data-tool-id="markdown-table-formatter"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="sql-query-formatter"]')).toBeEnabled();
   await page.locator('[data-tool-id="text-diff"]').click();
 
@@ -1284,7 +1338,7 @@ test('finds text diff and honours comparison options', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Whitespace differences were ignored.');
 });
 
-test('hands text diff JSON reports to Data Explorer', async ({ page }) => {
+test('hands text diff JSON reports to JSON & Data Workbench explore mode', async ({ page }) => {
   await page.goto('/#text-diff');
 
   await page.getByLabel('Output format').selectOption('json');
@@ -1293,7 +1347,8 @@ test('hands text diff JSON reports to Data Explorer', async ({ page }) => {
   await page.getByRole('button', { name: 'Compare text', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore JSON records/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('json');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"rows": \[/);
 
@@ -1357,7 +1412,9 @@ test('hands cleaned HTML output to a text diff input', async ({ page }) => {
 test('previews Markdown with inspection details and Mermaid handover', async ({ page }) => {
   await page.goto('/#markdown-preview-inspector');
 
-  await expect(page.getByRole('heading', { name: 'Markdown preview & inspector' })).toBeVisible();
+  await expect(page).toHaveURL(/#markdown-workbench$/);
+  await expect(page.getByRole('heading', { name: 'Markdown Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Preview');
   await page.getByLabel('Markdown input').fill([
     '# Release notes',
     '',
@@ -1391,13 +1448,16 @@ test('previews Markdown with inspection details and Mermaid handover', async ({ 
 
   await page.locator('#toolHandover').getByRole('button', { name: /First Mermaid block: Preview Mermaid block/ }).click();
 
-  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.getByRole('heading', { name: 'Mermaid Studio' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
 });
 
-test('hands HTML Markdown output into the Markdown preview inspector', async ({ page }) => {
+test('hands HTML Markdown output into the Markdown Workbench preview mode', async ({ page }) => {
   await page.goto('/#markdown-preview-inspector');
 
+  await expect(page).toHaveURL(/#markdown-workbench$/);
   await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Enter Markdown input before rendering.');
 
@@ -1407,7 +1467,8 @@ test('hands HTML Markdown output into the Markdown preview inspector', async ({ 
   await page.getByRole('button', { name: 'Convert HTML', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Preview Markdown/ }).click();
 
-  await expect(page).toHaveURL(/#markdown-preview-inspector$/);
+  await expect(page).toHaveURL(/#markdown-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Preview');
   await expect(page.getByLabel('Markdown input')).toHaveValue(/^# Guide/);
   await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
   await expect(page.locator('#markdownPreview h1')).toHaveText('Guide');
@@ -1417,7 +1478,9 @@ test('hands HTML Markdown output into the Markdown preview inspector', async ({ 
 test('formats Markdown tables and hands output to the Markdown preview', async ({ page }) => {
   await page.goto('/#markdown-table-formatter');
 
-  await expect(page.getByRole('heading', { name: 'Markdown table formatter' })).toBeVisible();
+  await expect(page).toHaveURL(/#markdown-workbench\/tables$/);
+  await expect(page.getByRole('heading', { name: 'Markdown Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Tables');
   await page.getByLabel('Markdown table input').fill([
     '# Report',
     '',
@@ -1445,7 +1508,8 @@ test('formats Markdown tables and hands output to the Markdown preview', async (
 
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Preview Markdown/ }).click();
 
-  await expect(page).toHaveURL(/#markdown-preview-inspector$/);
+  await expect(page).toHaveURL(/#markdown-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Preview');
   await expect(page.getByLabel('Markdown input')).toHaveValue(/# Report/);
   await page.getByRole('button', { name: 'Render Markdown', exact: true }).click();
   await expect(page.locator('#markdownPreview table')).toContainText('Grace');
@@ -1454,6 +1518,7 @@ test('formats Markdown tables and hands output to the Markdown preview', async (
 test('converts Markdown tables to CSV and hands output to the CSV helper', async ({ page }) => {
   await page.goto('/#markdown-table-formatter');
 
+  await expect(page).toHaveURL(/#markdown-workbench\/tables$/);
   await page.getByRole('button', { name: 'Format table', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Enter Markdown table input before formatting.');
 
@@ -1683,7 +1748,7 @@ test('tags PDF fields and exports a handover report', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('Field handover report exported as Markdown.');
 });
 
-test('hands PDF field mappings to Data Explorer', async ({ page }) => {
+test('hands PDF field mappings to JSON & Data Workbench explore mode', async ({ page }) => {
   await page.goto('/#pdf-template-field-explorer');
 
   await page.setInputFiles('#pdfTemplateFileInput', {
@@ -1694,7 +1759,8 @@ test('hands PDF field mappings to Data Explorer', async ({ page }) => {
   await expect(page.getByRole('status')).toContainText('PDF loaded successfully.');
   await page.locator('#toolHandover').getByRole('button', { name: /Field mapping JSON: Explore JSON records/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('json');
   await expect(page.getByLabel('JSON record path')).toHaveValue('fields');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue(/"fieldCount": 2/);
@@ -1879,7 +1945,9 @@ test('hands converted request output to the support sanitiser', async ({ page })
 test('generates a Power Pages Web API GET snippet', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
 
-  await expect(page.getByRole('heading', { name: 'Power Pages Web API Snippet Generator' })).toBeVisible();
+  await expect(page).toHaveURL(/#power-pages-workbench\/web-api$/);
+  await expect(page.getByRole('heading', { name: 'Power Pages Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Web API');
   await page.getByLabel('EntitySetName').fill('accounts');
   await page.getByLabel('Logical table name').fill('account');
   await page.getByLabel('Columns / Web API fields').fill('name, accountnumber');
@@ -1897,6 +1965,7 @@ test('generates a Power Pages Web API GET snippet', async ({ page }) => {
 
 test('hands Power Pages Web API snippets to the support sanitiser', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
+  await expect(page).toHaveURL(/#power-pages-workbench\/web-api$/);
 
   await page.getByLabel('EntitySetName').fill('accounts');
   await page.getByLabel('Logical table name').fill('account');
@@ -1911,6 +1980,7 @@ test('hands Power Pages Web API snippets to the support sanitiser', async ({ pag
 
 test('hands Power Pages Web API snippets to the cURL/fetch converter', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
+  await expect(page).toHaveURL(/#power-pages-workbench\/web-api$/);
 
   await page.getByLabel('EntitySetName').fill('accounts');
   await page.getByLabel('Logical table name').fill('account');
@@ -1934,6 +2004,7 @@ test('hands Power Pages Web API snippets to the cURL/fetch converter', async ({ 
 
 test('hands Power Pages Web API endpoints to the URL helper', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
+  await expect(page).toHaveURL(/#power-pages-workbench\/web-api$/);
 
   await page.getByLabel('EntitySetName').fill('accounts');
   await page.getByLabel('Logical table name').fill('account');
@@ -1956,6 +2027,7 @@ test('hands Power Pages Web API endpoints to the URL helper', async ({ page }) =
 
 test('generates Power Pages Web API POST and PATCH payload snippets', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
+  await expect(page).toHaveURL(/#power-pages-workbench\/web-api$/);
 
   await page.getByLabel('Operation').selectOption('create');
   await page.getByLabel('EntitySetName').fill('accounts');
@@ -1979,6 +2051,7 @@ test('generates Power Pages Web API POST and PATCH payload snippets', async ({ p
 
 test('reports Power Pages Web API validation errors', async ({ page }) => {
   await page.goto('/#power-pages-web-api-snippets');
+  await expect(page).toHaveURL(/#power-pages-workbench\/web-api$/);
 
   await page.getByLabel('Operation').selectOption('retrieve');
   await page.getByLabel('EntitySetName').fill('accounts');
@@ -1997,7 +2070,9 @@ test('reports Power Pages Web API validation errors', async ({ page }) => {
 test('generates Power Pages Web API site settings checklist', async ({ page }) => {
   await page.goto('/#power-pages-site-settings');
 
-  await expect(page.getByRole('heading', { name: 'Site Settings Helper' })).toBeVisible();
+  await expect(page).toHaveURL(/#power-pages-workbench\/site-settings$/);
+  await expect(page.getByRole('heading', { name: 'Power Pages Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Site settings');
   await page.getByLabel('Logical table name').fill('account');
   await page.getByLabel('Fields').fill('name, accountnumber');
   await page.getByLabel('Include Web API inner error while debugging').check();
@@ -2013,6 +2088,7 @@ test('generates Power Pages Web API site settings checklist', async ({ page }) =
 
 test('generates registration and Liquid safety site settings', async ({ page }) => {
   await page.goto('/#power-pages-site-settings');
+  await expect(page).toHaveURL(/#power-pages-workbench\/site-settings$/);
 
   await page.getByLabel('Feature area').selectOption('registration');
   await page.getByLabel('Require invitations for registration').check();
@@ -2031,6 +2107,7 @@ test('generates registration and Liquid safety site settings', async ({ page }) 
 
 test('reports Site Settings Helper validation errors', async ({ page }) => {
   await page.goto('/#power-pages-site-settings');
+  await expect(page).toHaveURL(/#power-pages-workbench\/site-settings$/);
 
   await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
 
@@ -2040,7 +2117,9 @@ test('reports Site Settings Helper validation errors', async ({ page }) => {
 test('generates a Power Pages table permissions checklist', async ({ page }) => {
   await page.goto('/#power-pages-table-permissions');
 
-  await expect(page.getByRole('heading', { name: 'Table Permissions Checklist' })).toBeVisible();
+  await expect(page).toHaveURL(/#power-pages-workbench\/table-permissions$/);
+  await expect(page.getByRole('heading', { name: 'Power Pages Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Table permissions');
   await page.getByLabel('Logical table name').fill('account');
   await page.getByLabel('Write').check();
   await page.getByLabel('Custom web roles').fill('Portal Managers');
@@ -2058,6 +2137,7 @@ test('generates a Power Pages table permissions checklist', async ({ page }) => 
 
 test('reports table permissions validation and anonymous access warnings', async ({ page }) => {
   await page.goto('/#power-pages-table-permissions');
+  await expect(page).toHaveURL(/#power-pages-workbench\/table-permissions$/);
 
   await page.getByRole('button', { name: 'Generate checklist', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Enter the logical table name');
@@ -2227,7 +2307,9 @@ test('hands Power Platform CLI output to text diff', async ({ page }) => {
 test('generates Mermaid diagrams from an exported Power Platform solution ZIP', async ({ page }) => {
   await page.goto('/#power-platform-solution-mermaid');
 
-  await expect(page.getByRole('heading', { name: 'Power Platform Solution Mermaid Generator' })).toBeVisible();
+  await expect(page).toHaveURL(/#solution-package-inspector$/);
+  await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Diagrams');
   await page.setInputFiles('#solutionMermaidFileInput', {
     name: 'ops-toolkit.zip',
     mimeType: 'application/zip',
@@ -2260,13 +2342,15 @@ test('generates Mermaid diagrams from an exported Power Platform solution ZIP', 
   await expect(page.locator('#toolHandover')).toContainText('Selected Mermaid: Preview and export');
   await page.locator('#toolHandover').getByRole('button', { name: /Selected Mermaid: Preview and export/ }).click();
 
-  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart LR/);
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/Parent account updater/);
 });
 
 test('reports Power Platform solution Mermaid validation errors', async ({ page }) => {
   await page.goto('/#power-platform-solution-mermaid');
+  await expect(page).toHaveURL(/#solution-package-inspector$/);
 
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP file before analysing the solution.');
@@ -2283,7 +2367,9 @@ test('reports Power Platform solution Mermaid validation errors', async ({ page 
 test('generates Markdown documentation from an exported Power Platform solution ZIP', async ({ page }) => {
   await page.goto('/#power-platform-solution-docs');
 
-  await expect(page.getByRole('heading', { name: 'Power Platform Solution Documentation Generator' })).toBeVisible();
+  await expect(page).toHaveURL(/#solution-package-inspector\/documentation$/);
+  await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Documentation');
   await page.setInputFiles('#solutionDocsFileInput', {
     name: 'ops-toolkit.zip',
     mimeType: 'application/zip',
@@ -2307,13 +2393,15 @@ test('generates Markdown documentation from an exported Power Platform solution 
   await expect(page.locator('#toolHandover')).toContainText('Documentation Markdown: Preview documentation');
   await page.locator('#toolHandover').getByRole('button', { name: /Documentation Markdown: Preview documentation/ }).click();
 
-  await expect(page).toHaveURL(/#markdown-preview-inspector$/);
+  await expect(page).toHaveURL(/#markdown-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Preview');
   await expect(page.getByLabel('Markdown input')).toHaveValue(/^# Power Platform solution documentation/);
   await expect(page.getByLabel('Markdown input')).toHaveValue(/Connection references/);
 });
 
 test('reports Power Platform solution documentation validation errors', async ({ page }) => {
   await page.goto('/#power-platform-solution-docs');
+  await expect(page).toHaveURL(/#solution-package-inspector\/documentation$/);
 
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP file before analysing the solution.');
@@ -2330,7 +2418,9 @@ test('reports Power Platform solution documentation validation errors', async ({
 test('generates an import preflight report from an exported Power Platform solution ZIP', async ({ page }) => {
   await page.goto('/#power-platform-solution-import-preflight');
 
-  await expect(page.getByRole('heading', { name: 'Power Platform Solution Import Preflight' })).toBeVisible();
+  await expect(page).toHaveURL(/#solution-package-inspector\/preflight$/);
+  await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Preflight');
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP file before analysing the solution.');
 
@@ -2487,7 +2577,8 @@ test('reviews model-driven JavaScript and builds migration reports', async ({ pa
   await expect(page.locator('#modelDrivenJsReviewRulesDetail')).toHaveText(/\d+/);
   await expect(page.locator('#toolHandover')).toContainText('Rule summary JSON: Format JSON');
   await page.locator('#toolHandover').getByRole('button', { name: /Rule summary JSON: Format JSON/ }).click();
-  await expect(page).toHaveURL(/#json-formatter$/);
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Format');
   await expect(page.getByLabel('JSON input')).toHaveValue(/deprecated-xrm-page/);
 
   await page.goto('/#client-api-migration-helper');
@@ -2588,8 +2679,8 @@ test('opens and closes the mobile tool menu', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Close tool menu' })).toHaveAttribute('aria-expanded', 'true');
   await expect(page.locator('#toolSidebar')).toBeVisible();
 
-  await page.locator('[data-tool-id="file-to-base64"]').click();
-  await expect(page.getByRole('heading', { name: 'File to Base64' })).toBeVisible();
+  await page.locator('[data-tool-id="base64-file-converter"]').click();
+  await expect(page.getByRole('heading', { name: 'Base64 & File Converter' })).toBeVisible();
   await expect(page.locator('#toolSidebar')).not.toBeVisible();
 });
 
@@ -2665,7 +2756,7 @@ test('shows an unsupported Base64 preview fallback and clears it on navigation',
     window.location.hash = '#file-to-base64';
   });
 
-  await expect(page).toHaveURL(/#file-to-base64$/);
+  await expect(page).toHaveURL(/#base64-file-converter\/file-to-base64$/);
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
 
@@ -2681,7 +2772,8 @@ test('hands Base64 file output to the file creator', async ({ page }) => {
   await expect(page.locator('#toolHandover')).toContainText('Continue with this Base64');
   await page.locator('#toolHandover').getByRole('button', { name: /Base64 output: Create file/ }).click();
 
-  await expect(page).toHaveURL(/#base64-to-file$/);
+  await expect(page).toHaveURL(/#base64-file-converter$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Base64 to file');
   await expect(page.getByLabel('Base64 content')).toHaveValue('aGVsbG8=');
 
   await page.getByRole('button', { name: 'Create file' }).click();
@@ -2692,8 +2784,10 @@ test('hands Base64 file output to the file creator', async ({ page }) => {
 test('converts multiple local images to PNG outputs', async ({ page }) => {
   await page.goto('/#image-converter');
 
-  await expect(page.getByRole('heading', { name: 'Image converter' })).toBeVisible();
-  await expect(page.locator('[data-tool-id="image-converter"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page).toHaveURL(/#image-converter-optimiser$/);
+  await expect(page.getByRole('heading', { name: 'Image Converter & Optimiser' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="image-converter-optimiser"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Convert');
   await page.setInputFiles('#imageConverterFileInput', [
     {
       name: 'mark.svg',
@@ -2766,11 +2860,13 @@ test('opens Image resizer & compressor from the catalogue and previews percentag
   await page.goto('/');
 
   await page.getByLabel('Search tools').fill('resizer');
-  await page.locator('[data-tool-id="image-resizer-compressor"]').click();
+  await page.locator('[data-tool-id="image-converter-optimiser"]').click();
+  await page.getByRole('link', { name: 'Optimise' }).click();
 
-  await expect(page).toHaveURL(/#image-resizer-compressor$/);
-  await expect(page.getByRole('heading', { name: 'Image resizer & compressor' })).toBeVisible();
-  await expect(page.locator('[data-tool-id="image-resizer-compressor"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page).toHaveURL(/#image-converter-optimiser\/optimise$/);
+  await expect(page.getByRole('heading', { name: 'Image Converter & Optimiser' })).toBeVisible();
+  await expect(page.locator('[data-tool-id="image-converter-optimiser"]')).toHaveAttribute('aria-current', 'page');
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Optimise');
 
   await page.setInputFiles('#imageResizerFileInput', {
     name: 'banner.png',
@@ -2930,7 +3026,9 @@ test('loads Image OCR assets offline after first OCR use', async ({ page }) => {
 test('renders Mermaid diagrams and exposes local exports', async ({ page }) => {
   await page.goto('/#mermaid-editor');
 
-  await expect(page.getByRole('heading', { name: 'Mermaid editor & exporter' })).toBeVisible();
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.getByRole('heading', { name: 'Mermaid Studio' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
   await page.getByLabel('File name').fill('checkout-flow');
   await page.getByLabel('Mermaid source').fill([
     'flowchart TD',
@@ -2954,6 +3052,8 @@ test('renders Mermaid diagrams and exposes local exports', async ({ page }) => {
 test('hands Mermaid template output to the editor and text diff', async ({ page }) => {
   await page.goto('/#mermaid-template-builder');
 
+  await expect(page).toHaveURL(/#mermaid-studio\/templates$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Templates');
   await page.getByLabel('Template type').selectOption('sequence');
   await page.getByLabel('Title').fill('Checkout');
   await page.getByLabel('Primary item').fill('Browser');
@@ -2965,7 +3065,8 @@ test('hands Mermaid template output to the editor and text diff', async ({ page 
   await expect(page.locator('#toolHandover')).toContainText('Continue with this Mermaid');
   await page.locator('#toolHandover').getByRole('button', { name: /Mermaid output: Preview and export/ }).click();
 
-  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/^sequenceDiagram/);
   await page.getByRole('button', { name: 'Render diagram', exact: true }).click();
   await expect(page.locator('#mermaidPreview svg')).toBeVisible();
@@ -2978,6 +3079,8 @@ test('hands Mermaid template output to the editor and text diff', async ({ page 
 test('converts JSON data and API requests into Mermaid workflows', async ({ page }) => {
   await page.goto('/#data-to-mermaid');
 
+  await expect(page).toHaveURL(/#mermaid-studio\/data$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Data');
   await page.getByLabel('Diagram').selectOption('pie');
   await page.getByLabel('Label field').fill('status');
   await page.getByLabel('Value field').fill('count');
@@ -2988,10 +3091,13 @@ test('converts JSON data and API requests into Mermaid workflows', async ({ page
   await expect(page.locator('#dataMermaidInputDetail')).toHaveText('JSON');
   await expect(page.locator('#dataMermaidWarningsDetail')).toHaveText('None');
   await page.locator('#toolHandover').getByRole('button', { name: /Mermaid output: Preview and export/ }).click();
-  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/^pie showData/);
 
   await page.goto('/#api-workflow-to-mermaid');
+  await expect(page).toHaveURL(/#mermaid-studio\/api-workflow$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('API/workflow');
   await page.getByLabel('Request, endpoint note or step list').fill('curl -X POST https://api.example.test/orders -H "Content-Type: application/json" --data-raw "{\\"name\\":\\"Ada\\"}"');
   await page.getByRole('button', { name: 'Generate Mermaid', exact: true }).click();
 
@@ -3007,7 +3113,8 @@ test('renders Mermaid from existing JSON and API handovers', async ({ page }) =>
   await page.getByRole('button', { name: 'Format JSON', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Create Mermaid tree/ }).click();
 
-  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/account/);
 
@@ -3016,7 +3123,8 @@ test('renders Mermaid from existing JSON and API handovers', async ({ page }) =>
   await page.getByRole('button', { name: 'Convert request', exact: true }).click();
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Create request diagram/ }).click();
 
-  await expect(page).toHaveURL(/#mermaid-editor$/);
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/^sequenceDiagram/);
   await expect(page.getByLabel('Mermaid source')).toHaveValue(/GET https:\/\/api.example.test\/accounts/);
 });
@@ -3028,7 +3136,9 @@ test('loads the Mermaid renderer and chunks offline', async ({ page }) => {
   try {
     await page.goto('/#mermaid-editor');
 
-    await expect(page.getByRole('heading', { name: 'Mermaid editor & exporter' })).toBeVisible();
+    await expect(page).toHaveURL(/#mermaid-studio$/);
+    await expect(page.getByRole('heading', { name: 'Mermaid Studio' })).toBeVisible();
+    await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
     await page.getByLabel('Mermaid source').fill('flowchart TD\n  A --> B');
     await page.getByRole('button', { name: 'Render diagram', exact: true }).click();
 
@@ -3046,7 +3156,9 @@ test('loads the Power Platform solution Mermaid generator offline', async ({ pag
   try {
     await page.goto('/#power-platform-solution-mermaid');
 
-    await expect(page.getByRole('heading', { name: 'Power Platform Solution Mermaid Generator' })).toBeVisible();
+    await expect(page).toHaveURL(/#solution-package-inspector$/);
+    await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
+    await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Diagrams');
     await page.setInputFiles('#solutionMermaidFileInput', {
       name: 'offline-solution.zip',
       mimeType: 'application/zip',
@@ -3068,7 +3180,9 @@ test('loads the Power Platform solution documentation generator offline', async 
   try {
     await page.goto('/#power-platform-solution-docs');
 
-    await expect(page.getByRole('heading', { name: 'Power Platform Solution Documentation Generator' })).toBeVisible();
+    await expect(page).toHaveURL(/#solution-package-inspector\/documentation$/);
+    await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
+    await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Documentation');
     await page.setInputFiles('#solutionDocsFileInput', {
       name: 'offline-solution.zip',
       mimeType: 'application/zip',
@@ -3090,7 +3204,9 @@ test('loads the Power Platform solution import preflight offline', async ({ page
   try {
     await page.goto('/#power-platform-solution-import-preflight');
 
-    await expect(page.getByRole('heading', { name: 'Power Platform Solution Import Preflight' })).toBeVisible();
+    await expect(page).toHaveURL(/#solution-package-inspector\/preflight$/);
+    await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
+    await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Preflight');
     await page.setInputFiles('#solutionImportFileInput', {
       name: 'offline-solution.zip',
       mimeType: 'application/zip',
@@ -3112,7 +3228,9 @@ test('loads the Markdown preview inspector offline', async ({ page }) => {
   try {
     await page.goto('/#markdown-preview-inspector');
 
-    await expect(page.getByRole('heading', { name: 'Markdown preview & inspector' })).toBeVisible();
+    await expect(page).toHaveURL(/#markdown-workbench$/);
+    await expect(page.getByRole('heading', { name: 'Markdown Workbench' })).toBeVisible();
+    await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Preview');
     await page.getByLabel('Markdown input').fill([
       '# Offline notes',
       '',
@@ -3137,7 +3255,9 @@ test('loads the Markdown table formatter offline', async ({ page }) => {
   try {
     await page.goto('/#markdown-table-formatter');
 
-    await expect(page.getByRole('heading', { name: 'Markdown table formatter' })).toBeVisible();
+    await expect(page).toHaveURL(/#markdown-workbench\/tables$/);
+    await expect(page.getByRole('heading', { name: 'Markdown Workbench' })).toBeVisible();
+    await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Tables');
     await page.getByLabel('Markdown table input').fill([
       '| Name | Count |',
       '| --- | ---: |',
@@ -3157,7 +3277,9 @@ test('formats FetchXML and builds a Power Pages Liquid block', async ({ page }) 
 
   const fetchXml = '<fetch><entity name="account"><attribute name="name" /></entity></fetch>';
 
-  await expect(page.getByRole('heading', { name: 'FetchXML Formatter & Liquid Builder' })).toBeVisible();
+  await expect(page).toHaveURL(/#power-pages-workbench$/);
+  await expect(page.getByRole('heading', { name: 'Power Pages Workbench' })).toBeVisible();
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('FetchXML');
   await page.getByLabel('FetchXML input').fill(fetchXml);
   await page.getByRole('button', { name: 'Format FetchXML', exact: true }).click();
 
@@ -3188,8 +3310,9 @@ test('formats FetchXML and builds a Power Pages Liquid block', async ({ page }) 
   await expect(page.locator('#downloadPowerPagesOutputButton')).toHaveAttribute('download', 'power-pages-fetchxml.liquid');
 });
 
-test('hands formatted FetchXML to Data Explorer as XML', async ({ page }) => {
+test('hands formatted FetchXML to JSON & Data Workbench as XML', async ({ page }) => {
   await page.goto('/#fetchxml-liquid-builder');
+  await expect(page).toHaveURL(/#power-pages-workbench$/);
 
   const fetchXml = '<fetch><entity name="account"><attribute name="name" /></entity></fetch>';
 
@@ -3199,7 +3322,8 @@ test('hands formatted FetchXML to Data Explorer as XML', async ({ page }) => {
   await expect(page.locator('#toolHandover')).toContainText('Continue with this XML');
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore XML data/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('xml');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue(/<entity name="account">/);
 
@@ -3210,8 +3334,9 @@ test('hands formatted FetchXML to Data Explorer as XML', async ({ page }) => {
   await expect(page.locator('#dataExplorerOutput')).toHaveValue(/"entity\.@name": "account"/);
 });
 
-test('extracts FetchXML from generated Liquid blocks for Data Explorer', async ({ page }) => {
+test('extracts FetchXML from generated Liquid blocks for JSON & Data Workbench', async ({ page }) => {
   await page.goto('/#fetchxml-liquid-builder');
+  await expect(page).toHaveURL(/#power-pages-workbench$/);
 
   await page.getByLabel('FetchXML input').fill('<fetch><entity name="account" /></fetch>');
   await page.getByRole('button', { name: 'Build Liquid', exact: true }).click();
@@ -3220,7 +3345,8 @@ test('extracts FetchXML from generated Liquid blocks for Data Explorer', async (
   await expect(page.locator('#toolHandover')).toContainText('Continue with this XML');
   await page.locator('#toolHandover').getByRole('button', { name: /Output: Explore embedded FetchXML/ }).click();
 
-  await expect(page).toHaveURL(/#data-explorer$/);
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
   await expect(page.getByLabel('Input format')).toHaveValue('xml');
   await expect(page.getByLabel('JSON or XML input')).toHaveValue([
     '<fetch>',

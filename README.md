@@ -4,45 +4,31 @@ A local-first suite of small developer utilities for day-to-day technical work. 
 
 The current foundation includes:
 
-- Base64 to file
-- File to Base64
-- Image converter
-- Image resizer & compressor
+- Base64 & File Converter
+- Image Converter & Optimiser
 - Image OCR
-- Mermaid editor & exporter
-- Mermaid template builder
-- Data to Mermaid
-- API/workflow to Mermaid
+- Mermaid Studio
 - Hashes/checksums
 - URL & query string helper
-- JSON formatter/validator
+- JSON & Data Workbench
 - JSON shape/schema generation
-- JSON diff
-- JSON Schema validator
-- JSON/XML data explorer
 - CSV/TSV helper
 - PDF Template Field Explorer
 - JWT Decoder & Claims Inspector
 - Cron / RRULE Builder
 - cURL/fetch converter
 - Regex Tester
-- Markdown preview & inspector
-- Markdown table formatter
+- Markdown Workbench
 - SQL query formatter
 - Support Pack Sanitiser
 - Text diff
 - HTML cleaner/converter
 - Case converter
 - UUID generator, restorer and validator
-- FetchXML Formatter & Liquid Builder for Power Pages
-- Power Pages Web API Snippet Generator
-- Site Settings Helper for Power Pages
-- Table Permissions Checklist for Power Pages
+- Power Pages Workbench
 - Dataverse OData Query Builder
 - Power Platform CLI Command Builder
-- Power Platform Solution Import Preflight
-- Power Platform Solution Mermaid and Dependency Map Generator
-- Power Platform Solution Documentation Generator
+- Solution Package Inspector
 - Power Automate Expression Formatter
 - Power Fx Snippet Formatter
 - Model-driven JavaScript Reviewer
@@ -81,7 +67,8 @@ npm run test:unit
 npm run test:browser
 ```
 
-Tools that produce compatible JSON, XML, Mermaid, Markdown, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff, JWT, PDF field mappings, Data Explorer tools and the model-driven JavaScript rule summary can move into compatible JSON, Mermaid or text tools; PDF field mappings and Data Explorer JSON can be transformed into CSV input; formatted FetchXML and FetchXML embedded in Liquid blocks can move into the JSON/XML data explorer; generated Dataverse OData, Power Pages Web API and Xrm.WebApi reports can extract request snippets or request flow into Mermaid; generated Mermaid, including selected diagrams from exported Power Platform solutions and web resource dependency maps with HTML web resource references, can move into the Mermaid editor/exporter or Text diff; Markdown-like reports, including exported Power Platform solution import preflight reports, solution documentation and model-driven JavaScript reports, can move into the Markdown preview and inspector, Markdown tables can move through the table formatter and CSV/TSV helper, Mermaid blocks found in Markdown can move into the Mermaid editor/exporter, and Markdown source can move into Text diff; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the file creator. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
+Tools that produce compatible JSON, XML, Mermaid, Markdown, text or Base64 outputs can hand their populated output to another local tool during the same browser session. JSON reports from URL, regex, text diff, JWT, PDF field mappings, JSON & Data Workbench modes and the model-driven JavaScript rule summary can move into compatible JSON, Mermaid or text tools; PDF field mappings and JSON & Data Workbench explorer output can be transformed into CSV input; formatted FetchXML and FetchXML embedded in Liquid blocks from the Power Pages Workbench can move into JSON & Data Workbench explore mode; generated Dataverse OData, Power Pages Web API and Xrm.WebApi reports can extract request snippets or request flow into Mermaid Studio; generated Mermaid, including selected diagrams from exported Power Platform solutions and web resource dependency maps with HTML web resource references, can move into Mermaid Studio editor mode or Text diff; Markdown-like reports, including Solution Package Inspector import preflight reports, solution documentation and model-driven JavaScript reports, can move into the Markdown Workbench preview mode, Markdown tables can move through the Markdown Workbench table mode and CSV/TSV helper, Mermaid blocks found in Markdown can move into Mermaid Studio editor mode, and Markdown source can move into Text diff; sanitised text, cleaned HTML, converted case output and generated API/Power Platform snippets can move into text tools; Base64 file output can move into the Base64 & File Converter file creator mode. Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
+The catalogue supports canonical tool routes, mode routes and legacy route aliases so future workbench consolidations can preserve older hash links while keeping consolidated tools visible in the menu.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -117,6 +104,7 @@ src/
   styles.css
   tools/
     base64.js
+    base64-workbench.ui.js
     base64.ui.js
     catalog.js
     cron-rrule-builder.js
@@ -128,12 +116,14 @@ src/
     hash-checksums.ui.js
     image-converter.js
     image-converter.ui.js
+    image-workbench.ui.js
     image-resizer.js
     image-resizer.ui.js
     image-ocr.js
     image-ocr.ui.js
     integration-contracts.js
     json-diff.js
+    json-data-workbench.ui.js
     json-diff.ui.js
     json-formatter.js
     json-formatter.ui.js
@@ -146,12 +136,14 @@ src/
     mermaid-data.ui.js
     mermaid-editor.ui.js
     mermaid-runtime.js
+    mermaid-studio.ui.js
     mermaid-template-builder.ui.js
     model-driven-javascript.js
     model-driven-javascript.ui.js
     model-driven-solution-javascript.js
     model-driven-solution-javascript.ui.js
     markdown.js
+    markdown-workbench.ui.js
     markdown-preview.ui.js
     markdown-table.js
     markdown-table.ui.js
@@ -177,6 +169,7 @@ src/
     power-pages-site-settings.ui.js
     power-pages-table-permissions.js
     power-pages-table-permissions.ui.js
+    power-pages-workbench.ui.js
     power-pages.ui.js
     power-pages-webapi.js
     power-pages-webapi.ui.js
@@ -184,10 +177,12 @@ src/
     regex-tester.ui.js
     sql-formatter.js
     sql-formatter.ui.js
+    solution-package-inspector.ui.js
     support-pack-sanitiser.js
     support-pack-sanitiser.ui.js
     syntax-highlight.js
     tool-handover.js
+    workbench.js
     text-diff.js
     text-diff.ui.js
     html-cleaner.js

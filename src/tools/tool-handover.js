@@ -305,6 +305,7 @@ export function resolveHandoverSuggestions({
           sourceOutputId: sourceOutput.id,
           sourceLabel: sourceOutput.label,
           targetToolId: route.targetToolId,
+          targetMode: route.targetMode || '',
           targetInputId: route.targetInputId,
           targetInputLabel: targetInput.label,
           kind: payloadAnalysis.kind,

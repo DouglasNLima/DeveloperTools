@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v29';
+const CACHE_NAME = 'developer-tools-static-v34';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -14,6 +14,7 @@ const PRECACHE_URLS = [
   './src/pwa.js',
   './src/styles.css',
   './src/tools/base64.js',
+  './src/tools/base64-workbench.ui.js',
   './src/tools/base64.ui.js',
   './src/tools/case-converter.js',
   './src/tools/case-converter.ui.js',
@@ -36,12 +37,14 @@ const PRECACHE_URLS = [
   './src/tools/html-cleaner.ui.js',
   './src/tools/image-converter.js',
   './src/tools/image-converter.ui.js',
+  './src/tools/image-workbench.ui.js',
   './src/tools/image-ocr.js',
   './src/tools/image-ocr.ui.js',
   './src/tools/image-resizer.js',
   './src/tools/image-resizer.ui.js',
   './src/tools/integration-contracts.js',
   './src/tools/json-diff.js',
+  './src/tools/json-data-workbench.ui.js',
   './src/tools/json-diff.ui.js',
   './src/tools/json-formatter.js',
   './src/tools/json-formatter.ui.js',
@@ -50,6 +53,7 @@ const PRECACHE_URLS = [
   './src/tools/jwt-decoder.js',
   './src/tools/jwt-decoder.ui.js',
   './src/tools/markdown.js',
+  './src/tools/markdown-workbench.ui.js',
   './src/tools/markdown-preview.ui.js',
   './src/tools/markdown-table.js',
   './src/tools/markdown-table.ui.js',
@@ -58,6 +62,7 @@ const PRECACHE_URLS = [
   './src/tools/mermaid-data.ui.js',
   './src/tools/mermaid-editor.ui.js',
   './src/tools/mermaid-runtime.js',
+  './src/tools/mermaid-studio.ui.js',
   './src/tools/mermaid-template-builder.ui.js',
   './src/tools/model-driven-javascript.js',
   './src/tools/model-driven-javascript.ui.js',
@@ -80,6 +85,7 @@ const PRECACHE_URLS = [
   './src/tools/power-pages-site-settings.ui.js',
   './src/tools/power-pages-table-permissions.js',
   './src/tools/power-pages-table-permissions.ui.js',
+  './src/tools/power-pages-workbench.ui.js',
   './src/tools/power-pages-webapi.js',
   './src/tools/power-pages-webapi.ui.js',
   './src/tools/power-pages.js',
@@ -90,6 +96,7 @@ const PRECACHE_URLS = [
   './src/tools/regex-tester.ui.js',
   './src/tools/sql-formatter.js',
   './src/tools/sql-formatter.ui.js',
+  './src/tools/solution-package-inspector.ui.js',
   './src/tools/support-pack-sanitiser.js',
   './src/tools/support-pack-sanitiser.ui.js',
   './src/tools/syntax-highlight.js',
@@ -100,6 +107,7 @@ const PRECACHE_URLS = [
   './src/tools/url-codec.ui.js',
   './src/tools/uuid-generator.js',
   './src/tools/uuid-generator.ui.js',
+  './src/tools/workbench.js',
   './src/vendor/mermaid/LICENSE',
   './src/vendor/mermaid/chunks/mermaid.esm.min/architecture-7EHR7CIX-6QZW5X65.mjs',
   './src/vendor/mermaid/chunks/mermaid.esm.min/architectureDiagram-UL44E2DR.mjs',

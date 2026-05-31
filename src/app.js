@@ -1,9 +1,10 @@
 import {
-  TOOL_CATALOGUE,
   getAvailableTools,
   getCategories,
   getToolById,
-  matchesToolSearch
+  getVisibleTools,
+  matchesToolSearch,
+  resolveToolRoute
 } from './tools/catalog.js';
 import {
   applyHandoverPayload,
@@ -14,6 +15,7 @@ import {
 import { APP_TITLE } from './app-metadata.js';
 import { APP_PHILOSOPHY, TRANSPARENCY_LIBRARY_ENTRIES } from './app-transparency.js';
 import { registerAppServiceWorker } from './pwa.js';
+import { renderBase64FileConverter } from './tools/base64-workbench.ui.js';
 import { renderBase64ToFile, renderFileToBase64 } from './tools/base64.ui.js';
 import { renderCaseConverter } from './tools/case-converter.ui.js';
 import { renderCronRruleBuilder } from './tools/cron-rrule-builder.ui.js';
@@ -25,15 +27,19 @@ import { renderHtmlCleaner } from './tools/html-cleaner.ui.js';
 import { renderImageConverter } from './tools/image-converter.ui.js';
 import { renderImageOcr } from './tools/image-ocr.ui.js';
 import { renderImageResizerCompressor } from './tools/image-resizer.ui.js';
+import { renderImageConverterOptimiser } from './tools/image-workbench.ui.js';
+import { renderJsonDataWorkbench } from './tools/json-data-workbench.ui.js';
 import { renderJsonDiff } from './tools/json-diff.ui.js';
 import { renderJsonFormatter } from './tools/json-formatter.ui.js';
 import { renderJsonSchemaValidator } from './tools/json-schema-validator.ui.js';
 import { renderJwtDecoder } from './tools/jwt-decoder.ui.js';
 import { renderMarkdownPreviewInspector } from './tools/markdown-preview.ui.js';
 import { renderMarkdownTableFormatter } from './tools/markdown-table.ui.js';
+import { renderMarkdownWorkbench } from './tools/markdown-workbench.ui.js';
 import { renderApiWorkflowToMermaid } from './tools/mermaid-api.ui.js';
 import { renderDataToMermaid } from './tools/mermaid-data.ui.js';
 import { renderMermaidEditor } from './tools/mermaid-editor.ui.js';
+import { renderMermaidStudio } from './tools/mermaid-studio.ui.js';
 import { renderMermaidTemplateBuilder } from './tools/mermaid-template-builder.ui.js';
 import {
   renderClientApiMigrationHelper,
@@ -58,8 +64,10 @@ import { renderPowerPlatformSolutionMermaid } from './tools/power-platform-solut
 import { renderFetchXmlLiquidBuilder } from './tools/power-pages.ui.js';
 import { renderPowerPagesSiteSettingsHelper } from './tools/power-pages-site-settings.ui.js';
 import { renderPowerPagesTablePermissionsChecklist } from './tools/power-pages-table-permissions.ui.js';
+import { renderPowerPagesWorkbench } from './tools/power-pages-workbench.ui.js';
 import { renderPowerPagesWebApiSnippetGenerator } from './tools/power-pages-webapi.ui.js';
 import { renderRegexTester } from './tools/regex-tester.ui.js';
+import { renderSolutionPackageInspector } from './tools/solution-package-inspector.ui.js';
 import { renderSqlFormatter } from './tools/sql-formatter.ui.js';
 import { renderSupportPackSanitiser } from './tools/support-pack-sanitiser.ui.js';
 import { renderTextDiff } from './tools/text-diff.ui.js';
@@ -67,6 +75,7 @@ import { renderUrlCodec } from './tools/url-codec.ui.js';
 import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
 
 const renderers = {
+  'base64-file-converter': renderBase64FileConverter,
   'base64-to-file': renderBase64ToFile,
   'case-converter': renderCaseConverter,
   'cron-rrule-builder': renderCronRruleBuilder,
@@ -78,14 +87,17 @@ const renderers = {
   'hash-checksums': renderHashChecksums,
   'html-cleaner-converter': renderHtmlCleaner,
   'image-converter': renderImageConverter,
+  'image-converter-optimiser': renderImageConverterOptimiser,
   'image-ocr': renderImageOcr,
   'image-resizer-compressor': renderImageResizerCompressor,
+  'json-data-workbench': renderJsonDataWorkbench,
   'json-diff': renderJsonDiff,
   'json-formatter': renderJsonFormatter,
   'json-schema-validator': renderJsonSchemaValidator,
   'jwt-decoder': renderJwtDecoder,
   'markdown-preview-inspector': renderMarkdownPreviewInspector,
   'markdown-table-formatter': renderMarkdownTableFormatter,
+  'markdown-workbench': renderMarkdownWorkbench,
   'client-api-migration-helper': renderClientApiMigrationHelper,
   'command-bar-javascript-builder': renderCommandBarJavaScriptBuilder,
   'form-event-handler-builder': renderFormEventHandlerBuilder,
@@ -94,6 +106,7 @@ const renderers = {
   'api-workflow-to-mermaid': renderApiWorkflowToMermaid,
   'data-to-mermaid': renderDataToMermaid,
   'mermaid-editor': renderMermaidEditor,
+  'mermaid-studio': renderMermaidStudio,
   'mermaid-template-builder': renderMermaidTemplateBuilder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
@@ -107,7 +120,9 @@ const renderers = {
   'power-pages-web-api-snippets': renderPowerPagesWebApiSnippetGenerator,
   'power-pages-site-settings': renderPowerPagesSiteSettingsHelper,
   'power-pages-table-permissions': renderPowerPagesTablePermissionsChecklist,
+  'power-pages-workbench': renderPowerPagesWorkbench,
   'regex-tester': renderRegexTester,
+  'solution-package-inspector': renderSolutionPackageInspector,
   'sql-query-formatter': renderSqlFormatter,
   'support-pack-sanitiser': renderSupportPackSanitiser,
   'text-diff': renderTextDiff,
@@ -139,6 +154,7 @@ const HANDOVER_HISTORY_STORAGE_KEY = 'developer-tools-handover-history';
 
 let activeView = HOME_VIEW;
 let activeTool = null;
+let activeMode = '';
 let activeCleanup = null;
 let selectedTheme = readStorage(THEME_STORAGE_KEY);
 let handoverHistory = readHandoverHistory();
@@ -283,21 +299,27 @@ function resolveRoute() {
   const hash = window.location.hash.replace('#', '');
 
   if (!hash || hash === HOME_VIEW) {
-    return { view: HOME_VIEW, tool: null };
+    return { view: HOME_VIEW, tool: null, mode: '' };
   }
 
-  const hashTool = getToolById(hash);
+  const resolvedRoute = resolveToolRoute(hash);
 
-  if (hashTool && hashTool.status === 'available') {
-    return { view: 'tool', tool: hashTool };
+  if (resolvedRoute?.tool?.status === 'available') {
+    return {
+      view: 'tool',
+      tool: resolvedRoute.tool,
+      mode: resolvedRoute.mode,
+      canonicalHash: resolvedRoute.canonicalHash
+    };
   }
 
-  return { view: HOME_VIEW, tool: null };
+  return { view: HOME_VIEW, tool: null, mode: '' };
 }
 
 function renderToolList() {
   const searchTerm = toolSearch.value.trim();
   const categories = getCategories();
+  const visibleTools = getVisibleTools();
   let renderedCount = 0;
 
   toolNav.innerHTML = '';
@@ -322,7 +344,7 @@ function renderToolList() {
   toolNav.append(homeButton);
 
   categories.forEach(category => {
-    const tools = TOOL_CATALOGUE.filter(tool => tool.category === category && matchesToolSearch(tool, searchTerm));
+    const tools = visibleTools.filter(tool => tool.category === category && matchesToolSearch(tool, searchTerm));
 
     if (tools.length === 0) {
       return;
@@ -393,13 +415,14 @@ function selectHome() {
   clearHandoverHistory();
   history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
   closeNavigation();
-  renderRoute({ view: HOME_VIEW, tool: null });
+  renderRoute({ view: HOME_VIEW, tool: null, mode: '' });
 }
 
 function selectTool(toolId, options = {}) {
-  const nextTool = getToolById(toolId);
+  const routeId = options.mode ? `${toolId}/${options.mode}` : toolId;
+  const resolvedRoute = resolveToolRoute(routeId);
 
-  if (!nextTool || nextTool.status !== 'available') {
+  if (!resolvedRoute?.tool || resolvedRoute.tool.status !== 'available') {
     return;
   }
 
@@ -407,14 +430,25 @@ function selectTool(toolId, options = {}) {
     clearHandoverHistory();
   }
 
-  history.replaceState(null, '', `#${nextTool.id}`);
+  history.replaceState(null, '', resolvedRoute.canonicalHash);
   closeNavigation();
-  renderRoute({ view: 'tool', tool: nextTool });
+  renderRoute({
+    view: 'tool',
+    tool: resolvedRoute.tool,
+    mode: resolvedRoute.mode,
+    canonicalHash: resolvedRoute.canonicalHash
+  });
 }
 
 function renderRoute(route) {
   activeView = route.view;
   activeTool = route.tool;
+  activeMode = route.mode || '';
+
+  if (route.canonicalHash && window.location.hash !== route.canonicalHash) {
+    history.replaceState(null, '', route.canonicalHash);
+  }
+
   renderToolList();
   renderHandoverTrail();
 
@@ -471,7 +505,7 @@ function renderHome() {
   homeBoard.append(createTransparencySection());
 
   getCategories().forEach(category => {
-    const categoryTools = TOOL_CATALOGUE.filter(tool => tool.category === category);
+    const categoryTools = getVisibleTools().filter(tool => tool.category === category);
     const section = document.createElement('section');
     section.className = 'home-category';
 
@@ -632,19 +666,19 @@ function renderActiveTool() {
     return;
   }
 
-  activeCleanup = renderer(toolMount);
+  activeCleanup = renderer(toolMount, { tool: activeTool, mode: activeMode });
   applyPendingToolState();
   renderHandoverTrail();
   renderHandoverSuggestions();
 }
 
 function applyPendingToolState() {
-  if (pendingRestore && pendingRestore.toolId === activeTool.id) {
+  if (pendingRestore && pendingRestore.toolId === activeTool.id && (!pendingRestore.mode || pendingRestore.mode === activeMode)) {
     restoreToolState(toolMount, pendingRestore.state);
     pendingRestore = null;
   }
 
-  if (pendingHandover && pendingHandover.targetToolId === activeTool.id) {
+  if (pendingHandover && pendingHandover.targetToolId === activeTool.id && (!pendingHandover.targetMode || pendingHandover.targetMode === activeMode)) {
     applyHandoverPayload(
       toolMount,
       pendingHandover.targetToolId,
@@ -671,7 +705,7 @@ function renderHandoverTrail() {
   handoverTrail.append(label);
 
   handoverHistory.forEach((entry, index) => {
-    const tool = getToolById(entry.toolId);
+    const tool = getToolById(entry.toolId) || resolveToolRoute(entry.toolId)?.tool;
     const title = entry.title || tool?.title || entry.toolId;
     const button = document.createElement('button');
     button.type = 'button';
@@ -803,6 +837,7 @@ function startHandover(suggestion) {
     {
       toolId: activeTool.id,
       title: activeTool.title,
+      mode: activeMode,
       state: serialiseToolState(activeTool.id, toolMount),
       createdAt: Date.now()
     }
@@ -810,12 +845,18 @@ function startHandover(suggestion) {
   writeHandoverHistory();
 
   pendingHandover = suggestion;
-  selectTool(suggestion.targetToolId, { preserveHandoverTrail: true });
+  selectTool(suggestion.targetToolId, {
+    mode: suggestion.targetMode,
+    preserveHandoverTrail: true
+  });
 }
 
 function restoreHandoverEntry(index) {
   const entry = handoverHistory[index];
-  const tool = entry ? getToolById(entry.toolId) : null;
+  const entryRoute = entry
+    ? resolveToolRoute(entry.mode ? `${entry.toolId}/${entry.mode}` : entry.toolId)
+    : null;
+  const tool = entryRoute?.tool || null;
 
   if (!entry || !tool || tool.status !== 'available') {
     return;
@@ -823,8 +864,15 @@ function restoreHandoverEntry(index) {
 
   handoverHistory = handoverHistory.slice(0, index);
   writeHandoverHistory();
-  pendingRestore = entry;
-  selectTool(entry.toolId, { preserveHandoverTrail: true });
+  pendingRestore = {
+    ...entry,
+    toolId: tool.id,
+    mode: entryRoute.mode
+  };
+  selectTool(entry.toolId, {
+    mode: entry.mode,
+    preserveHandoverTrail: true
+  });
 }
 
 function scheduleHandoverRefresh() {

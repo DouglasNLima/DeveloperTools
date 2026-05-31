@@ -24,63 +24,86 @@ test('validates handover contracts against the tool catalogue', () => {
 
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'json-data-workbench'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'json-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'url-codec'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'regex-tester'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'text-diff'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'image-ocr'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'base64-file-converter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'file-to-base64'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'curl-fetch-converter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'dataverse-odata-query-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'csv-tsv-helper'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-pages-workbench'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-pages-web-api-snippets'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'fetchxml-liquid-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'pdf-template-field-explorer'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-cli-command-builder'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'solution-package-inspector'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-solution-mermaid'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-solution-import-preflight'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-platform-solution-docs'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-automate-expression-formatter'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'power-fx-snippet-formatter'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-studio'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-editor'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'mermaid-template-builder'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'data-to-mermaid'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'api-workflow-to-mermaid'));
+  assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'markdown-workbench'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'markdown-preview-inspector'));
   assert.ok(TOOL_INTEGRATION_CONTRACTS.some(contract => contract.toolId === 'markdown-table-formatter'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetInputId === 'schema'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'jwt-decoder' && route.sourceOutputId === 'header'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'support-pack-sanitiser' && route.targetToolId === 'regex-tester'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'image-ocr' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'base64-file-converter' && route.targetToolId === 'base64-file-converter' && route.targetMode === 'base64-to-file'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'file-to-base64' && route.targetToolId === 'base64-to-file'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'curl-fetch-converter' && route.targetToolId === 'support-pack-sanitiser'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'extract-fenced-fetch'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'url-codec' && route.transform === 'extract-odata-endpoint'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'dataverse-odata-query-builder' && route.targetToolId === 'support-pack-sanitiser'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-workbench' && route.sourceOutputId === 'web-api-output' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'safeajax-to-fetch'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-workbench' && route.sourceOutputId === 'web-api-output' && route.targetToolId === 'url-codec' && route.transform === 'extract-webapi-endpoint'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-web-api-snippets' && route.targetToolId === 'curl-fetch-converter' && route.transform === 'safeajax-to-fetch'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-web-api-snippets' && route.targetToolId === 'url-codec' && route.transform === 'extract-webapi-endpoint'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'csv-tsv-helper' && route.transform === 'json-records-to-csv'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'pdf-template-field-explorer' && route.targetToolId === 'csv-tsv-helper' && route.transform === 'pdf-fields-to-csv'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'data-explorer' && route.targetToolId === 'text-diff'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'data-explorer' && route.targetInputId === 'xml'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'json-data-workbench' && route.targetMode === 'format'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'json-data-workbench' && route.targetMode === 'diff'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'json-data-workbench' && route.targetMode === 'schema'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'json-data-workbench' && route.targetMode === 'explore'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-workbench' && route.sourceOutputId === 'fetchxml-output' && route.targetToolId === 'json-data-workbench' && route.targetInputId === 'explore-xml' && route.targetMode === 'explore'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-pages-workbench' && route.sourceOutputId === 'fetchxml-text-output' && route.transform === 'extract-liquid-fetchxml'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.targetToolId === 'json-data-workbench' && route.targetInputId === 'explore-xml' && route.targetMode === 'explore'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'fetchxml-liquid-builder' && route.transform === 'extract-liquid-fetchxml'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-cli-command-builder' && route.targetToolId === 'text-diff'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.targetToolId === 'mermaid-editor'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.sourceOutputId === 'inventory' && route.targetToolId === 'markdown-preview-inspector'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-import-preflight' && route.sourceOutputId === 'preflight' && route.targetToolId === 'markdown-preview-inspector'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-docs' && route.sourceOutputId === 'documentation' && route.targetToolId === 'markdown-preview-inspector'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'mermaid' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'inventory' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'preflight' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'documentation' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.sourceOutputId === 'inventory' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-import-preflight' && route.sourceOutputId === 'preflight' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-docs' && route.sourceOutputId === 'documentation' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-automate-expression-formatter' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-fx-snippet-formatter' && route.targetToolId === 'text-diff'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'data-to-mermaid'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-editor' && route.transform === 'json-to-mermaid-tree'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-editor' && route.transform === 'request-to-mermaid-sequence'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-template-builder' && route.targetToolId === 'mermaid-editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-studio' && route.targetMode === 'data'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor' && route.transform === 'json-to-mermaid-tree'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor' && route.transform === 'request-to-mermaid-sequence'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-studio' && route.sourceOutputId === 'template-output' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'mermaid-editor' && route.targetToolId === 'text-diff'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'markdown-preview-inspector'));
-  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-preview-inspector' && route.targetToolId === 'mermaid-editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-preview-inspector' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'markdown-table-formatter'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-table-formatter' && route.targetToolId === 'csv-tsv-helper'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.targetToolId === 'markdown-workbench' && route.targetMode === 'tables'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-workbench' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'markdown-workbench' && route.targetToolId === 'csv-tsv-helper'));
 });
 
 test('transforms targeted handover payloads before suggestions are shown', () => {
@@ -327,21 +350,76 @@ test('resolves suggestions only for compatible populated outputs', () => {
     createControl({ id: 'jsonOutput', tagName: 'TEXTAREA', value: '{"items":[{"name":"Ada"}]}' })
   ]);
   const suggestions = resolveHandoverSuggestions({
-    sourceToolId: 'json-formatter',
+    sourceToolId: 'json-data-workbench',
     root,
-    availableTools: ['json-formatter', 'json-diff', 'json-schema-validator', 'data-explorer']
+    availableTools: ['json-data-workbench']
   });
 
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Explore JSON records'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as left JSON'));
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Explore JSON records').targetMode, 'explore');
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Compare as left JSON').targetMode, 'diff');
   assert.ok(!suggestions.some(suggestion => suggestion.label === 'Use as JSON Schema'));
 
   root.controls[0].value = '# Markdown report';
   assert.deepEqual(resolveHandoverSuggestions({
-    sourceToolId: 'json-formatter',
+    sourceToolId: 'json-data-workbench',
     root,
-    availableTools: ['json-formatter', 'json-diff', 'json-schema-validator', 'data-explorer']
+    availableTools: ['json-data-workbench']
   }), []);
+});
+
+test('preserves target modes on handover suggestions', () => {
+  const root = createRoot([
+    createControl({ id: 'sourceOutput', tagName: 'TEXTAREA', value: 'plain text' })
+  ]);
+  const suggestions = resolveHandoverSuggestions({
+    sourceToolId: 'source-tool',
+    root,
+    availableTools: ['target-workbench'],
+    contracts: [
+      {
+        toolId: 'source-tool',
+        outputs: [
+          {
+            id: 'output',
+            selector: '#sourceOutput',
+            label: 'Output',
+            kind: 'text'
+          }
+        ],
+        inputs: []
+      },
+      {
+        toolId: 'target-workbench',
+        outputs: [],
+        inputs: [
+          {
+            id: 'input',
+            selector: '#targetInput',
+            label: 'Target input',
+            kind: 'text'
+          }
+        ]
+      }
+    ],
+    routes: [
+      {
+        id: 'source-output-to-target-mode',
+        sourceToolId: 'source-tool',
+        sourceOutputId: 'output',
+        targetToolId: 'target-workbench',
+        targetMode: 'review',
+        targetInputId: 'input',
+        label: 'Review text',
+        description: 'Open the target workbench review mode.',
+        acceptKinds: ['text']
+      }
+    ]
+  });
+
+  assert.equal(suggestions.length, 1);
+  assert.equal(suggestions[0].targetMode, 'review');
 });
 
 test('resolves suggestions for additional JSON report sources', () => {
@@ -358,11 +436,11 @@ test('resolves suggestions for additional JSON report sources', () => {
     const suggestions = resolveHandoverSuggestions({
       sourceToolId: toolId,
       root,
-      availableTools: ['json-formatter', 'json-diff', 'json-schema-validator', 'data-explorer']
+      availableTools: ['json-data-workbench']
     });
 
-    assert.ok(suggestions.some(suggestion => suggestion.label === 'Format JSON'), `${toolId} should offer JSON formatter handover`);
-    assert.ok(suggestions.some(suggestion => suggestion.label === 'Explore JSON records'), `${toolId} should offer Data Explorer handover`);
+    assert.ok(suggestions.some(suggestion => suggestion.label === 'Format JSON'), `${toolId} should offer JSON & Data Workbench format handover`);
+    assert.ok(suggestions.some(suggestion => suggestion.label === 'Explore JSON records'), `${toolId} should offer JSON & Data Workbench explore handover`);
 
     if (toolId === 'regex-tester') {
       const dataExplorerSuggestion = suggestions.find(suggestion => suggestion.label === 'Explore JSON records');
@@ -449,7 +527,7 @@ test('resolves PDF field mapping handover sources', () => {
   const suggestions = resolveHandoverSuggestions({
     sourceToolId: 'pdf-template-field-explorer',
     root,
-    availableTools: ['json-formatter', 'data-explorer', 'csv-tsv-helper']
+    availableTools: ['json-data-workbench', 'csv-tsv-helper']
   });
 
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Format JSON'));
@@ -472,7 +550,7 @@ test('resolves PDF field mapping handover sources', () => {
   assert.deepEqual(resolveHandoverSuggestions({
     sourceToolId: 'pdf-template-field-explorer',
     root,
-    availableTools: ['json-formatter', 'data-explorer', 'csv-tsv-helper']
+    availableTools: ['json-data-workbench', 'csv-tsv-helper']
   }), []);
 });
 
@@ -483,7 +561,7 @@ test('resolves suggestions for text handover sources', () => {
   const suggestions = resolveHandoverSuggestions({
     sourceToolId: 'support-pack-sanitiser',
     root,
-    availableTools: ['regex-tester', 'markdown-preview-inspector', 'text-diff', 'case-converter', 'html-cleaner-converter']
+    availableTools: ['regex-tester', 'markdown-workbench', 'text-diff', 'case-converter', 'html-cleaner-converter']
   });
 
   assert.ok(suggestions.every(suggestion => suggestion.kind === 'text'));
@@ -493,12 +571,13 @@ test('resolves suggestions for text handover sources', () => {
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as right text'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Convert case'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Clean as HTML'));
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Preview Markdown').targetMode, 'preview');
 
   root.controls[0].value = '   ';
   assert.deepEqual(resolveHandoverSuggestions({
     sourceToolId: 'support-pack-sanitiser',
     root,
-    availableTools: ['regex-tester', 'markdown-preview-inspector', 'text-diff', 'case-converter', 'html-cleaner-converter']
+    availableTools: ['regex-tester', 'markdown-workbench', 'text-diff', 'case-converter', 'html-cleaner-converter']
   }), []);
 
   const ocrRoot = createRoot([
@@ -519,9 +598,10 @@ test('resolves suggestions for text handover sources', () => {
 test('resolves suggestions for API and Power Platform text sources', () => {
   for (const [toolId, outputId, availableTools, expectedLabels] of [
     ['curl-fetch-converter', 'curlFetchOutput', ['support-pack-sanitiser', 'regex-tester', 'text-diff'], ['Sanitise request', 'Test with regex', 'Compare as left text']],
-    ['dataverse-odata-query-builder', 'odataOutput', ['support-pack-sanitiser', 'markdown-preview-inspector', 'text-diff'], ['Sanitise query', 'Preview Markdown', 'Compare as left text']],
+    ['dataverse-odata-query-builder', 'odataOutput', ['support-pack-sanitiser', 'markdown-workbench', 'text-diff'], ['Sanitise query', 'Preview Markdown', 'Compare as left text']],
+    ['power-pages-workbench', 'webApiSnippetOutput', ['support-pack-sanitiser'], ['Sanitise snippet']],
     ['power-pages-web-api-snippets', 'webApiSnippetOutput', ['support-pack-sanitiser'], ['Sanitise snippet']],
-    ['power-platform-cli-command-builder', 'pacOutput', ['support-pack-sanitiser', 'markdown-preview-inspector', 'text-diff'], ['Sanitise command', 'Preview Markdown', 'Compare as left text']],
+    ['power-platform-cli-command-builder', 'pacOutput', ['support-pack-sanitiser', 'markdown-workbench', 'text-diff'], ['Sanitise command', 'Preview Markdown', 'Compare as left text']],
     ['power-automate-expression-formatter', 'flowExpressionOutput', ['text-diff'], ['Compare as left text', 'Compare as right text']],
     ['power-fx-snippet-formatter', 'powerFxOutput', ['text-diff'], ['Compare as left text', 'Compare as right text']]
   ]) {
@@ -548,7 +628,7 @@ test('resolves suggestions for API and Power Platform text sources', () => {
   }
 });
 
-test('resolves Markdown preview handovers to Mermaid and text tools', () => {
+test('resolves Markdown Workbench preview handovers to Mermaid and text tools', () => {
   const root = createRoot([
     createControl({
       id: 'markdownInput',
@@ -576,9 +656,9 @@ test('resolves Markdown preview handovers to Mermaid and text tools', () => {
     })
   ]);
   const suggestions = resolveHandoverSuggestions({
-    sourceToolId: 'markdown-preview-inspector',
+    sourceToolId: 'markdown-workbench',
     root,
-    availableTools: ['mermaid-editor', 'markdown-table-formatter', 'text-diff']
+    availableTools: ['mermaid-studio', 'markdown-workbench', 'text-diff']
   });
 
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Preview Mermaid block'));
@@ -586,12 +666,15 @@ test('resolves Markdown preview handovers to Mermaid and text tools', () => {
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as left text'));
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Compare as right text'));
   assert.equal(suggestions.find(suggestion => suggestion.label === 'Preview Mermaid block').kind, 'mermaid');
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Preview Mermaid block').targetToolId, 'mermaid-studio');
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Preview Mermaid block').targetMode, 'editor');
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Format Markdown tables').targetMode, 'tables');
 
   root.controls[1].value = '';
   const textOnlySuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'markdown-preview-inspector',
+    sourceToolId: 'markdown-workbench',
     root,
-    availableTools: ['mermaid-editor', 'markdown-table-formatter', 'text-diff']
+    availableTools: ['mermaid-studio', 'markdown-workbench', 'text-diff']
   });
 
   assert.ok(!textOnlySuggestions.some(suggestion => suggestion.label === 'Preview Mermaid block'));
@@ -599,7 +682,7 @@ test('resolves Markdown preview handovers to Mermaid and text tools', () => {
   assert.ok(textOnlySuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
 });
 
-test('resolves Markdown table formatter handovers', () => {
+test('resolves Markdown Workbench table handovers', () => {
   const root = createRoot([
     createControl({
       id: 'markdownTableOutput',
@@ -611,12 +694,13 @@ test('resolves Markdown table formatter handovers', () => {
     })
   ]);
   const suggestions = resolveHandoverSuggestions({
-    sourceToolId: 'markdown-table-formatter',
+    sourceToolId: 'markdown-workbench',
     root,
-    availableTools: ['markdown-preview-inspector', 'csv-tsv-helper', 'text-diff']
+    availableTools: ['markdown-workbench', 'csv-tsv-helper', 'text-diff']
   });
 
   assert.ok(suggestions.some(suggestion => suggestion.label === 'Preview Markdown'));
+  assert.equal(suggestions.find(suggestion => suggestion.label === 'Preview Markdown').targetMode, 'preview');
   const csvSuggestion = suggestions.find(suggestion => suggestion.label === 'Inspect as delimited data');
   assert.equal(csvSuggestion.kind, 'text');
   assert.deepEqual(csvSuggestion.setFields, [
@@ -638,9 +722,9 @@ test('resolves Markdown table formatter handovers', () => {
 
   root.controls[0].value = '';
   assert.deepEqual(resolveHandoverSuggestions({
-    sourceToolId: 'markdown-table-formatter',
+    sourceToolId: 'markdown-workbench',
     root,
-    availableTools: ['markdown-preview-inspector', 'csv-tsv-helper', 'text-diff']
+    availableTools: ['markdown-workbench', 'csv-tsv-helper', 'text-diff']
   }), []);
 });
 
@@ -659,13 +743,15 @@ test('resolves CSV helper Markdown table output into the table formatter', () =>
   const suggestions = resolveHandoverSuggestions({
     sourceToolId: 'csv-tsv-helper',
     root,
-    availableTools: ['markdown-table-formatter']
+    availableTools: ['markdown-workbench']
   });
 
   assert.equal(suggestions.length, 1);
   assert.equal(suggestions[0].label, 'Format Markdown tables');
   assert.equal(suggestions[0].sourceOutputId, 'text-output');
   assert.equal(suggestions[0].kind, 'text');
+  assert.equal(suggestions[0].targetToolId, 'markdown-workbench');
+  assert.equal(suggestions[0].targetMode, 'tables');
 });
 
 test('resolves Power Pages Web API transformed handover sources', () => {
@@ -695,67 +781,75 @@ test('resolves Power Pages Web API transformed handover sources', () => {
       ].join('\n')
     })
   ]);
-  const suggestions = resolveHandoverSuggestions({
-    sourceToolId: 'power-pages-web-api-snippets',
-    root,
-    availableTools: ['support-pack-sanitiser', 'curl-fetch-converter', 'url-codec']
-  });
+  for (const sourceToolId of ['power-pages-workbench', 'power-pages-web-api-snippets']) {
+    const suggestions = resolveHandoverSuggestions({
+      sourceToolId,
+      root,
+      availableTools: ['support-pack-sanitiser', 'curl-fetch-converter', 'url-codec']
+    });
 
-  assert.ok(suggestions.some(suggestion => suggestion.label === 'Sanitise snippet'));
+    assert.ok(suggestions.some(suggestion => suggestion.label === 'Sanitise snippet'));
 
-  const converterSuggestion = suggestions.find(suggestion => suggestion.label === 'Convert safeAjax to cURL');
-  assert.equal(converterSuggestion.kind, 'text');
-  assert.match(converterSuggestion.value, /^const response = await fetch/);
-  assert.match(converterSuggestion.value, /\/_api\/accounts/);
-  assert.ok(!converterSuggestion.value.includes('webapi.safeAjax'));
-  assert.deepEqual(converterSuggestion.setFields, [
-    {
-      selector: '#curlFetchMode',
-      value: 'fetch-to-curl'
-    }
-  ]);
+    const converterSuggestion = suggestions.find(suggestion => suggestion.label === 'Convert safeAjax to cURL');
+    assert.equal(converterSuggestion.kind, 'text');
+    assert.match(converterSuggestion.value, /^const response = await fetch/);
+    assert.match(converterSuggestion.value, /\/_api\/accounts/);
+    assert.ok(!converterSuggestion.value.includes('webapi.safeAjax'));
+    assert.deepEqual(converterSuggestion.setFields, [
+      {
+        selector: '#curlFetchMode',
+        value: 'fetch-to-curl'
+      }
+    ]);
 
-  const endpointSuggestion = suggestions.find(suggestion => suggestion.label === 'Inspect Web API endpoint');
-  assert.equal(endpointSuggestion.kind, 'text');
-  assert.equal(endpointSuggestion.value, '/_api/accounts?$select=name&$filter=statecode%20eq%200&$top=5');
-  assert.deepEqual(endpointSuggestion.setFields, [
-    {
-      selector: '#urlToolMode',
-      value: 'parse-query'
-    },
-    {
-      selector: '#urlOutputFormat',
-      value: 'json'
-    }
-  ]);
+    const endpointSuggestion = suggestions.find(suggestion => suggestion.label === 'Inspect Web API endpoint');
+    assert.equal(endpointSuggestion.kind, 'text');
+    assert.equal(endpointSuggestion.value, '/_api/accounts?$select=name&$filter=statecode%20eq%200&$top=5');
+    assert.deepEqual(endpointSuggestion.setFields, [
+      {
+        selector: '#urlToolMode',
+        value: 'parse-query'
+      },
+      {
+        selector: '#urlOutputFormat',
+        value: 'json'
+      }
+    ]);
+  }
 });
 
 test('resolves XML and Data Explorer text handover sources', () => {
   const fetchXmlRoot = createRoot([
     createControl({ id: 'powerPagesOutput', tagName: 'TEXTAREA', value: '<fetch><entity name="account"/></fetch>' })
   ]);
-  const xmlSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'fetchxml-liquid-builder',
-    root: fetchXmlRoot,
-    availableTools: ['data-explorer']
-  });
+  for (const sourceToolId of ['power-pages-workbench', 'fetchxml-liquid-builder']) {
+    const xmlSuggestions = resolveHandoverSuggestions({
+      sourceToolId,
+      root: fetchXmlRoot,
+      availableTools: ['json-data-workbench']
+    });
 
-  assert.equal(xmlSuggestions.length, 1);
-  assert.equal(xmlSuggestions[0].kind, 'xml');
-  assert.equal(xmlSuggestions[0].targetInputId, 'xml');
-  assert.equal(xmlSuggestions[0].label, 'Explore XML data');
+    assert.equal(xmlSuggestions.length, 1);
+    assert.equal(xmlSuggestions[0].kind, 'xml');
+    assert.equal(xmlSuggestions[0].targetToolId, 'json-data-workbench');
+    assert.equal(xmlSuggestions[0].targetInputId, 'explore-xml');
+    assert.equal(xmlSuggestions[0].targetMode, 'explore');
+    assert.equal(xmlSuggestions[0].label, 'Explore XML data');
+  }
 
   fetchXmlRoot.controls[0].value = '{% fetchxml accounts %}\n<fetch />\n{% endfetchxml %}';
-  const liquidSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'fetchxml-liquid-builder',
-    root: fetchXmlRoot,
-    availableTools: ['data-explorer']
-  });
+  for (const sourceToolId of ['power-pages-workbench', 'fetchxml-liquid-builder']) {
+    const liquidSuggestions = resolveHandoverSuggestions({
+      sourceToolId,
+      root: fetchXmlRoot,
+      availableTools: ['json-data-workbench']
+    });
 
-  assert.equal(liquidSuggestions.length, 1);
-  assert.equal(liquidSuggestions[0].kind, 'xml');
-  assert.equal(liquidSuggestions[0].label, 'Explore embedded FetchXML');
-  assert.equal(liquidSuggestions[0].value, '<fetch />');
+    assert.equal(liquidSuggestions.length, 1);
+    assert.equal(liquidSuggestions[0].kind, 'xml');
+    assert.equal(liquidSuggestions[0].label, 'Explore embedded FetchXML');
+    assert.equal(liquidSuggestions[0].value, '<fetch />');
+  }
 
   const dataverseRoot = createRoot([
     createControl({
@@ -805,7 +899,7 @@ test('resolves XML and Data Explorer text handover sources', () => {
     createControl({ id: 'dataExplorerOutput', tagName: 'TEXTAREA', value: '[{"name":"Ada"}]' })
   ]);
   const textSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'data-explorer',
+    sourceToolId: 'json-data-workbench',
     root: dataExplorerRoot,
     availableTools: ['text-diff', 'csv-tsv-helper']
   });
@@ -822,20 +916,21 @@ test('resolves suggestions for Base64 handover sources', () => {
     createControl({ id: 'base64Output', tagName: 'TEXTAREA', value: 'aGVsbG8=' })
   ]);
   const suggestions = resolveHandoverSuggestions({
-    sourceToolId: 'file-to-base64',
+    sourceToolId: 'base64-file-converter',
     root,
-    availableTools: ['base64-to-file']
+    availableTools: ['base64-file-converter']
   });
 
   assert.equal(suggestions.length, 1);
   assert.equal(suggestions[0].kind, 'base64');
   assert.equal(suggestions[0].label, 'Create file');
+  assert.equal(suggestions[0].targetMode, 'base64-to-file');
 
   root.controls[0].value = 'not valid !';
   assert.deepEqual(resolveHandoverSuggestions({
-    sourceToolId: 'file-to-base64',
+    sourceToolId: 'base64-file-converter',
     root,
-    availableTools: ['base64-to-file']
+    availableTools: ['base64-file-converter']
   }), []);
 });
 
@@ -844,12 +939,13 @@ test('resolves Mermaid handover sources', () => {
     createControl({ id: 'mermaidTemplateOutput', tagName: 'TEXTAREA', value: 'flowchart TD\n  A --> B' })
   ]);
   const templateSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'mermaid-template-builder',
+    sourceToolId: 'mermaid-studio',
     root: templateRoot,
-    availableTools: ['mermaid-editor', 'text-diff']
+    availableTools: ['mermaid-studio', 'text-diff']
   });
 
   assert.ok(templateSuggestions.some(suggestion => suggestion.label === 'Preview and export'));
+  assert.equal(templateSuggestions.find(suggestion => suggestion.label === 'Preview and export').targetMode, 'editor');
   assert.ok(templateSuggestions.some(suggestion => suggestion.label === 'Compare as left text'));
   assert.ok(templateSuggestions.every(suggestion => suggestion.kind === 'mermaid'));
 
@@ -857,14 +953,17 @@ test('resolves Mermaid handover sources', () => {
     createControl({ id: 'jsonOutput', tagName: 'TEXTAREA', value: '{"name":"Ada"}' })
   ]);
   const jsonSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'json-formatter',
+    sourceToolId: 'json-data-workbench',
     root: jsonRoot,
-    availableTools: ['data-to-mermaid', 'mermaid-editor']
+    availableTools: ['mermaid-studio']
   });
 
   assert.ok(jsonSuggestions.some(suggestion => suggestion.label === 'Diagram JSON as Mermaid'));
+  assert.equal(jsonSuggestions.find(suggestion => suggestion.label === 'Diagram JSON as Mermaid').targetMode, 'data');
   const treeSuggestion = jsonSuggestions.find(suggestion => suggestion.label === 'Create Mermaid tree');
   assert.equal(treeSuggestion.kind, 'mermaid');
+  assert.equal(treeSuggestion.targetToolId, 'mermaid-studio');
+  assert.equal(treeSuggestion.targetMode, 'editor');
   assert.match(treeSuggestion.value, /^flowchart TD/);
 
   const requestRoot = createRoot([
@@ -873,48 +972,54 @@ test('resolves Mermaid handover sources', () => {
   const requestSuggestions = resolveHandoverSuggestions({
     sourceToolId: 'curl-fetch-converter',
     root: requestRoot,
-    availableTools: ['api-workflow-to-mermaid', 'mermaid-editor']
+    availableTools: ['mermaid-studio']
   });
 
-  assert.ok(requestSuggestions.some(suggestion => suggestion.targetToolId === 'api-workflow-to-mermaid'));
+  assert.ok(requestSuggestions.some(suggestion => suggestion.targetToolId === 'mermaid-studio' && suggestion.targetMode === 'api-workflow'));
   assert.ok(requestSuggestions.some(suggestion => suggestion.transform === 'request-to-mermaid-sequence'));
 
   const solutionRoot = createRoot([
     createControl({ id: 'solutionMermaidOutput', tagName: 'TEXTAREA', value: 'flowchart TD\n  Flow --> Action' }),
     createControl({ id: 'solutionMermaidInventoryOutput', tagName: 'TEXTAREA', value: '# Inventory\n\n```mermaid\nflowchart TD\n  Flow --> Action\n```' })
   ]);
-  const solutionSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'power-platform-solution-mermaid',
-    root: solutionRoot,
-    availableTools: ['mermaid-editor', 'markdown-preview-inspector', 'text-diff']
-  });
+  for (const sourceToolId of ['solution-package-inspector', 'power-platform-solution-mermaid']) {
+    const solutionSuggestions = resolveHandoverSuggestions({
+      sourceToolId,
+      root: solutionRoot,
+      availableTools: ['mermaid-studio', 'markdown-workbench', 'text-diff']
+    });
 
-  assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'mermaid' && suggestion.targetToolId === 'mermaid-editor'));
-  assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'inventory' && suggestion.targetToolId === 'markdown-preview-inspector'));
+    assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'mermaid' && suggestion.targetToolId === 'mermaid-studio' && suggestion.targetMode === 'editor'));
+    assert.ok(solutionSuggestions.some(suggestion => suggestion.sourceOutputId === 'inventory' && suggestion.targetToolId === 'markdown-workbench' && suggestion.targetMode === 'preview'));
+  }
 
   const preflightRoot = createRoot([
     createControl({ id: 'solutionImportPreflightOutput', tagName: 'TEXTAREA', value: '# Power Platform solution import preflight\n\n## Preflight summary' })
   ]);
-  const preflightSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'power-platform-solution-import-preflight',
-    root: preflightRoot,
-    availableTools: ['markdown-preview-inspector', 'text-diff']
-  });
+  for (const sourceToolId of ['solution-package-inspector', 'power-platform-solution-import-preflight']) {
+    const preflightSuggestions = resolveHandoverSuggestions({
+      sourceToolId,
+      root: preflightRoot,
+      availableTools: ['markdown-workbench', 'text-diff']
+    });
 
-  assert.ok(preflightSuggestions.some(suggestion => suggestion.sourceOutputId === 'preflight' && suggestion.targetToolId === 'markdown-preview-inspector'));
-  assert.ok(preflightSuggestions.some(suggestion => suggestion.sourceOutputId === 'preflight' && suggestion.targetToolId === 'text-diff'));
+    assert.ok(preflightSuggestions.some(suggestion => suggestion.sourceOutputId === 'preflight' && suggestion.targetToolId === 'markdown-workbench' && suggestion.targetMode === 'preview'));
+    assert.ok(preflightSuggestions.some(suggestion => suggestion.sourceOutputId === 'preflight' && suggestion.targetToolId === 'text-diff'));
+  }
 
   const docsRoot = createRoot([
     createControl({ id: 'solutionDocsOutput', tagName: 'TEXTAREA', value: '# Power Platform solution documentation\n\n## Operational summary' })
   ]);
-  const docsSuggestions = resolveHandoverSuggestions({
-    sourceToolId: 'power-platform-solution-docs',
-    root: docsRoot,
-    availableTools: ['markdown-preview-inspector', 'text-diff']
-  });
+  for (const sourceToolId of ['solution-package-inspector', 'power-platform-solution-docs']) {
+    const docsSuggestions = resolveHandoverSuggestions({
+      sourceToolId,
+      root: docsRoot,
+      availableTools: ['markdown-workbench', 'text-diff']
+    });
 
-  assert.ok(docsSuggestions.some(suggestion => suggestion.sourceOutputId === 'documentation' && suggestion.targetToolId === 'markdown-preview-inspector'));
-  assert.ok(docsSuggestions.some(suggestion => suggestion.sourceOutputId === 'documentation' && suggestion.targetToolId === 'text-diff'));
+    assert.ok(docsSuggestions.some(suggestion => suggestion.sourceOutputId === 'documentation' && suggestion.targetToolId === 'markdown-workbench' && suggestion.targetMode === 'preview'));
+    assert.ok(docsSuggestions.some(suggestion => suggestion.sourceOutputId === 'documentation' && suggestion.targetToolId === 'text-diff'));
+  }
 });
 
 test('resolves schema handovers for detected JSON Schema output', () => {
@@ -934,12 +1039,13 @@ test('resolves schema handovers for detected JSON Schema output', () => {
   ]);
 
   const suggestions = resolveHandoverSuggestions({
-    sourceToolId: 'json-formatter',
+    sourceToolId: 'json-data-workbench',
     root,
-    availableTools: ['json-schema-validator']
+    availableTools: ['json-data-workbench']
   });
 
   assert.ok(suggestions.some(suggestion => suggestion.targetInputId === 'schema'));
+  assert.ok(suggestions.some(suggestion => suggestion.targetMode === 'schema'));
 });
 
 test('applies handover payloads and restores serialised form state', () => {
@@ -995,13 +1101,13 @@ test('applies handover payloads and restores serialised form state', () => {
   const base64TargetRoot = createRoot([
     createControl({ id: 'base64Input', tagName: 'TEXTAREA', value: '' })
   ]);
-  assert.equal(applyHandoverPayload(base64TargetRoot, 'base64-to-file', 'content', 'aGVsbG8='), true);
+  assert.equal(applyHandoverPayload(base64TargetRoot, 'base64-file-converter', 'content', 'aGVsbG8='), true);
   assert.equal(base64TargetRoot.querySelector('#base64Input').value, 'aGVsbG8=');
 
   const mermaidTargetRoot = createRoot([
     createControl({ id: 'mermaidSourceInput', tagName: 'TEXTAREA', value: '' })
   ]);
-  assert.equal(applyHandoverPayload(mermaidTargetRoot, 'mermaid-editor', 'source', 'flowchart TD\n  A --> B'), true);
+  assert.equal(applyHandoverPayload(mermaidTargetRoot, 'mermaid-studio', 'source', 'flowchart TD\n  A --> B'), true);
   assert.equal(mermaidTargetRoot.querySelector('#mermaidSourceInput').value, 'flowchart TD\n  A --> B');
 
   const csvTargetRoot = createRoot([

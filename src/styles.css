@@ -902,6 +902,50 @@ textarea.syntax-editor-input::placeholder {
   padding: 0.85rem;
 }
 
+.tool-workbench {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.tool-workbench-tabs {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tool-workbench-tab {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  color: var(--text-strong-soft);
+  display: inline-flex;
+  font-size: 0.86rem;
+  font-weight: 800;
+  min-height: 2.2rem;
+  padding: 0.45rem 0.7rem;
+  text-decoration: none;
+}
+
+.tool-workbench-tab:hover,
+.tool-workbench-tab:focus-visible {
+  background: var(--button-muted-hover);
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+.tool-workbench-tab[aria-current="page"] {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.tool-workbench-mount {
+  min-width: 0;
+}
+
 .handover-trail {
   align-items: center;
   background: var(--surface);

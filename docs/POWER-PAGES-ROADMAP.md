@@ -4,6 +4,8 @@ This mini-roadmap focuses on Power Pages work that can be supported locally in t
 
 For broader Power Platform utilities, see [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md).
 
+Status: the implemented Power Pages phases are consolidated in the Power Pages Workbench, with legacy route aliases preserved for the original standalone tools.
+
 ## References
 
 - [Power Pages Liquid template tags](https://learn.microsoft.com/en-us/power-pages/configure/liquid/template-tags)
