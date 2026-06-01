@@ -379,6 +379,21 @@ export const TOOL_CATALOGUE = [
     renderer: 'power-automate-expression-formatter'
   },
   {
+    id: 'power-automate-email-template-builder',
+    title: 'Power Automate Email Template Builder',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Apply Outlook-friendly HTML email templates to plain text for Power Automate flows.',
+    renderer: 'power-automate-email-template-builder',
+    searchTerms: [
+      'Power Automate email',
+      'Outlook email template',
+      'HTML email body',
+      'flow email body',
+      'email template builder'
+    ]
+  },
+  {
     id: 'power-fx-snippet-formatter',
     title: 'Power Fx Snippet Formatter',
     category: 'Power Platform',

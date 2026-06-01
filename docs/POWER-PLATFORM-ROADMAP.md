@@ -52,6 +52,14 @@ Status: the implemented solution ZIP phases are consolidated in the visible Solu
 - Warn when unknown function names appear.
 - Status: implemented with unit and browser coverage.
 
+## Phase 3A: Power Automate Email Template Builder
+
+- Generate Outlook-friendly HTML email body fragments from plain text for Power Automate flows.
+- Provide operational notification, approval update, alert and digest templates.
+- Preserve pasted Power Automate dynamic tokens and highlight them only in the local preview.
+- Keep output static with table layout, inline CSS and no external runtime dependencies.
+- Status: implemented with unit and browser coverage.
+
 ## Phase 4: Power Fx Snippet Formatter
 
 - Format Power Fx formulas into readable, indented snippets.

@@ -15,6 +15,7 @@ The catalogue currently exposes these available tools in the app menu:
 - Power Platform CLI Command Builder
 - Solution Package Inspector
 - Power Automate Expression Formatter
+- Power Automate Email Template Builder
 - Power Fx Snippet Formatter
 - Model-driven JavaScript Workbench
 - Model-driven Solution Inspector
@@ -70,7 +71,7 @@ Tools that produce compatible JSON, XML, Mermaid, Markdown, text, CSV or Base64 
 
 Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
-The catalogue currently has 21 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
+The catalogue currently has 22 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -155,6 +156,8 @@ src/
     pdf-template-fields.ui.js
     dataverse-odata.js
     dataverse-odata.ui.js
+    power-automate-email-template.js
+    power-automate-email-template.ui.js
     power-automate-expression.js
     power-automate-expression.ui.js
     power-fx-formatter.js

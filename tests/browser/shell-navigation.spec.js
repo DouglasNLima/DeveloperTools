@@ -24,9 +24,9 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('.statusbar')).toContainText('Static local workspace');
   await expect(page.getByRole('status')).toHaveCount(0);
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
-  await expect(page.locator('#activeToolStatus')).toHaveText('21 tools');
+  await expect(page.locator('#activeToolStatus')).toHaveText('22 tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('[data-home-tool-id]')).toHaveCount(21);
+  await expect(page.locator('[data-home-tool-id]')).toHaveCount(22);
   await expect(page.locator('[data-home-tool-id="json-data-workbench"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="json-formatter"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="web-api-workbench"]')).toBeVisible();
@@ -49,6 +49,7 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('[data-home-tool-id="power-pages-web-api-snippets"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="solution-package-inspector"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="power-platform-solution-mermaid"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="power-automate-email-template-builder"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="model-driven-javascript-workbench"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="model-driven-javascript-reviewer"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="client-api-migration-helper"]')).toHaveCount(0);
@@ -342,6 +343,7 @@ test('finds Power Platform tools in the sidebar', async ({ page }) => {
   await expect(page.locator('[data-tool-id="power-platform-solution-mermaid"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="power-platform-solution-docs"]')).toHaveCount(0);
   await expect(page.locator('[data-tool-id="power-automate-expression-formatter"]')).toBeEnabled();
+  await expect(page.locator('[data-tool-id="power-automate-email-template-builder"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="power-fx-snippet-formatter"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="model-driven-javascript-workbench"]')).toBeEnabled();
   await expect(page.locator('[data-tool-id="model-driven-solution-inspector"]')).toBeEnabled();

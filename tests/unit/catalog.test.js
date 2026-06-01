@@ -73,9 +73,9 @@ test('validates the real catalogue and keeps the current visible tool count', ()
 
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
-  assert.equal(TOOL_CATALOGUE.length, 59);
-  assert.equal(getVisibleTools().length, 21);
-  assert.equal(getAvailableTools().length, 21);
+  assert.equal(TOOL_CATALOGUE.length, 60);
+  assert.equal(getVisibleTools().length, 22);
+  assert.equal(getAvailableTools().length, 22);
   assert.equal(getToolById('base64-to-file').hidden, true);
   assert.equal(getToolById('file-to-base64').hidden, true);
   assert.equal(getToolById('image-converter').hidden, true);

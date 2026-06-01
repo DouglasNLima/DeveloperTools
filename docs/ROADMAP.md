@@ -4,7 +4,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Current Catalogue Snapshot
 
-- The app menu currently exposes 21 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
+- The app menu currently exposes 22 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
 - There are currently no visible planned tools; planned roadmap previews remain supported for future entries.
 - The catalogue preserves 38 hidden legacy alias entries so older hash links continue to resolve to the current workbench and mode.
 - Renderer mappings, catalogue aliases and handover contracts are covered by unit tests, and user-visible navigation and handover flows are covered by Playwright tests.
@@ -77,6 +77,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Solution Package Inspector documentation mode for operational Markdown documentation from exported solution ZIP files.
 - Solution Package Inspector preflight mode for local solution ZIP review, dependency metadata and import command checklists.
 - Power Automate Expression Formatter for Workflow Definition Language expressions.
+- Power Automate Email Template Builder for Outlook-friendly HTML email bodies from plain text.
 - Power Fx Snippet Formatter for readable formula snippets and sharing warnings.
 - Model-driven JavaScript Workbench for local web resource review, Client API migration and model-driven app client scripting snippets.
 - Model-driven JavaScript Workbench review mode for pasted web resource risk reports.
@@ -85,7 +86,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Model-driven Solution Inspector for exported solution ZIP JavaScript event reports and web resource dependency maps.
 - Model-driven Solution Inspector events mode for JavaScript libraries, handlers and source findings.
 - Model-driven Solution Inspector dependencies mode for web resources, forms, handlers and HTML source references.
-- Status: Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, first wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation and model-driven JavaScript tools implemented.
+- Status: Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, first wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation, Power Automate email templates and model-driven JavaScript tools implemented.
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 
