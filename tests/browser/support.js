@@ -335,7 +335,9 @@ function classicWorkflowXaml(xClass, firstStep) {
   ].join('\n');
 }
 
-export function createModelDrivenJavascriptSolutionZip() {
+export function createModelDrivenJavascriptSolutionZip(options = {}) {
+  const labelGuid = '643ea8ee-9c35-4fd7-909c-facf7fb68428';
+  const webResourceDisplayName = options.guidLabels ? `Account script-${labelGuid}` : 'Account script';
   const files = [
     ['solution.xml', [
       '<ImportExportXml>',
@@ -353,7 +355,7 @@ export function createModelDrivenJavascriptSolutionZip() {
     ['customizations.xml', [
       '<ImportExportXml>',
       '  <WebResources>',
-      '    <WebResource Name="contoso_/account.js" DisplayName="Account script" WebResourceType="3" />',
+      `    <WebResource Name="contoso_/account.js" DisplayName="${webResourceDisplayName}" WebResourceType="3" />`,
       '  </WebResources>',
       '  <Entities>',
       '    <Entity>',
@@ -397,7 +399,13 @@ export function createModelDrivenJavascriptSolutionZip() {
   return createStoredZip(files);
 }
 
-export function createDependencySolutionZip() {
+export function createDependencySolutionZip(options = {}) {
+  const labelGuid = '643ea8ee-9c35-4fd7-909c-facf7fb68428';
+  const parentName = options.guidLabels ? `Parent account updater-${labelGuid}` : 'Parent account updater';
+  const childName = options.guidLabels ? `Child account notifier-${labelGuid}` : 'Child account notifier';
+  const ruleName = options.guidLabels ? `Account risk rule-${labelGuid}` : 'Account risk rule';
+  const actionName = options.guidLabels ? `contoso_DoAccountWork-${labelGuid}` : 'contoso_DoAccountWork';
+  const pluginName = options.guidLabels ? `Account post update-${labelGuid}` : 'Account post update';
   const files = [
     ['solution.xml', [
       '<ImportExportXml>',
@@ -415,22 +423,22 @@ export function createDependencySolutionZip() {
     ['customizations.xml', [
       '<ImportExportXml>',
       '  <Workflows>',
-      '    <Workflow WorkflowId="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" Name="Parent account updater" Category="5" />',
-      '    <Workflow WorkflowId="{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}" Name="Child account notifier" Category="5" />',
-      '    <Workflow WorkflowId="{cccccccc-cccc-cccc-cccc-cccccccccccc}" Name="Account risk rule" Category="2">',
+      `    <Workflow WorkflowId="{aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa}" Name="${parentName}" Category="5" />`,
+      `    <Workflow WorkflowId="{bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb}" Name="${childName}" Category="5" />`,
+      `    <Workflow WorkflowId="{cccccccc-cccc-cccc-cccc-cccccccccccc}" Name="${ruleName}" Category="2">`,
       '      <PrimaryEntity>account</PrimaryEntity>',
       '      <ClientData>{"conditions":[{"field":"name","name":"Name changed"}],"actions":[{"name":"Show risk field"}]}</ClientData>',
       '    </Workflow>',
-      '    <Workflow WorkflowId="{dddddddd-dddd-dddd-dddd-dddddddddddd}" Name="contoso_DoAccountWork" Category="3">',
+      `    <Workflow WorkflowId="{dddddddd-dddd-dddd-dddd-dddddddddddd}" Name="${actionName}" Category="3">`,
       '      <PrimaryEntity>account</PrimaryEntity>',
       '    </Workflow>',
       '  </Workflows>',
-      '  <SdkMessageProcessingStep SdkMessageProcessingStepId="{eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee}" Name="Account post update" MessageName="Update" PrimaryEntity="account" FilteringAttributes="name" Stage="40" Mode="0" />',
+      `  <SdkMessageProcessingStep SdkMessageProcessingStepId="{eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee}" Name="${pluginName}" MessageName="Update" PrimaryEntity="account" FilteringAttributes="name" Stage="40" Mode="0" />`,
       '</ImportExportXml>'
     ].join('\n')],
     ['Workflows/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa.json', JSON.stringify({
       properties: {
-        displayName: 'Parent account updater',
+        displayName: parentName,
         workflowEntityId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
         definition: {
           triggers: {
@@ -462,7 +470,7 @@ export function createDependencySolutionZip() {
               },
               inputs: {
                 host: {
-                  workflowReferenceName: 'Child account notifier'
+                  workflowReferenceName: childName
                 }
               }
             },
@@ -477,7 +485,7 @@ export function createDependencySolutionZip() {
                   operationId: 'PerformUnboundAction'
                 },
                 parameters: {
-                  actionName: 'contoso_DoAccountWork'
+                  actionName
                 }
               }
             }
@@ -487,7 +495,7 @@ export function createDependencySolutionZip() {
     }, null, 2)],
     ['Workflows/bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb.json', JSON.stringify({
       properties: {
-        displayName: 'Child account notifier',
+        displayName: childName,
         workflowEntityId: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
         definition: {
           triggers: {

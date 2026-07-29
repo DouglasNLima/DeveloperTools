@@ -1,6 +1,7 @@
 import { writeTextToClipboard } from './clipboard-feedback.js';
 import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import {
   IMAGE_OCR_FILE_ACCEPT,
   IMAGE_OCR_LANGUAGE,
@@ -120,6 +121,7 @@ export function renderImageOcr(container) {
   };
 
   let unbindDropZone = null;
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'Image' });
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -203,19 +205,23 @@ export function renderImageOcr(container) {
       outputName.value = '';
       updateSelectedSummary();
       renderEmptyPreview();
+      fileFeedback.clear();
       setStatus('Ready.', null);
       return;
     }
 
+    fileFeedback.selected(state.file);
     outputName.value = buildOcrOutputFileName(state.file.name);
     updateSelectedSummary();
     renderFilePreview(state.file);
 
     try {
       validateOcrImageFile(state.file);
+      fileFeedback.loaded(state.file, 'Loaded successfully · ready for OCR');
       setStatus(`${state.file.name || 'Image'} selected.`, null);
     } catch (error) {
       typeDetail.textContent = 'Unsupported';
+      fileFeedback.error(state.file, 'The selected image is not supported. Choose another file or review the error below.');
       setStatus(error.message || 'Choose a supported image file.', 'error');
     }
   }
@@ -363,6 +369,7 @@ export function renderImageOcr(container) {
     updateSelectedSummary();
     renderEmptyPreview();
     setBusy(false);
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
 

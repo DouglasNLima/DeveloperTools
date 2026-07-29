@@ -645,17 +645,33 @@ test('generates Mermaid diagrams from an exported Power Platform solution ZIP', 
   await page.setInputFiles('#solutionMermaidFileInput', {
     name: 'ops-toolkit.zip',
     mimeType: 'application/zip',
-    buffer: createDependencySolutionZip()
+    buffer: createDependencySolutionZip({ guidLabels: true })
   });
+  await expect(page.locator('#solutionMermaidDropZone .drop-zone-label span')).toHaveText('ops-toolkit.zip');
+  await expect(page.locator('#solutionMermaidDropZone .drop-zone-label small')).toContainText('ZIP selected');
   await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
 
   await expect(page.getByRole('status')).toContainText('Power Platform solution analysed successfully.');
+  await expect(page.locator('#solutionMermaidDropZone .drop-zone-label small')).toContainText('Loaded successfully · 5 components found');
+  await expect(page.locator('#solutionMermaidPreview svg')).toBeVisible();
+  const solutionZoom = page.locator('#solutionMermaidPreview [data-mermaid-zoom-level]');
+  const initialSolutionZoom = await solutionZoom.textContent();
+  await page.locator('#solutionMermaidPreview [data-mermaid-zoom-out]').click();
+  await expect(solutionZoom).not.toHaveText(initialSolutionZoom);
+  const solutionViewport = page.locator('#solutionMermaidPreview [data-mermaid-viewport]');
+  const solutionCanvas = page.locator('#solutionMermaidPreview [data-mermaid-canvas]');
+  const initialSolutionTransform = await solutionCanvas.getAttribute('style');
+  await solutionViewport.focus();
+  await solutionViewport.press('ArrowRight');
+  await expect(solutionCanvas).not.toHaveAttribute('style', initialSolutionTransform);
   await expect(page.locator('#solutionMermaidNameDetail')).toHaveText('Operations Toolkit');
   await expect(page.locator('#solutionMermaidVersionDetail')).toHaveText('1.2.3.4');
   await expect(page.locator('#solutionMermaidComponentsDetail')).toHaveText('5');
   await expect(page.locator('#solutionMermaidComponentList')).toContainText('Parent account updater');
+  await expect(page.locator('#solutionMermaidComponentList')).not.toContainText('643ea8ee-9c35-4fd7-909c-facf7fb68428');
   await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR/);
+  await expect(page.locator('#solutionMermaidOutput')).not.toHaveValue(/643ea8ee-9c35-4fd7-909c-facf7fb68428/i);
   await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Parent account updater/);
   await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/calls child flow/);
   await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/Account post update/);
@@ -707,10 +723,12 @@ test('generates Markdown documentation from an exported Power Platform solution 
     mimeType: 'application/zip',
     buffer: createSolutionZip()
   });
+  await expect(page.locator('#solutionDocsDropZone .drop-zone-label small')).toContainText('ZIP selected');
   await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
 
   await expect(page.getByRole('status')).toContainText('Power Platform solution documentation generated successfully.');
+  await expect(page.locator('#solutionDocsDropZone .drop-zone-label small')).toContainText('Loaded successfully');
   await expect(page.locator('#solutionDocsNameDetail')).toHaveText('Operations Toolkit');
   await expect(page.locator('#solutionDocsVersionDetail')).toHaveText('1.2.3.4');
   await expect(page.locator('#solutionDocsProcessesDetail')).toHaveText('2');
@@ -761,6 +779,7 @@ test('generates an import preflight report from an exported Power Platform solut
     mimeType: 'application/zip',
     buffer: createImportPreflightSolutionZip()
   });
+  await expect(page.locator('#solutionImportDropZone .drop-zone-label small')).toContainText('ZIP selected');
   await expect(page.getByRole('status')).toContainText('ops-toolkit.zip selected.');
   await page.getByLabel('Suggested ZIP path').fill('dist/ops toolkit.zip');
   await page.getByLabel('Target environment note').fill('Test environment before production');
@@ -769,6 +788,7 @@ test('generates an import preflight report from an exported Power Platform solut
   await page.getByRole('button', { name: 'Analyse solution', exact: true }).click();
 
   await expect(page.getByRole('status')).toContainText('Power Platform solution import preflight generated successfully.');
+  await expect(page.locator('#solutionImportDropZone .drop-zone-label small')).toContainText('Loaded successfully');
   await expect(page.locator('#solutionImportNameDetail')).toHaveText('Operations Toolkit');
   await expect(page.locator('#solutionImportPackageDetail')).toHaveText('Unmanaged');
   await expect(page.locator('#solutionImportComponentsDetail')).toHaveText('4');
@@ -985,10 +1005,12 @@ test('inspects solution JavaScript events and maps web resource dependencies', a
   await page.setInputFiles('#solutionJavascriptEventsFileInput', {
     name: 'model-driven.zip',
     mimeType: 'application/zip',
-    buffer: createModelDrivenJavascriptSolutionZip()
+    buffer: createModelDrivenJavascriptSolutionZip({ guidLabels: true })
   });
+  await expect(page.locator('#solutionJavascriptEventsDropZone .drop-zone-label small')).toContainText('ZIP selected');
   await page.getByRole('button', { name: 'Analyse JavaScript events' }).click();
 
+  await expect(page.locator('#solutionJavascriptEventsDropZone .drop-zone-label small')).toContainText('Loaded successfully');
   await expect(page.locator('#solutionJavascriptEventsWebresourcesDetail')).toHaveText('1');
   await expect(page.locator('#solutionJavascriptEventsLibrariesDetail')).toHaveText('1');
   await expect(page.locator('#solutionJavascriptEventsHandlersDetail')).toHaveText('2');
@@ -998,6 +1020,7 @@ test('inspects solution JavaScript events and maps web resource dependencies', a
   await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Library inventory/);
   await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Per-library review findings/);
   await expect(page.locator('#solutionJavascriptEventsOutput')).toHaveValue(/Contoso.Account.onLoad/);
+  await expect(page.locator('#solutionJavascriptEventsOutput')).not.toHaveValue(/643ea8ee-9c35-4fd7-909c-facf7fb68428/i);
 
   await page.goto('/#web-resource-dependency-mapper');
   await expect(page).toHaveURL(/#model-driven-solution-inspector\/dependencies$/);
@@ -1006,14 +1029,22 @@ test('inspects solution JavaScript events and maps web resource dependencies', a
   await page.setInputFiles('#webResourceDependencyFileInput', {
     name: 'model-driven.zip',
     mimeType: 'application/zip',
-    buffer: createModelDrivenJavascriptSolutionZip()
+    buffer: createModelDrivenJavascriptSolutionZip({ guidLabels: true })
   });
+  await expect(page.locator('#webResourceDependencyDropZone .drop-zone-label small')).toContainText('ZIP selected');
   await page.getByRole('button', { name: 'Build dependency map' }).click();
 
+  await expect(page.locator('#webResourceDependencyDropZone .drop-zone-label small')).toContainText('Loaded successfully');
   await expect(page.locator('#webResourceDependencyMapOutput')).toHaveValue(/Web resource dependency map/);
   await expect(page.locator('#webResourceDependencyMapOutput')).toHaveValue(/Source file references/);
   await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/flowchart LR/);
   await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/HTML script/);
-  await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/contoso_\/account\.js/);
+  await expect(page.locator('#webResourceDependencyMermaidOutput')).toHaveValue(/Account script/);
+  await expect(page.locator('#webResourceDependencyMermaidOutput')).not.toHaveValue(/643ea8ee-9c35-4fd7-909c-facf7fb68428/i);
+  await expect(page.locator('#webResourceDependencyMermaidPreview svg')).toBeVisible();
+  const dependencyZoom = page.locator('#webResourceDependencyMermaidPreview [data-mermaid-zoom-level]');
+  const initialDependencyZoom = await dependencyZoom.textContent();
+  await page.locator('#webResourceDependencyMermaidPreview [data-mermaid-zoom-in]').click();
+  await expect(dependencyZoom).not.toHaveText(initialDependencyZoom);
   await expect(page.locator('#toolHandover')).toContainText('Mermaid diagram: Preview and export');
 });

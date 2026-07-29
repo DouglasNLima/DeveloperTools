@@ -1,5 +1,6 @@
 import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import { formatValuePreview } from './json-diff.js';
 import { bindMermaidViewer } from './mermaid-viewer.ui.js';
 import {
@@ -184,8 +185,6 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   const fileInput = container.querySelector('#flowPackageFileInput');
   const dropZone = container.querySelector('#flowPackageDropZone');
-  const dropTitle = container.querySelector('#flowPackageDropTitle');
-  const dropHint = container.querySelector('#flowPackageDropHint');
   const analyseButton = container.querySelector('#analyseFlowPackageButton');
   const clearButton = container.querySelector('#clearFlowPackageButton');
   const search = container.querySelector('#flowPackageSearch');
@@ -240,6 +239,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
   const objectUrls = new Set();
   const originalJsonHighlight = bindSyntaxHighlight(originalJson, { language: 'json' });
   const updatedJsonHighlight = bindSyntaxHighlight(updatedJson, { language: 'json' });
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'ZIP' });
   const mermaidViewer = bindMermaidViewer(mermaidPreview, {
     label: 'Flow diagram',
     emptyMessage: 'Choose which flow version to render.',
@@ -254,31 +254,8 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   function setFile(file) {
     currentFile = file;
-    updateDropZone();
+    file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(file ? `${file.name} selected.` : 'Ready.', null);
-  }
-
-  function updateDropZone(state = currentFile ? 'selected' : 'empty') {
-    dropZone.classList.toggle('has-file', Boolean(currentFile));
-    dropZone.classList.toggle('is-loaded', state === 'loaded');
-    dropZone.classList.toggle('has-error', state === 'error');
-
-    if (!currentFile) {
-      dropTitle.textContent = 'Drop an exported solution ZIP here or browse';
-      dropHint.textContent = 'Solution files and flow JSON stay in this browser.';
-      return;
-    }
-
-    dropTitle.textContent = currentFile.name;
-
-    if (state === 'loaded') {
-      const count = currentArchive?.flows.length || 0;
-      dropHint.textContent = `Loaded successfully · ${count.toLocaleString('en-GB')} cloud flow${count === 1 ? '' : 's'} found`;
-    } else if (state === 'error') {
-      dropHint.textContent = 'The selected ZIP could not be inspected. Choose another file or review the error below.';
-    } else {
-      dropHint.textContent = `ZIP selected · ${formatFileSize(currentFile.size)} · ready to inspect`;
-    }
   }
 
   function getSelectedFlow() {
@@ -311,7 +288,8 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       currentReview = null;
       targetVersion.value = currentArchive.suggestedVersion;
       renderArchive();
-      updateDropZone('loaded');
+      const count = currentArchive.flows.length;
+      fileFeedback.loaded(currentFile, `Loaded successfully · ${count.toLocaleString('en-GB')} cloud flow${count === 1 ? '' : 's'} found`);
 
       if (currentArchive.readOnly) {
         setStatus('Managed solution inspected in read-only mode.', 'warning');
@@ -324,7 +302,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       currentArchive = null;
       selectedFlowPath = '';
       clearArchiveOutput();
-      updateDropZone('error');
+      fileFeedback.error(currentFile, 'The selected ZIP could not be inspected. Choose another file or review the error below.');
       setStatus(error.message || 'Unable to inspect this solution export.', 'error');
     } finally {
       analyseButton.disabled = false;
@@ -819,7 +797,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
     fileInput.value = '';
     search.value = '';
     clearArchiveOutput();
-    updateDropZone('empty');
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
   search.addEventListener('input', () => {
@@ -907,23 +885,4 @@ function buildFlowDiagramName(path, useUpdated) {
 function capitalise(value) {
   const text = String(value || '');
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
-}
-
-function formatFileSize(value) {
-  const bytes = Math.max(0, Number(value) || 0);
-
-  if (bytes < 1024) {
-    return `${bytes.toLocaleString('en-GB')} B`;
-  }
-
-  const units = ['KB', 'MB', 'GB'];
-  let size = bytes / 1024;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${size.toLocaleString('en-GB', { maximumFractionDigits: 1 })} ${units[unitIndex]}`;
 }

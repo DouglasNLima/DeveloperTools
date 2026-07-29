@@ -7,6 +7,7 @@ import {
   normaliseTextFileName
 } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import { openFilePreviewModal } from './file-preview-modal.js';
 
 export function renderBase64ToFile(container) {
@@ -257,6 +258,7 @@ export function renderFileToBase64(container) {
   let currentFileResult = null;
   let unbindDropZone = null;
   let closePreviewDialog = null;
+  const fileFeedback = bindFileImportFeedback(dropZone);
 
   function closeOpenPreviewDialog() {
     closePreviewDialog?.();
@@ -366,6 +368,8 @@ export function renderFileToBase64(container) {
       return;
     }
 
+    fileFeedback.selected(file);
+    fileFeedback.loading(file);
     setStatus('Reading file...', null);
     currentFileResult = null;
     resetPreviewButton();
@@ -398,8 +402,10 @@ export function renderFileToBase64(container) {
       previewSourceFileButton.hidden = false;
       previewSourceFileButton.disabled = false;
       previewSourceFileButton.title = `Preview ${file.name}`;
+      fileFeedback.loaded(file, 'Loaded successfully · converted to Base64');
       setStatus('File converted to Base64 successfully.', 'success');
     } catch (error) {
+      fileFeedback.error(file, 'The selected file could not be read. Choose another file or review the error below.');
       setStatus(error.message || 'Unable to read the selected file.', 'error');
     }
   }
@@ -465,6 +471,7 @@ export function renderFileToBase64(container) {
     copyBase64Button.disabled = true;
     revokeBase64TextUrl();
     resetFileToolDetails();
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
 

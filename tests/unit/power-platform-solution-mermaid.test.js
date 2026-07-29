@@ -119,6 +119,7 @@ test('removes exported GUID noise from cloud flow names and step labels', () => 
   assert.match(component.mermaid, /Cloud flow: QA sample simulator/);
   assert.match(component.mermaid, /Initialise status - InitializeVariable/);
   assert.doesNotMatch(component.mermaid, new RegExp(guid, 'i'));
+  assert.doesNotMatch(component.mermaid, new RegExp(guid.replaceAll('-', '_'), 'i'));
 });
 
 test('parses plug-in step metadata and avoids unrelated update attribute links', () => {

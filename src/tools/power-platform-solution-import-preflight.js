@@ -5,6 +5,7 @@ import {
   readPowerPlatformSolutionArchive
 } from './power-platform-solution.js';
 import { normalisePath, quoteCliArgument } from './power-platform-cli.js';
+import { formatPowerPlatformDisplayName } from './power-platform-display.js';
 
 export const MAX_IMPORT_PREFLIGHT_COMPONENTS = 160;
 
@@ -157,7 +158,7 @@ export function buildSolutionImportPreflightMarkdown({
     components.forEach(component => {
       lines.push([
         component.typeLabel,
-        component.name,
+        component.displayName || component.name,
         component.id || '-',
         formatRootComponentBehaviour(component.behaviour),
         component.sourcePath
@@ -183,7 +184,7 @@ export function buildSolutionImportPreflightMarkdown({
     processComponents.forEach(component => {
       lines.push([
         component.typeLabel,
-        component.name,
+        component.displayName || component.name,
         component.primaryEntity || '-',
         component.state || '-',
         component.sourcePath
@@ -318,11 +319,17 @@ export function parseRootComponents(solutionXml = '') {
         || attrs.id
         || `Root component ${index + 1}`;
 
+      const decodedName = decodeXmlEntities(name);
+      const displayName = formatPowerPlatformDisplayName(
+        decodeXmlEntities(attrs.displayname || attrs.name || decodedName),
+        getSolutionComponentTypeLabel(type)
+      );
+
       return {
         id: normaliseGuid(attrs.id || attrs.componentid || attrs.objectid || ''),
-        name: decodeXmlEntities(name),
+        name: decodedName,
         schemaName: decodeXmlEntities(attrs.schemaname || attrs.schemaName || ''),
-        displayName: decodeXmlEntities(attrs.displayname || attrs.name || ''),
+        displayName,
         type,
         typeLabel: getSolutionComponentTypeLabel(type),
         behaviour: attrs.behaviour || attrs.behavior || '',
@@ -332,7 +339,7 @@ export function parseRootComponents(solutionXml = '') {
     })
     .sort((left, right) => (
       left.typeLabel.localeCompare(right.typeLabel, 'en-GB')
-      || left.name.localeCompare(right.name, 'en-GB')
+      || left.displayName.localeCompare(right.displayName, 'en-GB')
     ));
 }
 
@@ -383,9 +390,15 @@ function parseDependencyEndpoint(content, tagName, parentAttrs, prefix) {
     || attrs.componentid
     || '';
 
+  const decodedName = decodeXmlEntities(name);
+
   return {
     id: normaliseGuid(attrs.id || attrs.componentid || ''),
-    name: decodeXmlEntities(name),
+    name: decodedName,
+    displayName: formatPowerPlatformDisplayName(
+      decodeXmlEntities(attrs.displayname || attrs.name || decodedName),
+      getSolutionComponentTypeLabel(type)
+    ),
     type,
     typeLabel: getSolutionComponentTypeLabel(type),
     solution: decodeXmlEntities(attrs.solution || attrs.solutionname || attrs.solutionName || '')
@@ -498,7 +511,9 @@ function formatDependencyComponent(component) {
     return '-';
   }
 
-  const label = component.name || component.id || 'Unnamed component';
+  const label = component.displayName
+    || formatPowerPlatformDisplayName(component.name, component.typeLabel || 'Unnamed component')
+    || 'Unnamed component';
   const type = component.typeLabel || getSolutionComponentTypeLabel(component.type);
   const solution = component.solution ? ` from ${component.solution}` : '';
 

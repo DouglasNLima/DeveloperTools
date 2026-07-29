@@ -5,6 +5,7 @@ import {
   buildHashOutputFileName
 } from './hash-checksums.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 
 export function renderHashChecksums(container) {
   container.innerHTML = `
@@ -123,6 +124,7 @@ export function renderHashChecksums(container) {
   let selectedFile = null;
   let currentObjectUrl = null;
   let unbindDropZone = null;
+  const fileFeedback = bindFileImportFeedback(filePanel);
 
   function revokeObjectUrl() {
     if (currentObjectUrl) {
@@ -211,9 +213,15 @@ export function renderHashChecksums(container) {
       const durationMs = performance.now() - startedAt;
 
       setOutput(result, durationMs);
+      if (inputType.value === 'file' && selectedFile) {
+        fileFeedback.loaded(selectedFile, 'Loaded successfully · hash generated');
+      }
       setStatus(buildSuccessMessage('Hash generated successfully.', result), result.match.status === 'mismatch' ? 'error' : 'success');
     } catch (error) {
       resetOutput();
+      if (inputType.value === 'file' && selectedFile) {
+        fileFeedback.error(selectedFile, 'The selected file could not be hashed. Choose another file or review the error below.');
+      }
       setStatus(error.message || 'Unable to generate this hash.', 'error');
     }
   }
@@ -240,13 +248,17 @@ export function renderHashChecksums(container) {
     resetOutput();
 
     if (selectedFile) {
+      fileFeedback.selected(selectedFile);
       setStatus(`Selected ${selectedFile.name}.`, null);
+    } else {
+      fileFeedback.clear();
     }
   }
 
   inputType.addEventListener('change', () => {
     updateInputMode();
     resetOutput();
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
 

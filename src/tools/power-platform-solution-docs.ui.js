@@ -1,5 +1,6 @@
 import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import {
   buildSolutionDocumentationFileName,
   processPowerPlatformSolutionDocumentationArchive
@@ -88,6 +89,7 @@ export function renderPowerPlatformSolutionDocs(container) {
   let currentFile = null;
   let currentResult = null;
   let objectUrl = '';
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'ZIP' });
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -96,6 +98,7 @@ export function renderPowerPlatformSolutionDocs(container) {
 
   function setFile(file) {
     currentFile = file;
+    file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(file ? `${file.name} selected.` : 'Ready.', null);
   }
 
@@ -106,15 +109,18 @@ export function renderPowerPlatformSolutionDocs(container) {
     }
 
     analyseButton.disabled = true;
+    fileFeedback.loading(currentFile, 'ZIP selected · generating documentation locally');
     setStatus('Analysing solution export locally...', null);
 
     try {
       currentResult = await processPowerPlatformSolutionDocumentationArchive(currentFile);
       renderResult();
+      fileFeedback.loaded(currentFile, 'Loaded successfully · solution documentation generated');
       setStatus('Power Platform solution documentation generated successfully.', 'success');
     } catch (error) {
       currentResult = null;
       clearOutputs();
+      fileFeedback.error(currentFile, 'The selected ZIP could not be analysed. Choose another file or review the error below.');
       setStatus(error.message || 'Unable to analyse this solution export.', 'error');
     } finally {
       analyseButton.disabled = false;
@@ -222,6 +228,7 @@ export function renderPowerPlatformSolutionDocs(container) {
     fileInput.value = '';
     analyseButton.disabled = false;
     clearOutputs();
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
 

@@ -35,7 +35,15 @@ export async function readPowerPlatformSolutionArchive(input, options = {}) {
     ...parsePluginStepMetadata(textFiles.customizationsXml)
   ], textFiles.workflowXamlFiles);
   const jsonFlowComponents = parseWorkflowJsonFiles(textFiles.workflowJsonFiles);
-  const components = mergeWorkflowComponents(metadataComponents, jsonFlowComponents);
+  const components = mergeWorkflowComponents(metadataComponents, jsonFlowComponents)
+    .map(component => ({
+      ...component,
+      displayName: formatPowerPlatformDisplayName(component.name, component.typeLabel || 'Power Platform component')
+    }))
+    .sort((left, right) => (
+      left.typeLabel.localeCompare(right.typeLabel, 'en-GB')
+      || left.displayName.localeCompare(right.displayName, 'en-GB')
+    ));
   const environmentVariables = parseEnvironmentVariables(textFiles.customizationsXml);
   const connectionReferences = parseConnectionReferences(textFiles.customizationsXml);
   const warnings = [
@@ -341,7 +349,8 @@ export function calculateCrc32(input) {
 
 export function parseSolutionMetadata(solutionXml = '') {
   const uniqueName = readXmlText(solutionXml, 'UniqueName') || readXmlText(solutionXml, 'uniquename');
-  const displayName = readFirstXmlAttribute(solutionXml, 'LocalizedName', 'description') || uniqueName || 'Power Platform solution';
+  const rawDisplayName = readFirstXmlAttribute(solutionXml, 'LocalizedName', 'description') || uniqueName || 'Power Platform solution';
+  const displayName = formatPowerPlatformDisplayName(rawDisplayName, 'Power Platform solution');
   const version = readXmlText(solutionXml, 'Version') || readXmlText(solutionXml, 'version') || 'Unknown';
   const managed = readXmlText(solutionXml, 'Managed') || readXmlText(solutionXml, 'managed');
   const publisher = readXmlText(solutionXml, 'PublisherUniqueName') || readXmlText(solutionXml, 'publisheruniquename');
@@ -664,7 +673,10 @@ export function parseEnvironmentVariables(customizationsXml = '') {
       return {
         id: normaliseGuid(attrs.environmentvariabledefinitionid || attrs.id || schemaName),
         schemaName: decodeXmlEntities(schemaName),
-        displayName: decodeXmlEntities(displayName),
+        displayName: formatPowerPlatformDisplayName(
+          decodeXmlEntities(displayName),
+          decodeXmlEntities(schemaName) || 'Environment variable'
+        ),
         type: normaliseEnvironmentVariableType(type),
         defaultValue: decodeXmlEntities(defaultValue),
         currentValue: decodeXmlEntities(currentValue),
@@ -699,7 +711,10 @@ export function parseConnectionReferences(customizationsXml = '') {
       return {
         id: normaliseGuid(attrs.connectionreferenceid || attrs.id || logicalName),
         logicalName: decodeXmlEntities(logicalName),
-        displayName: decodeXmlEntities(displayName),
+        displayName: formatPowerPlatformDisplayName(
+          decodeXmlEntities(displayName),
+          decodeXmlEntities(logicalName) || 'Connection reference'
+        ),
         connectorId: decodeXmlEntities(connectorId),
         connectorName: formatConnectorName(connectorId),
         sourcePath: 'customizations.xml'

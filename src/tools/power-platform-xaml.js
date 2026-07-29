@@ -671,7 +671,7 @@ function formatTriggerSummary(triggers = {}) {
 }
 
 function escapeMermaidLabel(value) {
-  return String(value ?? '')
+  return formatPowerPlatformDisplayName(value, 'Step')
     .replace(/&/g, '&amp;')
     .replace(/"/g, '&quot;')
     .replace(/\r?\n/g, ' ')
@@ -679,7 +679,9 @@ function escapeMermaidLabel(value) {
 }
 
 function escapeMermaidEdge(value) {
-  return String(value ?? '').replace(/[|<>{}[\]\r\n]/g, ' ').trim();
+  return formatPowerPlatformDisplayName(value)
+    .replace(/[|<>{}[\]\r\n]/g, ' ')
+    .trim();
 }
 
 function xmlError(message, index) {

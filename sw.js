@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v44';
+const CACHE_NAME = 'developer-tools-static-v45';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -32,6 +32,7 @@ const PRECACHE_URLS = [
   './src/tools/dataverse-odata.ui.js',
   './src/tools/hash-checksums.js',
   './src/tools/hash-checksums.ui.js',
+  './src/tools/file-import-feedback.js',
   './src/tools/file-drop-zone.js',
   './src/tools/file-preview-modal.js',
   './src/tools/html-cleaner.js',

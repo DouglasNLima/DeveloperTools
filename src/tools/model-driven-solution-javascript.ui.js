@@ -1,5 +1,7 @@
 import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
+import { bindMermaidViewer } from './mermaid-viewer.ui.js';
 import {
   buildSolutionJavaScriptEventsFileName,
   buildWebResourceDependencyFileName,
@@ -45,6 +47,7 @@ export function renderWebResourceDependencyMapper(container) {
         <div class="field-stack">
           <label for="webResourceDependencyMermaidOutput">Mermaid diagram</label>
           <textarea id="webResourceDependencyMermaidOutput" spellcheck="false" readonly placeholder="The Mermaid dependency diagram will appear here."></textarea>
+          <div id="webResourceDependencyMermaidPreview" aria-live="polite"></div>
         </div>
       </div>
       ${buildDetails('webResourceDependency')}
@@ -76,9 +79,11 @@ function bindSolutionArchiveTool(container, options) {
   const details = collectDetails(container);
   let currentFile = null;
   let objectUrl = '';
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'ZIP' });
 
   function setFile(file) {
     currentFile = file;
+    file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(status, file ? `${file.name} selected.` : 'Ready.', null);
   }
 
@@ -89,6 +94,7 @@ function bindSolutionArchiveTool(container, options) {
     }
 
     analyseButton.disabled = true;
+    fileFeedback.loading(currentFile, 'ZIP selected · analysing locally');
     setStatus(status, 'Analysing solution export locally...', null);
 
     try {
@@ -97,6 +103,7 @@ function bindSolutionArchiveTool(container, options) {
       copyButton.disabled = false;
       objectUrl = setDownload(downloadButton, objectUrl, options.fileName(result), output.value, 'text/markdown;charset=utf-8');
       setDetails(details, result);
+      fileFeedback.loaded(currentFile, 'Loaded successfully · solution report generated');
       setStatus(status, options.success, 'success');
       dispatchOutputChange(output);
     } catch (error) {
@@ -104,6 +111,7 @@ function bindSolutionArchiveTool(container, options) {
       copyButton.disabled = true;
       objectUrl = clearDownload(downloadButton, objectUrl);
       resetDetails(details);
+      fileFeedback.error(currentFile, 'The selected ZIP could not be analysed. Choose another file or review the error below.');
       setStatus(status, error.message || 'Unable to analyse this solution export.', 'error');
       dispatchOutputChange(output);
     } finally {
@@ -130,6 +138,7 @@ function bindSolutionArchiveTool(container, options) {
     copyButton.disabled = true;
     objectUrl = clearDownload(downloadButton, objectUrl);
     resetDetails(details);
+    fileFeedback.clear();
     setStatus(status, 'Ready.', null);
     dispatchOutputChange(output);
   });
@@ -151,14 +160,22 @@ function bindDependencyTool(container) {
   const downloadMermaidButton = container.querySelector('#downloadWebResourceDependencyMermaidButton');
   const output = container.querySelector('#webResourceDependencyMapOutput');
   const mermaidOutput = container.querySelector('#webResourceDependencyMermaidOutput');
+  const mermaidPreview = container.querySelector('#webResourceDependencyMermaidPreview');
   const status = container.querySelector('#webResourceDependencyStatus');
   const details = collectDetails(container);
   let currentFile = null;
   let markdownUrl = '';
   let mermaidUrl = '';
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'ZIP' });
+  const mermaidViewer = bindMermaidViewer(mermaidPreview, {
+    label: 'Web resource dependency diagram',
+    emptyMessage: 'Analyse a solution to render its web resource dependency diagram.',
+    setStatus: (message, type) => setStatus(status, message, type)
+  });
 
   function setFile(file) {
     currentFile = file;
+    file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(status, file ? `${file.name} selected.` : 'Ready.', null);
   }
 
@@ -169,6 +186,8 @@ function bindDependencyTool(container) {
     }
 
     analyseButton.disabled = true;
+    fileFeedback.loading(currentFile, 'ZIP selected · building dependency map locally');
+    mermaidViewer.setLoading('Rendering web resource dependencies...');
     setStatus(status, 'Building dependency map locally...', null);
 
     try {
@@ -180,11 +199,16 @@ function bindDependencyTool(container) {
       markdownUrl = setDownload(downloadButton, markdownUrl, buildWebResourceDependencyFileName(result.solution.name), result.markdown, 'text/markdown;charset=utf-8');
       mermaidUrl = setDownload(downloadMermaidButton, mermaidUrl, buildWebResourceDependencyFileName(result.solution.name, 'mmd'), result.mermaid, 'text/plain;charset=utf-8');
       setDetails(details, result);
+      await mermaidViewer.render(result.mermaid, {
+        fileName: buildWebResourceDependencyFileName(result.solution.name, 'mmd').replace(/\.mmd$/i, '')
+      });
+      fileFeedback.loaded(currentFile, 'Loaded successfully · dependency map generated');
       setStatus(status, 'Web resource dependency map built successfully.', 'success');
       dispatchOutputChange(output);
       dispatchOutputChange(mermaidOutput);
     } catch (error) {
       clearOutputs();
+      fileFeedback.error(currentFile, 'The selected ZIP could not be analysed. Choose another file or review the error below.');
       setStatus(status, error.message || 'Unable to build this dependency map.', 'error');
     } finally {
       analyseButton.disabled = false;
@@ -199,6 +223,7 @@ function bindDependencyTool(container) {
     markdownUrl = clearDownload(downloadButton, markdownUrl);
     mermaidUrl = clearDownload(downloadMermaidButton, mermaidUrl);
     resetDetails(details);
+    mermaidViewer.clear();
     dispatchOutputChange(output);
     dispatchOutputChange(mermaidOutput);
   }
@@ -220,11 +245,13 @@ function bindDependencyTool(container) {
     currentFile = null;
     fileInput.value = '';
     clearOutputs();
+    fileFeedback.clear();
     setStatus(status, 'Ready.', null);
   });
 
   return () => {
     unbindDropZone();
+    mermaidViewer.destroy();
     clearDownload(downloadButton, markdownUrl);
     clearDownload(downloadMermaidButton, mermaidUrl);
   };

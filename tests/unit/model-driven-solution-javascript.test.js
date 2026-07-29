@@ -53,9 +53,29 @@ test('builds web resource dependency Markdown and Mermaid outputs', async () => 
   assert.match(result.mermaid, /flowchart LR/);
   assert.match(result.mermaid, /Contoso.Account.onLoad/);
   assert.match(result.mermaid, /HTML script/);
-  assert.match(result.mermaid, /contoso_\/account\.js/);
+  assert.match(result.mermaid, /Account script/);
   assert.equal(result.summary.handlerCount, 2);
   assert.equal(result.summary.sourceReferenceCount, 2);
+});
+
+test('uses web resource display names and removes GUIDs from dependency diagrams', () => {
+  const guid = '643ea8ee-9c35-4fd7-909c-facf7fb68428';
+  const result = buildWebResourceDependencyMap({
+    solution: { name: `Operations Toolkit-${guid}` },
+    webResources: [{
+      name: `contoso_/account-${guid}.js`,
+      displayName: `Account script-${guid}`
+    }],
+    libraries: [],
+    formHandlers: [],
+    webResourceSources: [],
+    sourceDependencyMap: { references: [] },
+    warnings: []
+  });
+
+  assert.match(result.mermaid, /Operations Toolkit/);
+  assert.match(result.mermaid, /Account script/);
+  assert.doesNotMatch(result.mermaid, new RegExp(guid, 'i'));
 });
 
 test('parses web resource source files and source references', () => {
