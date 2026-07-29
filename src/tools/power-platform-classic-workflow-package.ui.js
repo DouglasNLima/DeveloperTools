@@ -1,6 +1,6 @@
 import { bindFileDropZone } from './file-drop-zone.js';
 import { formatValuePreview } from './json-diff.js';
-import { renderMermaidToSvg } from './mermaid-runtime.js';
+import { bindMermaidViewer } from './mermaid-viewer.ui.js';
 import {
   buildClassicWorkflowDiagram,
   buildUpdatedClassicWorkflowPackage,
@@ -9,6 +9,8 @@ import {
   isValidSolutionVersion,
   validateClassicWorkflowReplacement
 } from './power-platform-classic-workflow-package.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
+import { publishHandoverValue } from './tool-handover.js';
 
 const MAX_RENDERED_CHANGES = 200;
 
@@ -124,9 +126,8 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
               <button id="showOriginalClassicWorkflowDiagramButton" class="secondary" type="button" disabled>Show original diagram</button>
               <button id="showUpdatedClassicWorkflowDiagramButton" class="secondary" type="button" disabled>Show updated diagram</button>
             </div>
-            <div id="classicWorkflowMermaidPreview" class="mermaid-preview" aria-live="polite">
-              <p class="empty-state">Choose which workflow version to render.</p>
-            </div>
+            <div id="classicWorkflowMermaidPreview" aria-live="polite"></div>
+            <output id="classicWorkflowMermaidHandoverOutput" hidden></output>
           </details>
         </section>
       </div>
@@ -189,6 +190,7 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
   const originalDiagramButton = get('#showOriginalClassicWorkflowDiagramButton');
   const updatedDiagramButton = get('#showUpdatedClassicWorkflowDiagramButton');
   const mermaidPreview = get('#classicWorkflowMermaidPreview');
+  const mermaidHandoverOutput = get('#classicWorkflowMermaidHandoverOutput');
   const targetVersion = get('#classicWorkflowTargetVersion');
   const readiness = get('#classicWorkflowReadinessDetail');
   const riskAcknowledgement = get('#classicWorkflowRiskAcknowledgement');
@@ -226,6 +228,14 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
   const reviews = new Map();
   const staged = new Map();
   const objectUrls = new Set();
+  const originalXamlHighlight = bindSyntaxHighlight(originalXaml, { language: 'xml' });
+  const updatedXamlHighlight = bindSyntaxHighlight(updatedXaml, { language: 'xml' });
+  const mermaidViewer = bindMermaidViewer(mermaidPreview, {
+    label: 'Classic workflow diagram',
+    emptyMessage: 'Choose which workflow version to render.',
+    onSourceChange: value => publishHandoverValue(mermaidHandoverOutput, value),
+    setStatus
+  });
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -359,6 +369,7 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
       selectedState.textContent = 'Original';
       originalXaml.value = '';
       updatedXaml.value = '';
+      publishHandoverValue(originalXaml, '');
       renderWorkflowMetadata(null);
       setEditorAvailability(null);
       renderReview(null);
@@ -371,6 +382,7 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
     selectedState.textContent = readWorkflowState(workflow.path);
     originalXaml.value = workflow.originalText;
     updatedXaml.value = drafts.get(workflow.path) ?? staged.get(workflow.path)?.validation.updatedText ?? '';
+    publishHandoverValue(originalXaml, originalXaml.value);
     renderWorkflowMetadata(workflow);
     setEditorAvailability(workflow);
     setXamlDownloads(workflow);
@@ -715,12 +727,17 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
       return;
     }
 
-    mermaidPreview.innerHTML = '<p class="empty-state">Rendering workflow diagram...</p>';
+    mermaidViewer.setLoading('Rendering workflow diagram...');
 
     try {
-      const rendered = await renderMermaidToSvg(diagram.mermaid);
-      mermaidPreview.innerHTML = rendered.svg;
-      rendered.bindFunctions?.(mermaidPreview);
+      const rendered = await mermaidViewer.render(diagram.mermaid, {
+        fileName: buildClassicWorkflowDiagramName(workflow.path, useUpdated)
+      });
+
+      if (!rendered) {
+        return;
+      }
+
       setStatus(`${useUpdated ? 'Updated' : 'Original'} classic workflow diagram rendered successfully.`, 'success');
     } catch (error) {
       clearDiagram();
@@ -729,7 +746,7 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
   }
 
   function clearDiagram() {
-    mermaidPreview.innerHTML = '<p class="empty-state">Choose which workflow version to render.</p>';
+    mermaidViewer.clear('Choose which workflow version to render.');
   }
 
   function setXamlDownloads(workflow) {
@@ -903,6 +920,9 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
 
   return () => {
     unbindDropZone();
+    originalXamlHighlight.destroy();
+    updatedXamlHighlight.destroy();
+    mermaidViewer.destroy();
     revokeAllUrls();
   };
 }
@@ -927,6 +947,10 @@ function fileNameFromPath(path) {
 
 function buildUpdatedXamlName(path) {
   return fileNameFromPath(path).replace(/\.xaml$/i, '-updated.xaml');
+}
+
+function buildClassicWorkflowDiagramName(path, useUpdated) {
+  return fileNameFromPath(path).replace(/\.xaml$/i, `-${useUpdated ? 'updated' : 'original'}-diagram`);
 }
 
 function capitalise(value) {

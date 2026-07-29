@@ -339,6 +339,23 @@ export function applyHandoverPayload(root, toolId, inputId, value, contracts = T
   return setControlValue(inputElement, value);
 }
 
+export function publishHandoverValue(control, value) {
+  if (!control) {
+    return false;
+  }
+
+  const nextValue = String(value ?? '');
+
+  if ('value' in control) {
+    control.value = nextValue;
+  } else {
+    control.textContent = nextValue;
+  }
+
+  dispatchControlEvents(control);
+  return true;
+}
+
 export function serialiseToolState(toolId, root) {
   if (!root) {
     return {

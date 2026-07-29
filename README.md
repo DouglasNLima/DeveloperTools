@@ -33,8 +33,8 @@ The implemented platform capabilities around those tools include:
 
 - A scalable tool menu with roadmap previews
 - Session-based handovers between compatible tools
-- Local review, comparison and replacement of cloud flow JSON in unmanaged solution ZIP files
-- Local review, structural comparison and guarded replacement of classic workflow XAML in unmanaged solution ZIP files
+- Local review, comparison and replacement of cloud flow JSON in unmanaged solution ZIP files, with syntax highlighting and interactive Mermaid exports
+- Local review, structural comparison and guarded replacement of classic workflow XAML in unmanaged solution ZIP files, with syntax highlighting and interactive Mermaid exports
 - Unit and browser test scaffolding for future tools
 
 ## Local Usage
@@ -68,6 +68,7 @@ Tools that produce compatible JSON, XML, Mermaid, Markdown, text, CSV or Base64 
 - JSON, schema, XML, PDF field mappings and data reports into JSON & Data Workbench, CSV/TSV helper, Mermaid Studio or text comparison tools.
 - Request snippets and endpoint reports from Web/API, Dataverse, Power Pages and model-driven JavaScript tools into request conversion, URL inspection, sanitising or Mermaid workflows.
 - Mermaid and Markdown reports into Mermaid Studio, Markdown Workbench, CSV/TSV helper and Text Utilities Workbench.
+- Flow editor JSON and classic workflow XAML into JSON & Data Workbench, plus rendered workflow diagrams into Mermaid Studio.
 - Sanitised text, cleaned HTML, converted case output and generated API or Power Platform snippets into compatible text tools.
 - Base64 output into the Base64 & File Converter file creator mode.
 

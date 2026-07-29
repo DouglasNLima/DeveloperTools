@@ -42,6 +42,21 @@ const MERMAID_SOURCE_PORTS = [
   ...MERMAID_GENERATOR_SOURCE_PORTS
 ];
 
+const SOLUTION_FLOW_JSON_SOURCE_PORTS = [
+  { outputId: 'flow-original-json', label: 'Original flow JSON' },
+  { outputId: 'flow-updated-json', label: 'Updated flow JSON' }
+];
+
+const SOLUTION_CLASSIC_XAML_SOURCE_PORTS = [
+  { outputId: 'classic-original-xaml', label: 'Original workflow XAML' },
+  { outputId: 'classic-updated-xaml', label: 'Updated workflow XAML' }
+];
+
+const SOLUTION_EDITOR_MERMAID_SOURCE_PORTS = [
+  { outputId: 'flow-mermaid', label: 'Rendered flow Mermaid' },
+  { outputId: 'classic-mermaid', label: 'Rendered workflow Mermaid' }
+];
+
 const REQUEST_TEXT_SOURCE_PORTS = [
   { toolId: 'web-api-workbench', outputId: 'request-output', label: 'Create request diagram', description: 'Convert this request output into a Mermaid sequence diagram.' },
   { toolId: 'curl-fetch-converter', outputId: 'output', label: 'Create request diagram', description: 'Convert this request output into a Mermaid sequence diagram.' },
@@ -477,6 +492,48 @@ export const TOOL_INTEGRATION_CONTRACTS = [
         label: 'Preflight Markdown',
         mediaType: 'text/markdown',
         kind: 'text'
+      },
+      {
+        id: 'flow-original-json',
+        selector: '#flowPackageOriginalJson',
+        label: 'Original flow JSON',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
+      {
+        id: 'flow-updated-json',
+        selector: '#flowPackageUpdatedJson',
+        label: 'Updated flow JSON',
+        mediaType: 'application/json',
+        kind: 'json'
+      },
+      {
+        id: 'flow-mermaid',
+        selector: '#flowPackageMermaidHandoverOutput',
+        label: 'Rendered flow Mermaid',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
+      },
+      {
+        id: 'classic-original-xaml',
+        selector: '#classicWorkflowOriginalXaml',
+        label: 'Original workflow XAML',
+        mediaType: 'application/xml',
+        kind: 'xml'
+      },
+      {
+        id: 'classic-updated-xaml',
+        selector: '#classicWorkflowUpdatedXaml',
+        label: 'Updated workflow XAML',
+        mediaType: 'application/xml',
+        kind: 'xml'
+      },
+      {
+        id: 'classic-mermaid',
+        selector: '#classicWorkflowMermaidHandoverOutput',
+        label: 'Rendered workflow Mermaid',
+        mediaType: 'text/plain',
+        kind: 'mermaid'
       }
     ],
     inputs: []
@@ -1554,6 +1611,39 @@ export const TOOL_INTEGRATION_CONTRACTS = [
 ];
 
 const BASE_TOOL_HANDOVER_ROUTES = [
+  ...SOLUTION_FLOW_JSON_SOURCE_PORTS.map(source => ({
+    id: `solution-package-inspector-${source.outputId}-to-json-data-workbench-format-input`,
+    sourceToolId: 'solution-package-inspector',
+    sourceOutputId: source.outputId,
+    targetToolId: 'json-data-workbench',
+    targetInputId: 'format-input',
+    targetMode: 'format',
+    acceptKinds: ['json'],
+    label: 'Open in JSON Workbench',
+    description: 'Open this complete flow JSON in JSON & Data Workbench format mode.'
+  })),
+  ...SOLUTION_CLASSIC_XAML_SOURCE_PORTS.map(source => ({
+    id: `solution-package-inspector-${source.outputId}-to-json-data-workbench-explore-xml`,
+    sourceToolId: 'solution-package-inspector',
+    sourceOutputId: source.outputId,
+    targetToolId: 'json-data-workbench',
+    targetInputId: 'explore-xml',
+    targetMode: 'explore',
+    acceptKinds: ['xml'],
+    label: 'Explore XAML as XML',
+    description: 'Open this complete workflow XAML in JSON & Data Workbench explore mode.'
+  })),
+  ...SOLUTION_EDITOR_MERMAID_SOURCE_PORTS.map(source => ({
+    id: `solution-package-inspector-${source.outputId}-to-mermaid-studio-source`,
+    sourceToolId: 'solution-package-inspector',
+    sourceOutputId: source.outputId,
+    targetToolId: 'mermaid-studio',
+    targetInputId: 'source',
+    targetMode: 'editor',
+    acceptKinds: ['mermaid'],
+    label: 'Preview and export',
+    description: 'Open this rendered workflow Mermaid in Mermaid Studio editor mode.'
+  })),
   ...JSON_SOURCE_PORTS.flatMap(source => (
     GENERIC_JSON_TARGETS
       .filter(target => !shouldSkipGenericJsonRoute(source, target))

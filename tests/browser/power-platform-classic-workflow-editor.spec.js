@@ -22,6 +22,10 @@ test('inspects classic workflow XAML, metadata and an on-demand diagram', async 
   await expect(page.locator('#classicWorkflowList').getByText('Account follow up')).toBeVisible();
   await expect(page.locator('#classicWorkflowList').getByText('Case escalation')).toBeVisible();
   await expect(page.locator('#classicWorkflowOriginalXaml')).toHaveValue(/XrmWorkflow111/);
+  await expect(
+    page.locator('[data-syntax-editor-for="classicWorkflowOriginalXaml"] .syntax-token--tag').first()
+  ).toBeVisible();
+  await expect(page.locator('[data-syntax-editor-for="classicWorkflowUpdatedXaml"]')).toBeVisible();
   await expect(page.locator('#classicWorkflowTableDetail')).toHaveText('account');
   await expect(page.locator('#classicWorkflowTriggersDetail')).toContainText('Create');
   await expect(page.locator('#classicWorkflowTriggersDetail')).toContainText('Update: name, statuscode');
@@ -36,6 +40,21 @@ test('inspects classic workflow XAML, metadata and an on-demand diagram', async 
   await page.getByRole('button', { name: 'Show original diagram' }).click();
   await expect(page.locator('#classicWorkflowMermaidPreview svg')).toBeVisible();
   await expect(page.getByRole('status')).toContainText('Original classic workflow diagram rendered successfully.');
+  await expect(page.getByRole('button', { name: 'Copy SVG' })).toBeVisible();
+  await expect(page.locator('#classicWorkflowMermaidPreview [data-mermaid-download-source]')).toHaveAttribute(
+    'download',
+    'AccountFollowUp-original-diagram.mmd'
+  );
+  await expect(page.locator('#classicWorkflowMermaidPreview [data-mermaid-download-svg]')).toHaveAttribute(
+    'download',
+    'AccountFollowUp-original-diagram.svg'
+  );
+  await expect(page.locator('#classicWorkflowMermaidPreview [data-mermaid-download-png]')).toBeVisible();
+  await page.getByRole('button', { name: 'Copy SVG' }).click();
+  await expect(page.getByRole('status')).toContainText('Rendered SVG copied');
+  await page.getByRole('button', { name: 'Zoom out' }).click();
+  await expect(page.locator('#classicWorkflowMermaidPreview [data-mermaid-zoom-level]')).not.toHaveText('100%');
+  await page.getByRole('button', { name: 'Fit diagram' }).click();
 });
 
 test('stages, reverts and packages classic workflow XAML updates', async ({ page }) => {
@@ -49,6 +68,9 @@ test('stages, reverts and packages classic workflow XAML updates', async ({ page
   const accountUpdated = (await page.locator('#classicWorkflowOriginalXaml').inputValue())
     .replace('Create task', 'Create reviewed task');
   await page.locator('#classicWorkflowUpdatedXaml').fill(accountUpdated);
+  await expect(
+    page.locator('[data-syntax-editor-for="classicWorkflowUpdatedXaml"] .syntax-token--tag').first()
+  ).toBeVisible();
   await expect(page.locator('#downloadClassicWorkflowUpdatedButton')).toHaveAttribute(
     'download',
     'AccountFollowUp-updated.xaml'
@@ -153,6 +175,36 @@ test('reports unsafe XAML and keeps managed solutions read only', async ({ page 
   });
   await page.getByRole('button', { name: 'Inspect classic workflows' }).click();
   await expect(page.getByRole('status')).toContainText('valid exported solution ZIP');
+});
+
+test('hands classic workflow XAML and rendered Mermaid to local workbenches', async ({ page }) => {
+  await page.goto('/#solution-package-inspector/classic-workflows');
+  await loadClassicWorkflowSolution(page);
+
+  const originalXaml = await page.locator('#classicWorkflowOriginalXaml').inputValue();
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this XML');
+  await page.locator('#toolHandover').getByRole('button', {
+    name: /Original workflow XAML: Explore XAML as XML/
+  }).click();
+
+  await expect(page).toHaveURL(/#json-data-workbench\/explore$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Explore');
+  await expect(page.getByLabel('Input format')).toHaveValue('xml');
+  await expect(page.getByLabel('JSON or XML input')).toHaveValue(originalXaml);
+
+  await page.goto('/#solution-package-inspector/classic-workflows');
+  await loadClassicWorkflowSolution(page);
+  await page.locator('.flow-package-mermaid-section summary').click();
+  await page.getByRole('button', { name: 'Show original diagram' }).click();
+  await expect(page.locator('#classicWorkflowMermaidPreview svg')).toBeVisible();
+  await page.locator('#toolHandover').getByRole('button', {
+    name: /Rendered workflow Mermaid: Preview and export/
+  }).click();
+
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/Account follow up/);
 });
 
 async function loadClassicWorkflowSolution(page, bytes = createClassicWorkflowEditorSolutionZip()) {
