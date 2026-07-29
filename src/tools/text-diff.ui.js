@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { TEXT_DIFF_OUTPUT_FORMATS, buildTextDiff } from './text-diff.js';
 
 export function renderTextDiff(container) {
@@ -247,7 +248,7 @@ export function renderTextDiff(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Text diff output copied to the clipboard.', 'success');
     } catch {
       output.focus();

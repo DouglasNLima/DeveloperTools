@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   TABLE_PERMISSION_OPERATIONS,
   TABLE_PERMISSION_SCOPES,
@@ -198,7 +199,7 @@ export function renderPowerPagesTablePermissionsChecklist(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

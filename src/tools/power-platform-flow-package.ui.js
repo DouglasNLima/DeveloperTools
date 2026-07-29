@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import { formatValuePreview } from './json-diff.js';
 import { bindMermaidViewer } from './mermaid-viewer.ui.js';
@@ -18,9 +19,9 @@ export function renderPowerPlatformFlowPackageEditor(container) {
   container.innerHTML = `
     <form class="tool-board power-flow-package-tool" data-tool-form>
       <div id="flowPackageDropZone" class="drop-zone">
-        <label class="drop-zone-label" for="flowPackageFileInput">
-          <span>Drop an exported solution ZIP here or browse</span>
-          <small>Solution files and flow JSON stay in this browser.</small>
+        <label class="drop-zone-label" for="flowPackageFileInput" aria-live="polite">
+          <span id="flowPackageDropTitle">Drop an exported solution ZIP here or browse</span>
+          <small id="flowPackageDropHint">Solution files and flow JSON stay in this browser.</small>
         </label>
         <input id="flowPackageFileInput" class="drop-zone-input" type="file" accept=".zip,application/zip,application/x-zip-compressed" />
       </div>
@@ -183,6 +184,8 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   const fileInput = container.querySelector('#flowPackageFileInput');
   const dropZone = container.querySelector('#flowPackageDropZone');
+  const dropTitle = container.querySelector('#flowPackageDropTitle');
+  const dropHint = container.querySelector('#flowPackageDropHint');
   const analyseButton = container.querySelector('#analyseFlowPackageButton');
   const clearButton = container.querySelector('#clearFlowPackageButton');
   const search = container.querySelector('#flowPackageSearch');
@@ -251,7 +254,31 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   function setFile(file) {
     currentFile = file;
+    updateDropZone();
     setStatus(file ? `${file.name} selected.` : 'Ready.', null);
+  }
+
+  function updateDropZone(state = currentFile ? 'selected' : 'empty') {
+    dropZone.classList.toggle('has-file', Boolean(currentFile));
+    dropZone.classList.toggle('is-loaded', state === 'loaded');
+    dropZone.classList.toggle('has-error', state === 'error');
+
+    if (!currentFile) {
+      dropTitle.textContent = 'Drop an exported solution ZIP here or browse';
+      dropHint.textContent = 'Solution files and flow JSON stay in this browser.';
+      return;
+    }
+
+    dropTitle.textContent = currentFile.name;
+
+    if (state === 'loaded') {
+      const count = currentArchive?.flows.length || 0;
+      dropHint.textContent = `Loaded successfully · ${count.toLocaleString('en-GB')} cloud flow${count === 1 ? '' : 's'} found`;
+    } else if (state === 'error') {
+      dropHint.textContent = 'The selected ZIP could not be inspected. Choose another file or review the error below.';
+    } else {
+      dropHint.textContent = `ZIP selected · ${formatFileSize(currentFile.size)} · ready to inspect`;
+    }
   }
 
   function getSelectedFlow() {
@@ -262,7 +289,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
     const term = search.value.trim().toLocaleLowerCase('en-GB');
 
     return (currentArchive?.flows || []).filter(flow => (
-      !term || `${flow.name} ${flow.path}`.toLocaleLowerCase('en-GB').includes(term)
+      !term || `${flow.displayName} ${flow.name} ${flow.path}`.toLocaleLowerCase('en-GB').includes(term)
     ));
   }
 
@@ -284,6 +311,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       currentReview = null;
       targetVersion.value = currentArchive.suggestedVersion;
       renderArchive();
+      updateDropZone('loaded');
 
       if (currentArchive.readOnly) {
         setStatus('Managed solution inspected in read-only mode.', 'warning');
@@ -296,6 +324,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       currentArchive = null;
       selectedFlowPath = '';
       clearArchiveOutput();
+      updateDropZone('error');
       setStatus(error.message || 'Unable to inspect this solution export.', 'error');
     } finally {
       analyseButton.disabled = false;
@@ -341,11 +370,12 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       button.setAttribute('aria-pressed', flow.path === selectedFlowPath ? 'true' : 'false');
 
       const title = document.createElement('strong');
-      title.textContent = flow.name;
+      title.textContent = flow.displayName;
       const meta = document.createElement('span');
       meta.textContent = `${state} · ${flow.metrics.actionCount.toLocaleString('en-GB')} action${flow.metrics.actionCount === 1 ? '' : 's'}`;
       const source = document.createElement('small');
       source.textContent = flow.path;
+      source.title = flow.path;
       button.append(title, meta, source);
       button.addEventListener('click', () => selectFlow(flow.path));
       flowList.append(button);
@@ -384,7 +414,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       return;
     }
 
-    selectedTitle.textContent = flow.name;
+    selectedTitle.textContent = flow.displayName;
     selectedPath.textContent = flow.path;
     selectedState.textContent = readFlowState(flow.path);
     originalJson.value = flow.originalText;
@@ -527,7 +557,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
     renderFlowList();
     renderStagedList();
     updatePackageReadiness();
-    setStatus(`${flow.name} staged for the updated solution package.`, 'success');
+    setStatus(`${flow.displayName} staged for the updated solution package.`, 'success');
   }
 
   function removeStagedUpdate() {
@@ -551,7 +581,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
     renderFlowList();
     renderStagedList();
     updatePackageReadiness();
-    setStatus(`${flow.name} removed from the staged updates.`, 'success');
+    setStatus(`${flow.displayName} removed from the staged updates.`, 'success');
   }
 
   function renderStagedList() {
@@ -567,7 +597,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       const card = document.createElement('article');
       card.className = 'flow-package-staged-card';
       const title = document.createElement('strong');
-      title.textContent = flow?.name || item.path;
+      title.textContent = flow?.displayName || item.path;
       const summary = document.createElement('span');
       const count = item.validation.diff.summary.totalChanges;
       summary.textContent = `${count.toLocaleString('en-GB')} structural change${count === 1 ? '' : 's'} · ${item.path}`;
@@ -739,7 +769,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(text);
+      await writeTextToClipboard(text);
       setStatus(successMessage, 'success');
     } catch {
       const target = text === originalJson.value ? originalJson : updatedJson;
@@ -789,6 +819,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
     fileInput.value = '';
     search.value = '';
     clearArchiveOutput();
+    updateDropZone('empty');
     setStatus('Ready.', null);
   });
   search.addEventListener('input', () => {
@@ -876,4 +907,23 @@ function buildFlowDiagramName(path, useUpdated) {
 function capitalise(value) {
   const text = String(value || '');
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
+}
+
+function formatFileSize(value) {
+  const bytes = Math.max(0, Number(value) || 0);
+
+  if (bytes < 1024) {
+    return `${bytes.toLocaleString('en-GB')} B`;
+  }
+
+  const units = ['KB', 'MB', 'GB'];
+  let size = bytes / 1024;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${size.toLocaleString('en-GB', { maximumFractionDigits: 1 })} ${units[unitIndex]}`;
 }

@@ -17,6 +17,7 @@ import {
   readZipArchive,
   replaceZipArchiveEntries
 } from './power-platform-solution.js';
+import { formatPowerPlatformDisplayName } from './power-platform-display.js';
 import {
   buildClassicWorkflowMermaid,
   buildClassicWorkflowXmlDiff,
@@ -100,6 +101,7 @@ export async function inspectClassicWorkflowPackage(input, options = {}) {
     workflows.push({
       id: component.id,
       name: component.name,
+      displayName: formatPowerPlatformDisplayName(component.name, 'Classic workflow'),
       path,
       metadataPath: 'customizations.xml',
       originalText: file?.text || '',
@@ -146,7 +148,7 @@ export async function inspectClassicWorkflowPackage(input, options = {}) {
   return {
     ...archive,
     workflows: workflows.sort((left, right) => (
-      left.name.localeCompare(right.name, 'en-GB')
+      left.displayName.localeCompare(right.displayName, 'en-GB')
       || left.path.localeCompare(right.path, 'en-GB')
     )),
     orphanXamlFiles,

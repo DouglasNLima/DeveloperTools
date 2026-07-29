@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   MARKDOWN_TABLE_ALIGNMENT_OPTIONS,
   MARKDOWN_TABLE_OUTPUT_FORMATS,
@@ -185,7 +186,7 @@ export function renderMarkdownTableFormatter(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Table output copied to the clipboard.', 'success');
     } catch {
       output.focus();

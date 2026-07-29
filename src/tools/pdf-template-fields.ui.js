@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   buildFieldNamesText,
   buildFieldsCsvExport,
@@ -485,7 +486,7 @@ export function renderPdfTemplateFieldExplorer(container) {
 
   async function copyText(text) {
     try {
-      await navigator.clipboard.writeText(text);
+      await writeTextToClipboard(text);
     } catch {
       const textarea = document.createElement('textarea');
       textarea.value = text;

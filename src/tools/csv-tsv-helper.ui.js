@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   DELIMITER_OPTIONS,
   OUTPUT_FORMATS,
@@ -226,7 +227,7 @@ export function renderCsvTsvHelper(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

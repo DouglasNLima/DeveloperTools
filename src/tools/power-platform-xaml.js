@@ -1,4 +1,5 @@
 import { buildTextDiff } from './text-diff.js';
+import { formatPowerPlatformDisplayName } from './power-platform-display.js';
 
 const ACTIVITIES_NAMESPACE = 'http://schemas.microsoft.com/netfx/2009/xaml/activities';
 const XAML_NAMESPACE = 'http://schemas.microsoft.com/winfx/2006/xaml';
@@ -160,7 +161,7 @@ export function buildClassicWorkflowMermaid(workflow = {}, xamlText = workflow.o
   const steps = parsed.steps.slice(0, MAX_DIAGRAM_STEPS);
   const lines = ['flowchart TD'];
   const rootId = 'workflow';
-  lines.push(`  ${rootId}(["${escapeMermaidLabel(`Workflow: ${workflow.name || 'Classic workflow'}`)}"])`);
+  lines.push(`  ${rootId}(["${escapeMermaidLabel(`Workflow: ${formatPowerPlatformDisplayName(workflow.name, 'Classic workflow')}`)}"])`);
   let previousId = rootId;
 
   steps.forEach((step, index) => {
@@ -531,9 +532,12 @@ function collectWorkflowSteps(workflowNode) {
 
     if (isMeaningfulActivity(node)) {
       const assemblyName = readAttribute(node, 'AssemblyQualifiedName')?.value || '';
-      const label = readAttribute(node, 'DisplayName')?.value
+      const label = formatPowerPlatformDisplayName(
+        readAttribute(node, 'DisplayName')?.value
         || assemblyName.split(',')[0].split('.').pop()
-        || node.localName;
+        || node.localName,
+        node.localName
+      );
       const condition = (
         node.localName === 'If'
         || node.localName === 'Switch'

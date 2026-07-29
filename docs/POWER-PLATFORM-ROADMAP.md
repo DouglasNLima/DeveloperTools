@@ -99,6 +99,7 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - Read complete `Workflows/*.json` cloud flow files from exported solution ZIPs.
 - Copy, download, compare and render syntax-highlighted original or proposed flow definitions as local Mermaid diagrams with source/SVG copying, MMD/SVG/PNG export, zoom and pan.
 - Hand original or updated flow JSON to JSON & Data Workbench and rendered diagrams to Mermaid Studio.
+- Confirm selected and inspected ZIP files visibly, keep long flow lists separated and omit exported GUID noise from display names and diagram labels.
 - Validate flow identity, definition shape and structural JSON differences before staging changes.
 - Accumulate updates for multiple flows and rebuild unmanaged solutions while preserving all untouched ZIP entries.
 - Increment `solution.xml` revision by default, verify the rebuilt archive and keep managed solutions read only.
@@ -109,6 +110,7 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - Correlate Category 0 classic workflow metadata in `customizations.xml` with referenced `Workflows/*.xaml` files.
 - Copy, download, structurally compare and render syntax-highlighted original or proposed XAML definitions as local Mermaid diagrams with source/SVG copying, MMD/SVG/PNG export, zoom and pan.
 - Hand original or updated XAML to JSON & Data Workbench XML exploration and rendered diagrams to Mermaid Studio.
+- Confirm selected and inspected ZIP files visibly, keep workflow lists separated and omit exported GUID noise from display names and diagram labels.
 - Validate XML/XAML shape, preserve `x:Class`, reject unsafe declarations and keep workflow metadata intact.
 - Accumulate multiple XAML updates, preserve UTF-8 or UTF-16 encoding and rebuild unmanaged solution ZIP files without changing untouched entries.
 - Require an explicit acknowledgement that external classic workflow editing is unsupported by Microsoft, and keep managed solutions read only.

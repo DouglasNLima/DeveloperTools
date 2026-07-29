@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { formatSqlQuery } from './sql-formatter.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
@@ -153,7 +154,7 @@ export function renderSqlFormatter(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('SQL output copied to the clipboard.', 'success');
     } catch {
       output.focus();

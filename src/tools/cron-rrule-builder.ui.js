@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { buildCronRruleSchedule, SCHEDULE_FREQUENCIES, WEEKDAYS } from './cron-rrule-builder.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
@@ -200,7 +201,7 @@ export function renderCronRruleBuilder(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Schedule output copied to the clipboard.', 'success');
     } catch {
       output.focus();

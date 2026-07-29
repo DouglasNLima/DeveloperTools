@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   DATA_EXPLORER_FILTER_OPERATORS,
   DATA_EXPLORER_INPUT_FORMATS,
@@ -319,7 +320,7 @@ export function renderDataExplorer(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

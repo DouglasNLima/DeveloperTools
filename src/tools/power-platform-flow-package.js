@@ -20,6 +20,7 @@ import {
   readZipArchive,
   replaceZipArchiveEntries
 } from './power-platform-solution.js';
+import { formatPowerPlatformDisplayName } from './power-platform-display.js';
 import { buildComponentDiagram } from './power-platform-solution-mermaid.js';
 
 export {
@@ -71,6 +72,7 @@ export async function inspectFlowPackage(input, options = {}) {
     return {
       id: component.id,
       name: component.name,
+      displayName: formatPowerPlatformDisplayName(component.name, 'Cloud flow'),
       path: file.path,
       originalText: file.text,
       originalBytes: originalBytes || new TextEncoder().encode(file.text),
@@ -90,7 +92,7 @@ export async function inspectFlowPackage(input, options = {}) {
   return {
     ...archive,
     flows: flows.sort((left, right) => (
-      left.name.localeCompare(right.name, 'en-GB')
+      left.displayName.localeCompare(right.displayName, 'en-GB')
       || left.path.localeCompare(right.path, 'en-GB')
     )),
     duplicatePaths,

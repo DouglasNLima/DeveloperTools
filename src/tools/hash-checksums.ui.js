@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   HASH_ALGORITHMS,
   buildHashChecksum,
@@ -224,7 +225,7 @@ export function renderHashChecksums(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Hash output copied to the clipboard.', 'success');
     } catch {
       output.focus();

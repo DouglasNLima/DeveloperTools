@@ -84,6 +84,43 @@ test('builds an automation dependency map across flows, Dataverse events, plug-i
   assert.match(result.inventoryMarkdown, /## Automation dependency map/);
 });
 
+test('removes exported GUID noise from cloud flow names and step labels', () => {
+  const guid = '643ea8ee-9c35-4fd7-909c-facf7fb68428';
+  const component = buildComponentDiagram({
+    id: guid,
+    name: `QA sample simulator-${guid}`,
+    type: 'cloud-flow',
+    typeLabel: 'Cloud flow',
+    sourcePath: `Workflows/${guid}.json`,
+    raw: {
+      definition: {
+        triggers: {
+          manual: {
+            type: 'Request',
+            metadata: {
+              operationMetadataId: guid
+            }
+          }
+        },
+        actions: {
+          Initialise_status: {
+            type: 'InitializeVariable',
+            metadata: {
+              operationMetadataId: guid
+            }
+          }
+        }
+      }
+    },
+    warnings: []
+  });
+
+  assert.equal(component.displayName, 'QA sample simulator');
+  assert.match(component.mermaid, /Cloud flow: QA sample simulator/);
+  assert.match(component.mermaid, /Initialise status - InitializeVariable/);
+  assert.doesNotMatch(component.mermaid, new RegExp(guid, 'i'));
+});
+
 test('parses plug-in step metadata and avoids unrelated update attribute links', () => {
   const pluginSteps = parsePluginStepMetadata([
     '<ImportExportXml>',

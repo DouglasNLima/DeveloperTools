@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   buildPowerAutomateExpressionTemplate,
   formatPowerAutomateExpression,
@@ -272,7 +273,7 @@ export function renderPowerAutomateExpressionFormatter(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Formatted expression copied to the clipboard.', 'success');
     } catch {
       output.focus();

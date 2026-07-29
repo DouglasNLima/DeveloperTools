@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { POWER_PLATFORM_CLI_ACTIONS, buildPowerPlatformCliCommand } from './power-platform-cli.js';
 
 export function renderPowerPlatformCliCommandBuilder(container) {
@@ -263,7 +264,7 @@ export function renderPowerPlatformCliCommandBuilder(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Power Platform CLI output copied to the clipboard.', 'success');
     } catch {
       output.focus();

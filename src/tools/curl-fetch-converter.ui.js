@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { CURL_FETCH_MODES, convertCurlFetch } from './curl-fetch-converter.js';
 
 export function renderCurlFetchConverter(container) {
@@ -205,7 +206,7 @@ export function renderCurlFetchConverter(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Converted request copied to the clipboard.', 'success');
     } catch {
       output.focus();

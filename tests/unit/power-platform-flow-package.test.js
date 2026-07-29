@@ -31,6 +31,10 @@ test('inspects and sorts cloud flow JSON files from an exported solution', async
     'Account approval',
     'Child notifier'
   ]);
+  assert.deepEqual(archive.flows.map(flow => flow.displayName), [
+    'Account approval',
+    'Child notifier'
+  ]);
   assert.equal(archive.flows[0].metrics.triggerCount, 1);
   assert.equal(archive.flows[0].metrics.actionCount, 1);
   assert.equal(archive.packagingErrors.length, 0);

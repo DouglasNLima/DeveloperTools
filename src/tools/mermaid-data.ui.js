@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   DATA_MERMAID_DIAGRAMS,
   DATA_MERMAID_FORMATS,
@@ -168,7 +169,7 @@ export function renderDataToMermaid(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Mermaid output copied to the clipboard.', 'success');
     } catch {
       output.focus();

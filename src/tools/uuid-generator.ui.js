@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { generateUuidBatch, restoreUuidHyphens, validateUuidInput } from './uuid-generator.js';
 
 export function renderUuidGenerator(container) {
@@ -247,7 +248,7 @@ export function renderUuidGenerator(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('UUID output copied to the clipboard.', 'success');
     } catch {
       output.focus();

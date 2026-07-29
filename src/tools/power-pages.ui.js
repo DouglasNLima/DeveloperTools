@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { buildLiquidFetchXml, formatFetchXml } from './power-pages.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
@@ -152,7 +153,7 @@ export function renderFetchXmlLiquidBuilder(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

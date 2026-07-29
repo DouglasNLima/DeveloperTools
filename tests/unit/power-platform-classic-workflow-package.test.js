@@ -3,6 +3,7 @@ import { deflateRawSync, inflateRawSync } from 'node:zlib';
 import test from 'node:test';
 
 import {
+  buildClassicWorkflowDiagram,
   buildUpdatedClassicWorkflowPackage,
   inspectClassicWorkflowPackage,
   parseClassicWorkflowXaml,
@@ -33,6 +34,10 @@ test('detects, correlates and sorts Category 0 classic workflow XAML files', asy
     'Account follow up',
     'Case escalation'
   ]);
+  assert.deepEqual(archive.workflows.map(workflow => workflow.displayName), [
+    'Account follow up',
+    'Case escalation'
+  ]);
   assert.equal(archive.workflows[0].triggers.onCreate, true);
   assert.deepEqual(archive.workflows[0].triggers.onUpdateAttributes, ['name', 'statuscode']);
   assert.equal(archive.workflows[0].metrics.stepCount, 4);
@@ -41,6 +46,18 @@ test('detects, correlates and sorts Category 0 classic workflow XAML files', asy
   assert.equal(archive.workflows[0].metrics.customActivityCount, 1);
   assert.equal(archive.packagingErrors.length, 0);
   assert.match(archive.workflows[0].component.sourcePath, /Workflows\/AccountFollowUp\.xaml/);
+});
+
+test('removes GUID noise from classic workflow Mermaid labels', () => {
+  const guid = '643ea8ee-9c35-4fd7-909c-facf7fb68428';
+  const diagram = buildClassicWorkflowDiagram({
+    name: `Account follow up-${guid}`,
+    originalText: classicXaml('XrmWorkflowGuid', `${guid} - Create task`)
+  });
+
+  assert.match(diagram.mermaid, /Workflow: Account follow up/);
+  assert.match(diagram.mermaid, /Create task/);
+  assert.doesNotMatch(diagram.mermaid, new RegExp(guid, 'i'));
 });
 
 test('parses XAML, builds structural diffs and validates identity and safety rules', async () => {

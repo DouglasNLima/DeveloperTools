@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { HTML_OUTPUT_FORMATS, processHtmlContent } from './html-cleaner.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
@@ -163,7 +164,7 @@ export function renderHtmlCleaner(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('HTML output copied to the clipboard.', 'success');
     } catch {
       output.focus();

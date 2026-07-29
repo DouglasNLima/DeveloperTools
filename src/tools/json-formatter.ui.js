@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   JSON_SCHEMA_OUTPUT_FORMATS,
   JSON_SEARCH_TARGETS,
@@ -233,7 +234,7 @@ export function renderJsonFormatter(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

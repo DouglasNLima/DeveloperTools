@@ -33,8 +33,9 @@ The implemented platform capabilities around those tools include:
 
 - A scalable tool menu with roadmap previews
 - Session-based handovers between compatible tools
-- Local review, comparison and replacement of cloud flow JSON in unmanaged solution ZIP files, with syntax highlighting and interactive Mermaid exports
-- Local review, structural comparison and guarded replacement of classic workflow XAML in unmanaged solution ZIP files, with syntax highlighting and interactive Mermaid exports
+- Local review, comparison and replacement of cloud flow JSON in unmanaged solution ZIP files, with friendly GUID-free display labels, syntax highlighting and interactive Mermaid exports
+- Local review, structural comparison and guarded replacement of classic workflow XAML in unmanaged solution ZIP files, with friendly GUID-free display labels, syntax highlighting and interactive Mermaid exports
+- Visible in-button success or failure feedback for copy actions throughout the app
 - Unit and browser test scaffolding for future tools
 
 ## Local Usage

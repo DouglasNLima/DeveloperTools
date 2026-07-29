@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   REGEX_LOCAL_EXAMPLES,
   REGEX_OUTPUT_FORMATS,
@@ -357,7 +358,7 @@ export function renderRegexTester(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Regex output copied to the clipboard.', 'success');
     } catch {
       output.focus();
