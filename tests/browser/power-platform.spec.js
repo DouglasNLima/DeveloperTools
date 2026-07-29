@@ -668,6 +668,18 @@ test('generates Mermaid diagrams from an exported Power Platform solution ZIP', 
   await expect(page.locator('#solutionMermaidNameDetail')).toHaveText('Operations Toolkit');
   await expect(page.locator('#solutionMermaidVersionDetail')).toHaveText('1.2.3.4');
   await expect(page.locator('#solutionMermaidComponentsDetail')).toHaveText('5');
+  const componentCards = page.locator('#solutionMermaidComponentList .solution-component-card');
+  await expect(componentCards).toHaveCount(5);
+  const firstComponentCard = componentCards.nth(0);
+  await expect(firstComponentCard).toHaveCSS('justify-content', 'stretch');
+  await expect(firstComponentCard).toHaveCSS('justify-items', 'start');
+  const componentTextOffsets = await Promise.all([
+    firstComponentCard.locator('strong').boundingBox(),
+    firstComponentCard.locator('span').boundingBox(),
+    firstComponentCard.locator('small').boundingBox()
+  ]);
+  const componentTextLeftEdges = componentTextOffsets.map(box => box?.x ?? 0);
+  expect(Math.max(...componentTextLeftEdges) - Math.min(...componentTextLeftEdges)).toBeLessThan(1);
   await expect(page.locator('#solutionMermaidComponentList')).toContainText('Parent account updater');
   await expect(page.locator('#solutionMermaidComponentList')).not.toContainText('643ea8ee-9c35-4fd7-909c-facf7fb68428');
   await expect(page.locator('#solutionMermaidOutput')).toHaveValue(/^flowchart LR/);

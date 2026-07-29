@@ -2064,6 +2064,8 @@ button.danger {
   cursor: pointer;
   display: grid;
   gap: 0.3rem;
+  justify-content: stretch;
+  justify-items: start;
   min-height: max-content;
   min-width: 0;
   overflow: hidden;
