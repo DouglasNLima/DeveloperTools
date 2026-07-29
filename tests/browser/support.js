@@ -154,20 +154,26 @@ export function createSolutionZip() {
 
 export function createFlowEditorSolutionZip(options = {}) {
   const managed = options.managed ? '1' : '0';
+  const accountId = '11111111-1111-1111-1111-111111111111';
+  const childId = '22222222-2222-2222-2222-222222222222';
+  const accountName = options.guidLabels ? `Account approval-${accountId}` : 'Account approval';
+  const childName = options.guidLabels ? `Child notifier-${childId}` : 'Child notifier';
   const accountFlow = {
     properties: {
-      displayName: 'Account approval',
-      workflowEntityId: '11111111-1111-1111-1111-111111111111',
+      displayName: accountName,
+      workflowEntityId: accountId,
       definition: {
         triggers: {
           manual: {
             type: 'Request',
-            description: 'When an account is selected'
+            description: 'When an account is selected',
+            ...(options.guidLabels ? { metadata: { operationMetadataId: accountId } } : {})
           }
         },
         actions: {
           Get_account: {
             type: 'OpenApiConnection',
+            ...(options.guidLabels ? { metadata: { operationMetadataId: childId } } : {}),
             inputs: {
               host: {
                 operationId: 'GetItem'
@@ -180,8 +186,8 @@ export function createFlowEditorSolutionZip(options = {}) {
   };
   const childFlow = {
     properties: {
-      displayName: 'Child notifier',
-      workflowEntityId: '22222222-2222-2222-2222-222222222222',
+      displayName: childName,
+      workflowEntityId: childId,
       definition: {
         triggers: {
           request: {
@@ -197,6 +203,38 @@ export function createFlowEditorSolutionZip(options = {}) {
       }
     }
   };
+  const extraFlows = Array.from({ length: options.extraFlowCount || 0 }, (_, index) => {
+    const sequence = index + 3;
+    const token = String(sequence).padStart(8, '0');
+    const id = `${token}-0000-0000-0000-${String(sequence).padStart(12, '0')}`;
+    const baseName = `Batch status processor ${String(sequence).padStart(2, '0')}`;
+    const name = options.guidLabels ? `${baseName}-${id}` : baseName;
+
+    return {
+      id,
+      name,
+      text: JSON.stringify({
+        properties: {
+          displayName: name,
+          workflowEntityId: id,
+          definition: {
+            triggers: {
+              request: {
+                type: 'Request',
+                ...(options.guidLabels ? { metadata: { operationMetadataId: id } } : {})
+              }
+            },
+            actions: {
+              Process_status_update: {
+                type: 'Compose',
+                ...(options.guidLabels ? { metadata: { operationMetadataId: id } } : {})
+              }
+            }
+          }
+        }
+      }, null, 2)
+    };
+  });
 
   return createStoredZip([
     ['solution.xml', [
@@ -215,19 +253,25 @@ export function createFlowEditorSolutionZip(options = {}) {
     ['customizations.xml', [
       '<ImportExportXml>',
       '  <Workflows>',
-      '    <Workflow WorkflowId="{11111111-1111-1111-1111-111111111111}" Name="Account approval" Category="5" />',
-      '    <Workflow WorkflowId="{22222222-2222-2222-2222-222222222222}" Name="Child notifier" Category="5" />',
+      `    <Workflow WorkflowId="{${accountId}}" Name="${accountName}" Category="5" />`,
+      `    <Workflow WorkflowId="{${childId}}" Name="${childName}" Category="5" />`,
+      ...extraFlows.map(flow => `    <Workflow WorkflowId="{${flow.id}}" Name="${flow.name}" Category="5" />`),
       '  </Workflows>',
       '</ImportExportXml>'
     ].join('\n')],
     ['Workflows/11111111-1111-1111-1111-111111111111.json', JSON.stringify(accountFlow, null, 2)],
     ['Workflows/22222222-2222-2222-2222-222222222222.json', JSON.stringify(childFlow, null, 2)],
+    ...extraFlows.map(flow => [`Workflows/${flow.id}.json`, flow.text]),
     ['WebResources/contoso_/unchanged.txt', 'This entry must remain unchanged.']
   ]);
 }
 
 export function createClassicWorkflowEditorSolutionZip(options = {}) {
   const managed = options.managed ? '1' : '0';
+  const accountId = '11111111-1111-1111-1111-111111111111';
+  const caseId = '22222222-2222-2222-2222-222222222222';
+  const accountName = options.guidLabels ? `Account follow up-${accountId}` : 'Account follow up';
+  const caseName = options.guidLabels ? `Case escalation-${caseId}` : 'Case escalation';
 
   return createStoredZip([
     ['solution.xml', [
@@ -246,14 +290,14 @@ export function createClassicWorkflowEditorSolutionZip(options = {}) {
     ['customizations.xml', [
       '<ImportExportXml>',
       '  <Workflows>',
-      '    <Workflow WorkflowId="{11111111-1111-1111-1111-111111111111}" Name="Account follow up" Category="0">',
+      `    <Workflow WorkflowId="{${accountId}}" Name="${accountName}" Category="0">`,
       '      <XamlFileName>/Workflows/AccountFollowUp.xaml</XamlFileName>',
       '      <PrimaryEntity>account</PrimaryEntity><Mode>0</Mode><Scope>4</Scope>',
       '      <TriggerOnCreate>1</TriggerOnCreate><TriggerOnDelete>0</TriggerOnDelete>',
       '      <TriggerOnUpdateAttributeList>name,statuscode</TriggerOnUpdateAttributeList><OnDemand>1</OnDemand>',
       '      <StateCode>1</StateCode>',
       '    </Workflow>',
-      '    <Workflow WorkflowId="{22222222-2222-2222-2222-222222222222}" Name="Case escalation" Category="0">',
+      `    <Workflow WorkflowId="{${caseId}}" Name="${caseName}" Category="0">`,
       '      <XamlFileName>/Workflows/CaseEscalation.xaml</XamlFileName>',
       '      <PrimaryEntity>incident</PrimaryEntity><Mode>1</Mode><OnDemand>1</OnDemand>',
       '    </Workflow>',
@@ -263,7 +307,10 @@ export function createClassicWorkflowEditorSolutionZip(options = {}) {
       '  </Workflows>',
       '</ImportExportXml>'
     ].join('\n')],
-    ['Workflows/AccountFollowUp.xaml', classicWorkflowXaml('XrmWorkflow111', 'Check account')],
+    ['Workflows/AccountFollowUp.xaml', classicWorkflowXaml(
+      'XrmWorkflow111',
+      options.guidLabels ? `${accountId} - Check account` : 'Check account'
+    )],
     ['Workflows/CaseEscalation.xaml', classicWorkflowXaml('XrmWorkflow222', 'Case start')],
     ['WebResources/contoso_/unchanged.txt', 'This entry must remain unchanged.']
   ]);

@@ -34,6 +34,7 @@ test('inspects cloud flow JSON and renders the selected flow diagram', async ({ 
   );
 
   await page.getByRole('button', { name: 'Copy original' }).click();
+  await expect(page.locator('#copyFlowOriginalButton')).toHaveText('Copied');
   await expect(page.getByRole('status')).toContainText('Original flow JSON copied');
   await page.locator('.flow-package-mermaid-section summary').click();
   await page.getByRole('button', { name: 'Show original diagram' }).click();
@@ -51,6 +52,7 @@ test('inspects cloud flow JSON and renders the selected flow diagram', async ({ 
   await expect(page.locator('#flowPackageMermaidPreview [data-mermaid-download-png]')).toBeVisible();
 
   await page.getByRole('button', { name: 'Copy Mermaid' }).click();
+  await expect(page.locator('#flowPackageMermaidPreview [data-mermaid-copy-source]')).toHaveText('Copied');
   await expect(page.getByRole('status')).toContainText('Mermaid source copied');
   const zoomLevel = page.locator('#flowPackageMermaidPreview [data-mermaid-zoom-level]');
   const initialZoom = await zoomLevel.textContent();
@@ -60,12 +62,45 @@ test('inspects cloud flow JSON and renders the selected flow diagram', async ({ 
   const viewport = page.locator('#flowPackageMermaidPreview [data-mermaid-viewport]');
   const canvas = page.locator('#flowPackageMermaidPreview [data-mermaid-canvas]');
   const initialTransform = await canvas.getAttribute('style');
-  const bounds = await viewport.boundingBox();
-  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(bounds.x + bounds.width / 2 + 45, bounds.y + bounds.height / 2 + 30);
-  await page.mouse.up();
+  await viewport.focus();
+  await viewport.press('ArrowRight');
   await expect(canvas).not.toHaveAttribute('style', initialTransform);
+});
+
+test('uses friendly labels and keeps a long cloud flow list separated', async ({ page }) => {
+  const guid = '11111111-1111-1111-1111-111111111111';
+  await page.goto('/#solution-package-inspector/flows');
+  await page.setInputFiles('#flowPackageFileInput', {
+    name: 'many-guid-flows.zip',
+    mimeType: 'application/zip',
+    buffer: createFlowEditorSolutionZip({
+      extraFlowCount: 12,
+      guidLabels: true
+    })
+  });
+  await page.getByRole('button', { name: 'Inspect flows' }).click();
+  await expect(page.getByRole('status')).toContainText('Cloud flows inspected successfully.');
+
+  await expect(page.locator('#flowPackageFlowsDetail')).toHaveText('14');
+  await expect(page.locator('#flowPackageSelectedTitle')).toHaveText('Account approval');
+  const visibleNames = await page.locator('#flowPackageList .solution-component-card strong').allTextContents();
+  expect(visibleNames).toHaveLength(14);
+  expect(visibleNames.join('\n')).not.toContain(guid);
+
+  const cardsOverlap = await page.locator('#flowPackageList .solution-component-card').evaluateAll(cards => (
+    cards.slice(1).some((card, index) => {
+      const previous = cards[index].getBoundingClientRect();
+      const current = card.getBoundingClientRect();
+      return current.top < previous.bottom;
+    })
+  ));
+  expect(cardsOverlap).toBe(false);
+
+  await page.locator('.flow-package-mermaid-section summary').click();
+  await page.getByRole('button', { name: 'Show original diagram' }).click();
+  await expect(page.locator('#flowPackageMermaidPreview svg')).toBeVisible();
+  await expect(page.locator('#flowPackageMermaidHandoverOutput')).not.toContainText(guid);
+  await expect(page.locator('#flowPackageMermaidHandoverOutput')).toContainText('Cloud flow: Account approval');
 });
 
 test('stages multiple flow updates and downloads a verified solution ZIP', async ({ page }) => {
@@ -209,6 +244,9 @@ async function loadFlowEditorSolution(page) {
     mimeType: 'application/zip',
     buffer: createFlowEditorSolutionZip()
   });
+  await expect(page.locator('#flowPackageDropTitle')).toHaveText('ops-toolkit.zip');
+  await expect(page.locator('#flowPackageDropHint')).toContainText('ZIP selected');
   await page.getByRole('button', { name: 'Inspect flows' }).click();
   await expect(page.getByRole('status')).toContainText('Cloud flows inspected successfully.');
+  await expect(page.locator('#flowPackageDropHint')).toContainText('Loaded successfully · 2 cloud flows found');
 }

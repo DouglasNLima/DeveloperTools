@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import {
   SOLUTION_MERMAID_COMPONENT_FILTERS,
@@ -365,7 +366,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Mermaid source copied to the clipboard.', 'success');
     } catch {
       output.focus();

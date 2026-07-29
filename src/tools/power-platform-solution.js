@@ -1,4 +1,8 @@
 import { decodeTextBytes } from './power-platform-package-editor.js';
+import {
+  formatPowerPlatformDisplayName,
+  isPowerPlatformGuid
+} from './power-platform-display.js';
 
 const EOCD_SIGNATURE = 0x06054b50;
 const CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50;
@@ -761,18 +765,22 @@ export function findCloudFlowDefinition(value) {
 }
 
 export function formatOperationLabel(key, operation = {}) {
-  const name = String(operation?.metadata?.operationMetadataId || operation?.description || key || 'Step').replace(/_/g, ' ');
-  const type = String(operation?.type || operation?.kind || '').replace(/_/g, ' ');
-  const operationId = operation?.inputs?.host?.operationId || operation?.inputs?.method || '';
-  const parts = [name];
-
-  if (type) {
-    parts.push(type);
-  }
-
-  if (operationId) {
-    parts.push(operationId);
-  }
+  const name = [
+    operation?.metadata?.operationMetadataId,
+    operation?.description,
+    key
+  ]
+    .map(value => String(value || '').replace(/_/g, ' ').trim())
+    .find(value => value && !isPowerPlatformGuid(value))
+    || 'Step';
+  const parts = [
+    formatPowerPlatformDisplayName(name, 'Step'),
+    formatPowerPlatformDisplayName(String(operation?.type || operation?.kind || '').replace(/_/g, ' ')),
+    formatPowerPlatformDisplayName(operation?.inputs?.host?.operationId || operation?.inputs?.method || '')
+  ].filter((value, index, values) => (
+    value
+    && values.findIndex(candidate => candidate.toLocaleLowerCase('en-GB') === value.toLocaleLowerCase('en-GB')) === index
+  ));
 
   return parts.join(' - ');
 }

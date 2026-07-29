@@ -16,7 +16,7 @@ const devtoolsHtml = await readFile(new URL('../../devtools.html', import.meta.u
 const serviceWorkerSource = await readFile(new URL('../../sw.js', import.meta.url), 'utf8');
 
 test('formats the versioned app title consistently', () => {
-  assert.equal(APP_TITLE, 'Developer Tools v0.1.0 (build 43)');
+  assert.equal(APP_TITLE, 'Developer Tools v0.1.0 (build 44)');
   assert.equal(formatAppTitle(), APP_TITLE);
   assert.equal(formatAppTitle({
     name: 'Developer Tools',
@@ -40,12 +40,14 @@ test('keeps the visible build stamp aligned with the offline cache version', () 
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/image-resizer\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/image-resizer\.ui\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/file-preview-modal\.js'/);
+  assert.match(serviceWorkerSource, /'\.\/src\/tools\/clipboard-feedback\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/json-data-workbench\.ui\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/mermaid-studio\.ui\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/power-pages-workbench\.ui\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/power-automate-email-template\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/power-automate-email-template\.ui\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/power-platform-solution\.js'/);
+  assert.match(serviceWorkerSource, /'\.\/src\/tools\/power-platform-display\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/power-platform-classic-workflow-package\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/power-platform-classic-workflow-package\.ui\.js'/);
   assert.match(serviceWorkerSource, /'\.\/src\/tools\/mermaid-viewer\.js'/);

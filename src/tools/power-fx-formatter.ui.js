@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { POWER_FX_OUTPUT_MODES, formatPowerFxSnippet } from './power-fx-formatter.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
@@ -189,7 +190,7 @@ export function renderPowerFxSnippetFormatter(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Formatted formula copied to the clipboard.', 'success');
     } catch {
       output.focus();

@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   JSON_SCHEMA_VALIDATOR_OUTPUT_FORMATS,
   validateJsonAgainstSchema
@@ -170,7 +171,7 @@ export function renderJsonSchemaValidator(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

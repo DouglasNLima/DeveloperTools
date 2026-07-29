@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { URL_TOOL_MODES, processUrlTool } from './url-codec.js';
 
 export function renderUrlCodec(container) {
@@ -168,7 +169,7 @@ export function renderUrlCodec(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

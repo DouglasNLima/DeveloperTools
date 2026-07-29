@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   COMMAND_BAR_CONTEXTS,
   FORM_EVENT_TYPES,
@@ -448,7 +449,7 @@ async function copyOutput(output, copyButton, status, emptyMessage) {
   }
 
   try {
-    await navigator.clipboard.writeText(output.value);
+    await writeTextToClipboard(output.value);
     setStatus(status, 'Output copied to the clipboard.', 'success');
   } catch {
     output.focus();

@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import {
@@ -316,7 +317,7 @@ export function renderImageOcr(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('OCR text copied.', 'success');
     } catch {
       setStatus('Copy failed. Select the extracted text and copy it manually.', 'error');

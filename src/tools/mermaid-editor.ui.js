@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   MERMAID_THEME_OPTIONS,
   MERMAID_VERSION,
@@ -200,7 +201,7 @@ export function renderMermaidEditor(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(source);
+      await writeTextToClipboard(source);
       setStatus('Mermaid source copied to the clipboard.', 'success');
     } catch {
       sourceInput.focus();

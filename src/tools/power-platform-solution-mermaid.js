@@ -22,6 +22,7 @@ import {
   uniqueLabels
 } from './power-platform-solution.js';
 import { buildClassicWorkflowMermaid } from './power-platform-xaml.js';
+import { formatPowerPlatformDisplayName } from './power-platform-display.js';
 
 const MAX_ACTIONS_PER_COMPONENT = 80;
 const MAX_DEPENDENCY_RELATIONS = 180;
@@ -95,15 +96,17 @@ export function buildComponentDiagram(component) {
   const builder = builders[component.type] || buildMetadataDiagram;
   const diagram = builder(component);
   const analysis = analyseMermaidSource(diagram.mermaid);
+  const displayName = formatPowerPlatformDisplayName(component.name, component.typeLabel || 'Process');
 
   return {
     ...component,
+    displayName,
     ...diagram,
     outputType: analysis.diagramType,
     lineCount: analysis.lineCount,
     outputBytes: analysis.outputBytes,
     outputSizeLabel: analysis.outputSizeLabel,
-    downloadName: buildMermaidDownloadFileName(`${component.typeLabel}-${component.name}`, 'mmd'),
+    downloadName: buildMermaidDownloadFileName(`${component.typeLabel}-${displayName}`, 'mmd'),
     warnings: [...(component.warnings || []), ...(diagram.warnings || [])]
   };
 }
@@ -155,7 +158,7 @@ export function buildSolutionInventoryMarkdown({ solution, components, dependenc
   components.forEach(component => {
     lines.push(
       '',
-      `### ${component.name}`,
+      `### ${component.displayName || formatPowerPlatformDisplayName(component.name, component.typeLabel)}`,
       '',
       `- Type: ${component.typeLabel}`,
       `- Source: ${component.sourcePath}`,
@@ -872,7 +875,7 @@ function componentNodeLabel(component) {
     return 'Unknown component';
   }
 
-  return `${component.typeLabel}: ${component.name}`;
+  return `${component.typeLabel}: ${component.displayName || formatPowerPlatformDisplayName(component.name, 'Process')}`;
 }
 
 function eventNodeLabel(operation) {
@@ -900,7 +903,7 @@ function buildCloudFlowDiagram(component) {
   }
 
   const context = createMermaidContext('flowchart TD');
-  const rootId = context.node('flow', `Cloud flow: ${component.name}`, 'rounded');
+  const rootId = context.node('flow', `Cloud flow: ${formatPowerPlatformDisplayName(component.name, 'Cloud flow')}`, 'rounded');
   const triggers = objectEntries(definition.triggers);
   const actions = isPlainObject(definition.actions) ? definition.actions : {};
   const warnings = [];
@@ -1015,7 +1018,7 @@ function buildBusinessProcessFlowDiagram(component) {
 function buildBusinessRuleDiagram(component) {
   const rule = extractBusinessRuleShape(component);
   const context = createMermaidContext('flowchart TD');
-  const rootId = context.node('rule', `Business rule: ${component.name}`, 'rounded');
+  const rootId = context.node('rule', `Business rule: ${formatPowerPlatformDisplayName(component.name, 'Business rule')}`, 'rounded');
 
   if (rule.conditions.length === 0 && rule.actions.length === 0) {
     return buildMetadataDiagram(component, 'Business rule metadata');
@@ -1065,7 +1068,7 @@ function buildClassicWorkflowDiagram(component) {
   }
 
   const context = createMermaidContext('flowchart TD');
-  const rootId = context.node('workflow', `Workflow: ${component.name}`, 'rounded');
+  const rootId = context.node('workflow', `Workflow: ${formatPowerPlatformDisplayName(component.name, 'Classic workflow')}`, 'rounded');
   let previousId = rootId;
 
   steps.slice(0, MAX_ACTIONS_PER_COMPONENT).forEach((step, index) => {
@@ -1084,7 +1087,7 @@ function buildClassicWorkflowDiagram(component) {
 
 function buildMetadataDiagram(component, rootLabel = 'Process metadata') {
   const context = createMermaidContext('flowchart TD');
-  const rootId = context.node('component', `${rootLabel}: ${component.name}`, 'rounded');
+  const rootId = context.node('component', `${rootLabel}: ${formatPowerPlatformDisplayName(component.name, component.typeLabel || 'Process')}`, 'rounded');
   const detailRows = [
     ['type', `Type: ${component.typeLabel}`],
     ['source', `Source: ${component.sourcePath}`],

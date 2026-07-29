@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import {
   buildSolutionImportPreflightFileName,
@@ -234,7 +235,7 @@ export function renderPowerPlatformSolutionImportPreflight(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Import preflight report copied to the clipboard.', 'success');
     } catch {
       output.focus();

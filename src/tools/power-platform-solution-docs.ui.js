@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import {
   buildSolutionDocumentationFileName,
@@ -189,7 +190,7 @@ export function renderPowerPlatformSolutionDocs(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Markdown documentation copied to the clipboard.', 'success');
     } catch {
       output.focus();

@@ -197,6 +197,18 @@ a.button[aria-disabled="true"] {
   transform: none;
 }
 
+button.copy-feedback-success {
+  background: var(--success-soft);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+button.copy-feedback-error {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 a.button[hidden],
 [hidden] {
   display: none !important;
@@ -2034,8 +2046,10 @@ button.danger {
 }
 
 .solution-component-list {
+  align-content: start;
   display: grid;
   gap: 0.5rem;
+  grid-auto-rows: max-content;
   max-height: 620px;
   min-height: 260px;
   overflow: auto;
@@ -2050,8 +2064,12 @@ button.danger {
   cursor: pointer;
   display: grid;
   gap: 0.3rem;
+  min-height: max-content;
+  min-width: 0;
+  overflow: hidden;
   padding: 0.65rem;
   text-align: left;
+  width: 100%;
 }
 
 .solution-component-card:hover,
@@ -2068,7 +2086,12 @@ button.danger {
 .solution-component-card strong,
 .solution-component-card span,
 .solution-component-card small {
+  min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.solution-component-card strong {
+  line-height: 1.3;
 }
 
 .solution-component-card span,
@@ -2076,6 +2099,13 @@ button.danger {
   color: var(--text-soft);
   font-size: 0.78rem;
   font-weight: 800;
+}
+
+.solution-component-card small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .solution-mermaid-selected-grid {
@@ -2232,6 +2262,30 @@ button.danger {
   background: var(--accent-soft);
   border-color: var(--accent);
   box-shadow: var(--focus);
+}
+
+.drop-zone.has-file {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  border-style: solid;
+}
+
+.drop-zone.has-file.is-loaded {
+  background: var(--success-soft);
+  border-color: var(--success);
+}
+
+.drop-zone.has-file.has-error {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.drop-zone.has-file.is-loaded .drop-zone-label span {
+  color: var(--success);
+}
+
+.drop-zone.has-file.has-error .drop-zone-label span {
+  color: var(--danger);
 }
 
 .drop-zone input,

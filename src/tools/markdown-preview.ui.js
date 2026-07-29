@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   analyseMarkdown,
   renderMarkdownPreview
@@ -248,7 +249,7 @@ export function renderMarkdownPreviewInspector(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(input.value);
+      await writeTextToClipboard(input.value);
       setStatus('Markdown copied to the clipboard.', 'success');
     } catch {
       input.focus();

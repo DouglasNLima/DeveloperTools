@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { sanitiseSupportPack } from './support-pack-sanitiser.js';
 
 export function renderSupportPackSanitiser(container) {
@@ -123,7 +124,7 @@ export function renderSupportPackSanitiser(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Sanitised output copied to the clipboard.', 'success');
     } catch {
       output.focus();

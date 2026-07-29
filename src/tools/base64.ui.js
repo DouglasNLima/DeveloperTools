@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   bytesToBase64,
   decodeBase64Input,
@@ -412,7 +413,7 @@ export function renderFileToBase64(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(value);
+      await writeTextToClipboard(value);
       setStatus('Base64 output copied to the clipboard.', 'success');
     } catch {
       base64Output.focus();

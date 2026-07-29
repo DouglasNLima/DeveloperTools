@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { CASE_OUTPUT_FORMATS, convertCase } from './case-converter.js';
 
 export function renderCaseConverter(container) {
@@ -208,7 +209,7 @@ export function renderCaseConverter(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Converted output copied to the clipboard.', 'success');
     } catch {
       output.focus();

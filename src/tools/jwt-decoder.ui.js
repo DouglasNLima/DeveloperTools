@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { decodeJwt } from './jwt-decoder.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
@@ -191,7 +192,7 @@ export function renderJwtDecoder(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(payloadOutput.value);
+      await writeTextToClipboard(payloadOutput.value);
       setStatus('Decoded payload copied to the clipboard.', 'success');
     } catch {
       payloadOutput.focus();

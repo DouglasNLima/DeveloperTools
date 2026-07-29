@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { buildJsonDiff } from './json-diff.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
@@ -162,7 +163,7 @@ export function renderJsonDiff(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Output copied to the clipboard.', 'success');
     } catch {
       output.focus();

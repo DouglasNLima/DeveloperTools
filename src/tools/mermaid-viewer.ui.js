@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import { renderMermaidToSvg, svgToPngBlob } from './mermaid-runtime.js';
 import {
   buildMermaidViewerFileNames,
@@ -200,7 +201,7 @@ export function bindMermaidViewer(root, options = {}) {
     }
 
     try {
-      await navigator.clipboard.writeText(value);
+      await writeTextToClipboard(value);
     } catch {
       const fallback = document.createElement('textarea');
       fallback.value = value;

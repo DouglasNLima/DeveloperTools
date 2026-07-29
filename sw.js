@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v43';
+const CACHE_NAME = 'developer-tools-static-v44';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -19,6 +19,7 @@ const PRECACHE_URLS = [
   './src/tools/case-converter.js',
   './src/tools/case-converter.ui.js',
   './src/tools/catalog.js',
+  './src/tools/clipboard-feedback.js',
   './src/tools/cron-rrule-builder.js',
   './src/tools/cron-rrule-builder.ui.js',
   './src/tools/csv-tsv-helper.js',
@@ -82,6 +83,7 @@ const PRECACHE_URLS = [
   './src/tools/power-fx-formatter.ui.js',
   './src/tools/power-platform-flow-package.js',
   './src/tools/power-platform-flow-package.ui.js',
+  './src/tools/power-platform-display.js',
   './src/tools/power-platform-package-editor.js',
   './src/tools/power-platform-xaml.js',
   './src/tools/power-platform-classic-workflow-package.js',

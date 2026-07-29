@@ -1,3 +1,4 @@
+import { writeTextToClipboard } from './clipboard-feedback.js';
 import {
   DATAVERSE_ENDPOINT_MODES,
   DATAVERSE_ENDPOINT_PRESETS,
@@ -342,7 +343,7 @@ export function renderDataverseODataQueryBuilder(container) {
     }
 
     try {
-      await navigator.clipboard.writeText(output.value);
+      await writeTextToClipboard(output.value);
       setStatus('Dataverse query output copied to the clipboard.', 'success');
     } catch {
       output.focus();
