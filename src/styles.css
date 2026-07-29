@@ -1445,6 +1445,18 @@ label.button.secondary:hover {
   color: var(--danger);
 }
 
+.status-message.warning {
+  background: var(--amber-soft);
+  border-color: rgba(202, 138, 4, 0.3);
+  color: var(--amber);
+}
+
+button.danger {
+  background: var(--danger-soft);
+  border-color: rgba(220, 38, 38, 0.28);
+  color: var(--danger);
+}
+
 .jwt-warning-list,
 .csv-issue-list,
 .markdown-table-issue-list,
@@ -1981,6 +1993,123 @@ label.button.secondary:hover {
 
 .solution-mermaid-selected-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.power-flow-package-tool {
+  gap: 0.75rem;
+}
+
+.flow-package-summary-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.flow-package-layout {
+  align-items: start;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(230px, 0.55fr) minmax(0, 1.45fr);
+}
+
+.flow-package-editor-panel,
+.flow-package-build-panel,
+.flow-package-mermaid-section {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.75rem;
+}
+
+.flow-package-editor-panel h2,
+.flow-package-build-panel h2 {
+  font-size: 1rem;
+  line-height: 1.25;
+  margin: 0.15rem 0;
+}
+
+.flow-package-editor-panel small {
+  color: var(--text-soft);
+  overflow-wrap: anywhere;
+}
+
+.flow-package-json-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.flow-package-json-grid textarea {
+  min-height: 380px;
+}
+
+.flow-package-file-button {
+  cursor: pointer;
+}
+
+.flow-package-change-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.flow-package-diff-list,
+.flow-package-staged-list {
+  display: grid;
+  gap: 0.5rem;
+  max-height: 480px;
+  overflow: auto;
+}
+
+.flow-package-diff-card,
+.flow-package-staged-card {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.65rem;
+}
+
+.flow-package-diff-card.added {
+  background: var(--success-soft);
+  border-left-color: var(--success);
+}
+
+.flow-package-diff-card.removed {
+  background: var(--danger-soft);
+  border-left-color: var(--danger);
+}
+
+.flow-package-diff-card.changed {
+  background: var(--amber-soft);
+  border-left-color: var(--amber);
+}
+
+.flow-package-diff-card span,
+.flow-package-staged-card span {
+  color: var(--text-soft);
+  font-size: 0.8rem;
+}
+
+.flow-package-diff-card code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.flow-package-staged-card {
+  align-items: center;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr) auto;
+}
+
+.flow-package-mermaid-section summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.flow-package-mermaid-section .mermaid-preview {
+  min-height: 220px;
 }
 
 .uuid-result-card {
@@ -2822,7 +2951,12 @@ label.button.secondary:hover {
   .markdown-inspector-grid,
   .pdf-template-layout,
   .solution-mermaid-layout,
-  .solution-mermaid-selected-grid {
+  .solution-mermaid-selected-grid,
+  .flow-package-summary-grid,
+  .flow-package-layout,
+  .flow-package-json-grid,
+  .flow-package-change-grid,
+  .flow-package-staged-card {
     grid-template-columns: 1fr;
   }
 

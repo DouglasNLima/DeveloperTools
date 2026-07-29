@@ -2,7 +2,7 @@
 
 This roadmap covers Power Platform tools beyond the first Power Pages mini-roadmap. Every tool remains static, local-first and browser-only. The app can help compose snippets, commands and review artefacts, but it must not connect to Dataverse, call a tenant API, authenticate a user or run Power Platform CLI commands.
 
-Status: the implemented solution ZIP phases are consolidated in the visible Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the visible Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the visible Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools as compatibility hash routes, not separate menu entries.
+Status: the implemented solution ZIP inspection, flow editing and preflight phases are consolidated in the visible Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the visible Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the visible Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools as compatibility hash routes, not separate menu entries.
 
 ## References
 
@@ -91,6 +91,15 @@ Status: the implemented solution ZIP phases are consolidated in the visible Solu
 - Build a suggested `pac solution import --path ...` command with async and force-overwrite options.
 - Label dependency findings as exported metadata only, not a live target-environment dependency check.
 - Status: implemented with unit and browser coverage.
+
+## Phase 7A: Power Automate Flow Package Editor
+
+- Read complete `Workflows/*.json` cloud flow files from exported solution ZIPs.
+- Copy, download, compare and render original or proposed flow definitions as local Mermaid diagrams.
+- Validate flow identity, definition shape and structural JSON differences before staging changes.
+- Accumulate updates for multiple flows and rebuild unmanaged solutions while preserving all untouched ZIP entries.
+- Increment `solution.xml` revision by default, verify the rebuilt archive and keep managed solutions read only.
+- Status: implemented as the Flow editor mode in Solution Package Inspector with unit and browser coverage.
 
 ## Phase 8: Model-driven JavaScript Review Pack
 

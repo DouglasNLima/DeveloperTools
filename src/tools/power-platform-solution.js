@@ -53,7 +53,9 @@ export async function readPowerPlatformSolutionArchive(input, options = {}) {
       entryCount: zip.entries.length,
       workflowJsonCount: textFiles.workflowJsonFiles.length
     },
-    sourceFiles: textFiles
+    sourceFiles: textFiles,
+    archiveBytes: bytes,
+    zipArchive: zip
   };
 }
 
@@ -71,12 +73,21 @@ export async function readZipArchive(input, options = {}) {
     throw new Error('The ZIP central directory could not be found.');
   }
 
+  const diskNumber = view.getUint16(eocdOffset + 4, true);
+  const centralDirectoryDisk = view.getUint16(eocdOffset + 6, true);
+  const entriesOnDisk = view.getUint16(eocdOffset + 8, true);
   const totalEntries = view.getUint16(eocdOffset + 10, true);
   const centralDirectorySize = view.getUint32(eocdOffset + 12, true);
   const centralDirectoryOffset = view.getUint32(eocdOffset + 16, true);
+  const commentLength = view.getUint16(eocdOffset + 20, true);
+  const eocdEnd = eocdOffset + 22 + commentLength;
 
   if (totalEntries === ZIP64_COUNT_SENTINEL || centralDirectorySize === ZIP64_SIZE_SENTINEL || centralDirectoryOffset === ZIP64_SIZE_SENTINEL) {
     throw new Error('ZIP64 solution archives are not supported in this browser-only reader.');
+  }
+
+  if (eocdEnd > bytes.byteLength) {
+    throw new Error('The ZIP end record contains an invalid archive comment.');
   }
 
   if (centralDirectoryOffset + centralDirectorySize > bytes.byteLength) {
@@ -100,24 +111,65 @@ export async function readZipArchive(input, options = {}) {
     const extraLength = view.getUint16(offset + 30, true);
     const commentLength = view.getUint16(offset + 32, true);
     const localHeaderOffset = view.getUint32(offset + 42, true);
+    const centralRecordLength = 46 + fileNameLength + extraLength + commentLength;
+
+    if (offset + centralRecordLength > centralDirectoryOffset + centralDirectorySize) {
+      throw new Error('The ZIP central directory entry is outside the declared directory bounds.');
+    }
+
     const fileNameBytes = bytes.slice(offset + 46, offset + 46 + fileNameLength);
     const name = decodeZipName(fileNameBytes, Boolean(flags & ZIP_UTF8_FLAG));
 
     if (flags & ZIP_ENCRYPTED_FLAG) {
       warnings.push(`${name} is encrypted and was skipped.`);
-    } else if (!name.endsWith('/')) {
-      entries.push({
-        name,
-        flags,
-        compressionMethod,
-        compressedSize,
-        uncompressedSize,
-        localHeaderOffset
-      });
     }
 
-    offset += 46 + fileNameLength + extraLength + commentLength;
+    entries.push({
+      name,
+      flags,
+      compressionMethod,
+      compressedSize,
+      uncompressedSize,
+      crc32: view.getUint32(offset + 16, true),
+      localHeaderOffset,
+      centralHeaderOffset: offset,
+      centralRecordLength,
+      centralRecord: bytes.slice(offset, offset + centralRecordLength),
+      encrypted: Boolean(flags & ZIP_ENCRYPTED_FLAG),
+      isDirectory: name.endsWith('/')
+    });
+
+    offset += centralRecordLength;
   }
+
+  const localEntries = [...entries].sort((left, right) => left.localHeaderOffset - right.localHeaderOffset);
+
+  localEntries.forEach((entry, index) => {
+    const localRecordEnd = localEntries[index + 1]?.localHeaderOffset ?? centralDirectoryOffset;
+
+    if (
+      entry.localHeaderOffset < 0
+      || entry.localHeaderOffset + 30 > centralDirectoryOffset
+      || localRecordEnd < entry.localHeaderOffset
+      || localRecordEnd > centralDirectoryOffset
+      || view.getUint32(entry.localHeaderOffset, true) !== LOCAL_FILE_SIGNATURE
+    ) {
+      throw new Error(`${entry.name} has an invalid local ZIP record.`);
+    }
+
+    const localNameLength = view.getUint16(entry.localHeaderOffset + 26, true);
+    const localExtraLength = view.getUint16(entry.localHeaderOffset + 28, true);
+    const localDataOffset = entry.localHeaderOffset + 30 + localNameLength + localExtraLength;
+
+    if (localDataOffset + entry.compressedSize > localRecordEnd) {
+      throw new Error(`${entry.name} is outside the archive bounds.`);
+    }
+
+    entry.localRecordEnd = localRecordEnd;
+    entry.localRecord = bytes.slice(entry.localHeaderOffset, localRecordEnd);
+    entry.localHeader = bytes.slice(entry.localHeaderOffset, localDataOffset);
+    entry.compressedBytes = bytes.slice(localDataOffset, localDataOffset + entry.compressedSize);
+  });
 
   async function readText(name) {
     const entry = findZipEntry(entries, name);
@@ -125,7 +177,11 @@ export async function readZipArchive(input, options = {}) {
   }
 
   async function readMatchingText(predicate) {
-    const matches = entries.filter(entry => predicate(normaliseZipPath(entry.name)));
+    const matches = entries.filter(entry => (
+      !entry.isDirectory
+      && !entry.encrypted
+      && predicate(normaliseZipPath(entry.name))
+    ));
     const files = [];
 
     for (const entry of matches) {
@@ -139,12 +195,141 @@ export async function readZipArchive(input, options = {}) {
     return files;
   }
 
+  async function readBytes(name) {
+    const entry = findZipEntry(entries, name);
+    return entry ? readZipEntryBytes(bytes, view, entry, options) : null;
+  }
+
   return {
     entries,
     warnings,
     readText,
-    readMatchingText
+    readMatchingText,
+    readBytes,
+    bytes,
+    centralDirectoryOffset,
+    centralDirectorySize,
+    centralDirectoryTail: bytes.slice(offset, centralDirectoryOffset + centralDirectorySize),
+    eocdOffset,
+    eocdRecord: bytes.slice(eocdOffset, eocdEnd),
+    trailingBytes: bytes.slice(eocdEnd),
+    diskNumber,
+    centralDirectoryDisk,
+    entriesOnDisk,
+    totalEntries,
+    multiDisk: diskNumber !== 0 || centralDirectoryDisk !== 0 || entriesOnDisk !== totalEntries
   };
+}
+
+export function replaceZipArchiveEntries(zip, replacements = new Map()) {
+  if (!zip?.bytes || !Array.isArray(zip.entries)) {
+    throw new Error('Load a valid solution ZIP before rebuilding the package.');
+  }
+
+  if (zip.multiDisk) {
+    throw new Error('Multi-disk ZIP archives cannot be rebuilt in this browser-only editor.');
+  }
+
+  const replacementMap = normaliseZipReplacementMap(replacements);
+
+  if (replacementMap.size === 0) {
+    throw new Error('Add at least one replacement before rebuilding the solution ZIP.');
+  }
+
+  const entriesByName = new Map();
+
+  zip.entries.forEach(entry => {
+    const key = normaliseZipPath(entry.name).toLocaleLowerCase('en-GB');
+    const matches = entriesByName.get(key) || [];
+    matches.push(entry);
+    entriesByName.set(key, matches);
+  });
+
+  replacementMap.forEach((value, key) => {
+    const matches = entriesByName.get(key) || [];
+
+    if (matches.length === 0) {
+      throw new Error(`${value.path} was not found in the original solution ZIP.`);
+    }
+
+    if (matches.length > 1) {
+      throw new Error(`${value.path} appears more than once in the solution ZIP.`);
+    }
+
+    if (matches[0].isDirectory) {
+      throw new Error(`${value.path} is a directory and cannot be replaced.`);
+    }
+
+    if (matches[0].encrypted) {
+      throw new Error(`${value.path} is encrypted and cannot be replaced.`);
+    }
+  });
+
+  const localChunks = [];
+  const replacementDetails = new Map();
+  const offsets = new Map();
+  let localOffset = 0;
+
+  [...zip.entries]
+    .sort((left, right) => left.localHeaderOffset - right.localHeaderOffset)
+    .forEach(entry => {
+      const key = normaliseZipPath(entry.name).toLocaleLowerCase('en-GB');
+      const replacement = replacementMap.get(key);
+      const localRecord = replacement
+        ? buildReplacementLocalRecord(entry, replacement.bytes)
+        : entry.localRecord;
+
+      offsets.set(entry, localOffset);
+      localChunks.push(localRecord);
+      localOffset += localRecord.byteLength;
+
+      if (replacement) {
+        replacementDetails.set(entry, {
+          ...replacement,
+          crc32: calculateCrc32(replacement.bytes),
+          compressedSize: replacement.bytes.byteLength,
+          uncompressedSize: replacement.bytes.byteLength,
+          flags: entry.flags & ~0x0009,
+          compressionMethod: ZIP_STORED
+        });
+      }
+    });
+
+  const centralChunks = zip.entries.map(entry => buildReplacementCentralRecord(
+    entry,
+    offsets.get(entry),
+    replacementDetails.get(entry)
+  ));
+  centralChunks.push(zip.centralDirectoryTail || new Uint8Array());
+  const centralDirectory = concatenateBytes(centralChunks);
+  const localData = concatenateBytes(localChunks);
+  const eocdRecord = new Uint8Array(zip.eocdRecord);
+  const eocdView = new DataView(eocdRecord.buffer, eocdRecord.byteOffset, eocdRecord.byteLength);
+
+  eocdView.setUint32(12, centralDirectory.byteLength, true);
+  eocdView.setUint32(16, localData.byteLength, true);
+
+  return concatenateBytes([
+    localData,
+    centralDirectory,
+    eocdRecord,
+    zip.trailingBytes || new Uint8Array()
+  ]);
+}
+
+export function calculateCrc32(input) {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  let crc = 0xffffffff;
+
+  for (const byte of bytes) {
+    crc ^= byte;
+
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 export function parseSolutionMetadata(solutionXml = '') {
@@ -674,7 +859,10 @@ function findEndOfCentralDirectory(view) {
   const minimumOffset = Math.max(0, view.byteLength - 22 - 0xffff);
 
   for (let offset = view.byteLength - 22; offset >= minimumOffset; offset -= 1) {
-    if (view.getUint32(offset, true) === EOCD_SIGNATURE) {
+    if (
+      view.getUint32(offset, true) === EOCD_SIGNATURE
+      && offset + 22 + view.getUint16(offset + 20, true) <= view.byteLength
+    ) {
       return offset;
     }
   }
@@ -683,6 +871,10 @@ function findEndOfCentralDirectory(view) {
 }
 
 async function readZipEntryBytes(zipBytes, view, entry, options = {}) {
+  if (entry.encrypted || entry.flags & ZIP_ENCRYPTED_FLAG) {
+    throw new Error(`${entry.name} is encrypted and cannot be read.`);
+  }
+
   if (entry.localHeaderOffset + 30 > zipBytes.byteLength || view.getUint32(entry.localHeaderOffset, true) !== LOCAL_FILE_SIGNATURE) {
     throw new Error(`${entry.name} has an invalid local ZIP header.`);
   }
@@ -731,7 +923,10 @@ async function inflateRawBytes(bytes, options = {}) {
 
 function findZipEntry(entries, name) {
   const wanted = normaliseZipPath(name);
-  return entries.find(entry => normaliseZipPath(entry.name).toLocaleLowerCase('en-GB') === wanted.toLocaleLowerCase('en-GB')) || null;
+  return entries.find(entry => (
+    !entry.isDirectory
+    && normaliseZipPath(entry.name).toLocaleLowerCase('en-GB') === wanted.toLocaleLowerCase('en-GB')
+  )) || null;
 }
 
 function normaliseZipPath(path) {
@@ -748,6 +943,98 @@ function decodeZipName(bytes, isUtf8) {
 
 function decodeUtf8(bytes) {
   return new TextDecoder('utf-8').decode(bytes);
+}
+
+function normaliseZipReplacementMap(replacements) {
+  const output = new Map();
+  const values = replacements instanceof Map
+    ? [...replacements.entries()]
+    : Array.isArray(replacements)
+      ? replacements.map(item => [item?.path, item?.bytes ?? item?.content])
+      : Object.entries(replacements || {});
+
+  values.forEach(([path, value]) => {
+    const normalisedPath = normaliseZipPath(path);
+    const bytes = value instanceof Uint8Array
+      ? value
+      : value instanceof ArrayBuffer
+        ? new Uint8Array(value)
+        : new TextEncoder().encode(String(value ?? ''));
+
+    if (!normalisedPath) {
+      throw new Error('Every ZIP replacement requires a file path.');
+    }
+
+    const key = normalisedPath.toLocaleLowerCase('en-GB');
+
+    if (output.has(key)) {
+      throw new Error(`${normalisedPath} was supplied more than once as a ZIP replacement.`);
+    }
+
+    output.set(key, {
+      path: normalisedPath,
+      bytes
+    });
+  });
+
+  return output;
+}
+
+function buildReplacementLocalRecord(entry, replacementBytes) {
+  if (replacementBytes.byteLength > ZIP64_SIZE_SENTINEL - 1) {
+    throw new Error(`${entry.name} is too large for a non-ZIP64 solution archive.`);
+  }
+
+  const header = new Uint8Array(entry.localHeader);
+  const view = new DataView(header.buffer, header.byteOffset, header.byteLength);
+  const flags = entry.flags & ~0x0009;
+  const crc = calculateCrc32(replacementBytes);
+
+  view.setUint16(6, flags, true);
+  view.setUint16(8, ZIP_STORED, true);
+  view.setUint32(14, crc, true);
+  view.setUint32(18, replacementBytes.byteLength, true);
+  view.setUint32(22, replacementBytes.byteLength, true);
+
+  return concatenateBytes([header, replacementBytes]);
+}
+
+function buildReplacementCentralRecord(entry, localHeaderOffset, replacement) {
+  if (!Number.isInteger(localHeaderOffset) || localHeaderOffset < 0 || localHeaderOffset >= ZIP64_SIZE_SENTINEL) {
+    throw new Error('The rebuilt ZIP requires ZIP64 offsets, which are not supported.');
+  }
+
+  const record = new Uint8Array(entry.centralRecord);
+  const view = new DataView(record.buffer, record.byteOffset, record.byteLength);
+
+  if (replacement) {
+    view.setUint16(8, replacement.flags, true);
+    view.setUint16(10, replacement.compressionMethod, true);
+    view.setUint32(16, replacement.crc32, true);
+    view.setUint32(20, replacement.compressedSize, true);
+    view.setUint32(24, replacement.uncompressedSize, true);
+  }
+
+  view.setUint32(42, localHeaderOffset, true);
+  return record;
+}
+
+function concatenateBytes(chunks) {
+  const byteLength = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+
+  if (byteLength >= ZIP64_SIZE_SENTINEL) {
+    throw new Error('The rebuilt solution ZIP would require ZIP64 support.');
+  }
+
+  const output = new Uint8Array(byteLength);
+  let offset = 0;
+
+  chunks.forEach(chunk => {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  });
+
+  return output;
 }
 
 function normaliseManagedValue(value) {

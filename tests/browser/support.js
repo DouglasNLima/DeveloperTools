@@ -152,6 +152,80 @@ export function createSolutionZip() {
   return createStoredZip(files);
 }
 
+export function createFlowEditorSolutionZip(options = {}) {
+  const managed = options.managed ? '1' : '0';
+  const accountFlow = {
+    properties: {
+      displayName: 'Account approval',
+      workflowEntityId: '11111111-1111-1111-1111-111111111111',
+      definition: {
+        triggers: {
+          manual: {
+            type: 'Request',
+            description: 'When an account is selected'
+          }
+        },
+        actions: {
+          Get_account: {
+            type: 'OpenApiConnection',
+            inputs: {
+              host: {
+                operationId: 'GetItem'
+              }
+            }
+          }
+        }
+      }
+    }
+  };
+  const childFlow = {
+    properties: {
+      displayName: 'Child notifier',
+      workflowEntityId: '22222222-2222-2222-2222-222222222222',
+      definition: {
+        triggers: {
+          request: {
+            type: 'Request',
+            description: 'Run from a parent flow'
+          }
+        },
+        actions: {
+          Compose_response: {
+            type: 'Compose'
+          }
+        }
+      }
+    }
+  };
+
+  return createStoredZip([
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>ops_toolkit</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Operations Toolkit" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>1.2.3.4</Version>',
+      `    <Managed>${managed}</Managed>`,
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <Workflows>',
+      '    <Workflow WorkflowId="{11111111-1111-1111-1111-111111111111}" Name="Account approval" Category="5" />',
+      '    <Workflow WorkflowId="{22222222-2222-2222-2222-222222222222}" Name="Child notifier" Category="5" />',
+      '  </Workflows>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['Workflows/11111111-1111-1111-1111-111111111111.json', JSON.stringify(accountFlow, null, 2)],
+    ['Workflows/22222222-2222-2222-2222-222222222222.json', JSON.stringify(childFlow, null, 2)],
+    ['WebResources/contoso_/unchanged.txt', 'This entry must remain unchanged.']
+  ]);
+}
+
 export function createModelDrivenJavascriptSolutionZip() {
   const files = [
     ['solution.xml', [
