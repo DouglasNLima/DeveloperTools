@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v41';
+const CACHE_NAME = 'developer-tools-static-v43';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -62,6 +62,8 @@ const PRECACHE_URLS = [
   './src/tools/mermaid-data.ui.js',
   './src/tools/mermaid-editor.ui.js',
   './src/tools/mermaid-runtime.js',
+  './src/tools/mermaid-viewer.js',
+  './src/tools/mermaid-viewer.ui.js',
   './src/tools/mermaid-studio.ui.js',
   './src/tools/mermaid-template-builder.ui.js',
   './src/tools/model-driven-javascript.js',

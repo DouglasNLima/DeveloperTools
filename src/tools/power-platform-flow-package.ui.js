@@ -1,6 +1,6 @@
 import { bindFileDropZone } from './file-drop-zone.js';
 import { formatValuePreview } from './json-diff.js';
-import { renderMermaidToSvg } from './mermaid-runtime.js';
+import { bindMermaidViewer } from './mermaid-viewer.ui.js';
 import {
   buildFlowDiagram,
   buildUpdatedFlowPackage,
@@ -9,6 +9,8 @@ import {
   isValidSolutionVersion,
   validateFlowReplacement
 } from './power-platform-flow-package.js';
+import { bindSyntaxHighlight } from './syntax-highlight.js';
+import { publishHandoverValue } from './tool-handover.js';
 
 const MAX_RENDERED_CHANGES = 200;
 
@@ -144,9 +146,8 @@ export function renderPowerPlatformFlowPackageEditor(container) {
               <button id="showOriginalFlowDiagramButton" class="secondary" type="button" disabled>Show original diagram</button>
               <button id="showUpdatedFlowDiagramButton" class="secondary" type="button" disabled>Show updated diagram</button>
             </div>
-            <div id="flowPackageMermaidPreview" class="mermaid-preview" aria-live="polite">
-              <p class="empty-state">Choose which flow version to render.</p>
-            </div>
+            <div id="flowPackageMermaidPreview" aria-live="polite"></div>
+            <output id="flowPackageMermaidHandoverOutput" hidden></output>
           </details>
         </section>
       </div>
@@ -204,6 +205,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
   const originalDiagramButton = container.querySelector('#showOriginalFlowDiagramButton');
   const updatedDiagramButton = container.querySelector('#showUpdatedFlowDiagramButton');
   const mermaidPreview = container.querySelector('#flowPackageMermaidPreview');
+  const mermaidHandoverOutput = container.querySelector('#flowPackageMermaidHandoverOutput');
   const targetVersion = container.querySelector('#flowPackageTargetVersion');
   const readiness = container.querySelector('#flowPackageReadinessDetail');
   const generateButton = container.querySelector('#generateFlowPackageButton');
@@ -233,6 +235,14 @@ export function renderPowerPlatformFlowPackageEditor(container) {
   const reviews = new Map();
   const staged = new Map();
   const objectUrls = new Set();
+  const originalJsonHighlight = bindSyntaxHighlight(originalJson, { language: 'json' });
+  const updatedJsonHighlight = bindSyntaxHighlight(updatedJson, { language: 'json' });
+  const mermaidViewer = bindMermaidViewer(mermaidPreview, {
+    label: 'Flow diagram',
+    emptyMessage: 'Choose which flow version to render.',
+    onSourceChange: value => publishHandoverValue(mermaidHandoverOutput, value),
+    setStatus
+  });
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -367,6 +377,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       selectedState.textContent = 'Original';
       originalJson.value = '';
       updatedJson.value = '';
+      publishHandoverValue(originalJson, '');
       setEditorAvailability(null);
       renderReview(null);
       renderFlowList();
@@ -378,6 +389,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
     selectedState.textContent = readFlowState(flow.path);
     originalJson.value = flow.originalText;
     updatedJson.value = drafts.get(flow.path) ?? staged.get(flow.path)?.validation.updatedText ?? '';
+    publishHandoverValue(originalJson, originalJson.value);
     setEditorAvailability(flow);
     setJsonDownloads(flow);
     renderReview(currentReview);
@@ -637,12 +649,17 @@ export function renderPowerPlatformFlowPackageEditor(container) {
       return;
     }
 
-    mermaidPreview.innerHTML = '<p class="empty-state">Rendering flow diagram...</p>';
+    mermaidViewer.setLoading('Rendering flow diagram...');
 
     try {
-      const rendered = await renderMermaidToSvg(diagram.mermaid);
-      mermaidPreview.innerHTML = rendered.svg;
-      rendered.bindFunctions?.(mermaidPreview);
+      const rendered = await mermaidViewer.render(diagram.mermaid, {
+        fileName: buildFlowDiagramName(flow.path, useUpdated)
+      });
+
+      if (!rendered) {
+        return;
+      }
+
       setStatus(`${useUpdated ? 'Updated' : 'Original'} flow diagram rendered successfully.`, 'success');
     } catch (error) {
       clearDiagram();
@@ -651,7 +668,7 @@ export function renderPowerPlatformFlowPackageEditor(container) {
   }
 
   function clearDiagram() {
-    mermaidPreview.innerHTML = '<p class="empty-state">Choose which flow version to render.</p>';
+    mermaidViewer.clear('Choose which flow version to render.');
   }
 
   function setJsonDownloads(flow) {
@@ -837,6 +854,9 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   return () => {
     unbindDropZone();
+    originalJsonHighlight.destroy();
+    updatedJsonHighlight.destroy();
+    mermaidViewer.destroy();
     revokeAllUrls();
   };
 }
@@ -847,6 +867,10 @@ function fileNameFromPath(path) {
 
 function buildUpdatedJsonName(path) {
   return fileNameFromPath(path).replace(/\.json$/i, '-updated.json');
+}
+
+function buildFlowDiagramName(path, useUpdated) {
+  return fileNameFromPath(path).replace(/\.json$/i, `-${useUpdated ? 'updated' : 'original'}-diagram`);
 }
 
 function capitalise(value) {

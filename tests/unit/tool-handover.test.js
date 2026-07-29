@@ -10,6 +10,7 @@ import {
   analyseHandoverValue,
   analyseJsonHandoverValue,
   applyHandoverPayload,
+  publishHandoverValue,
   resolveHandoverSuggestions,
   restoreToolState,
   serialiseToolState,
@@ -100,6 +101,11 @@ test('validates handover contracts against the tool catalogue', () => {
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'inventory' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'preflight' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'documentation' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'flow-original-json' && route.targetToolId === 'json-data-workbench' && route.targetMode === 'format'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'flow-updated-json' && route.targetToolId === 'json-data-workbench' && route.targetMode === 'format'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'classic-original-xaml' && route.targetInputId === 'explore-xml' && route.targetMode === 'explore'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'flow-mermaid' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
+  assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'solution-package-inspector' && route.sourceOutputId === 'classic-mermaid' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.targetToolId === 'mermaid-studio' && route.targetMode === 'editor'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-mermaid' && route.sourceOutputId === 'inventory' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
   assert.ok(TOOL_HANDOVER_ROUTES.some(route => route.sourceToolId === 'power-platform-solution-import-preflight' && route.sourceOutputId === 'preflight' && route.targetToolId === 'markdown-workbench' && route.targetMode === 'preview'));
@@ -1187,6 +1193,86 @@ test('resolves schema handovers for detected JSON Schema output', () => {
   assert.ok(suggestions.some(suggestion => suggestion.targetMode === 'schema'));
 });
 
+test('resolves contextual solution flow and classic workflow editor handovers', () => {
+  const flowRoot = createRoot([
+    createControl({
+      id: 'flowPackageOriginalJson',
+      tagName: 'TEXTAREA',
+      value: '{"properties":{"displayName":"Original flow"}}'
+    }),
+    createControl({
+      id: 'flowPackageUpdatedJson',
+      tagName: 'TEXTAREA',
+      value: '{"properties":{"displayName":"Updated flow"}}'
+    }),
+    createControl({
+      id: 'flowPackageMermaidHandoverOutput',
+      tagName: 'OUTPUT',
+      value: 'flowchart TD\n  Trigger --> Action'
+    })
+  ]);
+  const flowSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'solution-package-inspector',
+    root: flowRoot,
+    availableTools: ['json-data-workbench', 'mermaid-studio']
+  });
+
+  assert.ok(flowSuggestions.some(suggestion => (
+    suggestion.sourceOutputId === 'flow-original-json'
+    && suggestion.targetToolId === 'json-data-workbench'
+    && suggestion.targetMode === 'format'
+  )));
+  assert.ok(flowSuggestions.some(suggestion => (
+    suggestion.sourceOutputId === 'flow-updated-json'
+    && suggestion.targetToolId === 'json-data-workbench'
+    && suggestion.targetMode === 'format'
+  )));
+  assert.ok(flowSuggestions.some(suggestion => (
+    suggestion.sourceOutputId === 'flow-mermaid'
+    && suggestion.targetToolId === 'mermaid-studio'
+    && suggestion.targetMode === 'editor'
+  )));
+
+  const classicRoot = createRoot([
+    createControl({
+      id: 'classicWorkflowOriginalXaml',
+      tagName: 'TEXTAREA',
+      value: '<Activity><Workflow /></Activity>'
+    }),
+    createControl({
+      id: 'classicWorkflowUpdatedXaml',
+      tagName: 'TEXTAREA',
+      value: '<Activity><Workflow DisplayName="Updated" /></Activity>'
+    }),
+    createControl({
+      id: 'classicWorkflowMermaidHandoverOutput',
+      tagName: 'OUTPUT',
+      value: 'flowchart TD\n  Start --> Complete'
+    })
+  ]);
+  const classicSuggestions = resolveHandoverSuggestions({
+    sourceToolId: 'solution-package-inspector',
+    root: classicRoot,
+    availableTools: ['json-data-workbench', 'mermaid-studio']
+  });
+
+  assert.ok(classicSuggestions.some(suggestion => (
+    suggestion.sourceOutputId === 'classic-original-xaml'
+    && suggestion.targetInputId === 'explore-xml'
+    && suggestion.targetMode === 'explore'
+  )));
+  assert.ok(classicSuggestions.some(suggestion => (
+    suggestion.sourceOutputId === 'classic-updated-xaml'
+    && suggestion.targetInputId === 'explore-xml'
+    && suggestion.targetMode === 'explore'
+  )));
+  assert.ok(classicSuggestions.some(suggestion => (
+    suggestion.sourceOutputId === 'classic-mermaid'
+    && suggestion.targetToolId === 'mermaid-studio'
+    && suggestion.targetMode === 'editor'
+  )));
+});
+
 test('applies handover payloads and restores serialised form state', () => {
   const sourceRoot = createRoot([
     createControl({ id: 'jsonInput', tagName: 'TEXTAREA', value: '{"name":"Ada"}' }),
@@ -1248,6 +1334,12 @@ test('applies handover payloads and restores serialised form state', () => {
   ]);
   assert.equal(applyHandoverPayload(mermaidTargetRoot, 'mermaid-studio', 'source', 'flowchart TD\n  A --> B'), true);
   assert.equal(mermaidTargetRoot.querySelector('#mermaidSourceInput').value, 'flowchart TD\n  A --> B');
+
+  const publishedOutput = createControl({ id: 'handoverOutput', tagName: 'OUTPUT', value: '' });
+  assert.equal(publishHandoverValue(publishedOutput, 'flowchart TD\n  A --> B'), true);
+  assert.equal(publishedOutput.value, 'flowchart TD\n  A --> B');
+  assert.deepEqual(publishedOutput.events, ['input', 'change']);
+  assert.equal(publishHandoverValue(null, 'ignored'), false);
 
   const csvTargetRoot = createRoot([
     createControl({ id: 'csvDelimiter', tagName: 'SELECT', value: 'auto' }),

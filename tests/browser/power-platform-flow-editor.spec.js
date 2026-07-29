@@ -24,6 +24,10 @@ test('inspects cloud flow JSON and renders the selected flow diagram', async ({ 
   await expect(page.locator('#flowPackageList').getByText('Account approval')).toBeVisible();
   await expect(page.locator('#flowPackageList').getByText('Child notifier')).toBeVisible();
   await expect(page.locator('#flowPackageOriginalJson')).toHaveValue(/"displayName": "Account approval"/);
+  await expect(
+    page.locator('[data-syntax-editor-for="flowPackageOriginalJson"] .syntax-token--key').first()
+  ).toBeVisible();
+  await expect(page.locator('[data-syntax-editor-for="flowPackageUpdatedJson"]')).toBeVisible();
   await expect(page.locator('#downloadFlowOriginalButton')).toHaveAttribute(
     'download',
     '11111111-1111-1111-1111-111111111111.json'
@@ -35,6 +39,33 @@ test('inspects cloud flow JSON and renders the selected flow diagram', async ({ 
   await page.getByRole('button', { name: 'Show original diagram' }).click();
   await expect(page.locator('#flowPackageMermaidPreview svg')).toBeVisible();
   await expect(page.getByRole('status')).toContainText('Original flow diagram rendered successfully.');
+  await expect(page.getByRole('button', { name: 'Copy Mermaid' })).toBeVisible();
+  await expect(page.locator('#flowPackageMermaidPreview [data-mermaid-download-source]')).toHaveAttribute(
+    'download',
+    '11111111-1111-1111-1111-111111111111-original-diagram.mmd'
+  );
+  await expect(page.locator('#flowPackageMermaidPreview [data-mermaid-download-svg]')).toHaveAttribute(
+    'download',
+    '11111111-1111-1111-1111-111111111111-original-diagram.svg'
+  );
+  await expect(page.locator('#flowPackageMermaidPreview [data-mermaid-download-png]')).toBeVisible();
+
+  await page.getByRole('button', { name: 'Copy Mermaid' }).click();
+  await expect(page.getByRole('status')).toContainText('Mermaid source copied');
+  const zoomLevel = page.locator('#flowPackageMermaidPreview [data-mermaid-zoom-level]');
+  const initialZoom = await zoomLevel.textContent();
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(zoomLevel).not.toHaveText(initialZoom);
+
+  const viewport = page.locator('#flowPackageMermaidPreview [data-mermaid-viewport]');
+  const canvas = page.locator('#flowPackageMermaidPreview [data-mermaid-canvas]');
+  const initialTransform = await canvas.getAttribute('style');
+  const bounds = await viewport.boundingBox();
+  await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(bounds.x + bounds.width / 2 + 45, bounds.y + bounds.height / 2 + 30);
+  await page.mouse.up();
+  await expect(canvas).not.toHaveAttribute('style', initialTransform);
 });
 
 test('stages multiple flow updates and downloads a verified solution ZIP', async ({ page }) => {
@@ -46,6 +77,9 @@ test('stages multiple flow updates and downloads a verified solution ZIP', async
     type: 'Compose'
   };
   await page.locator('#flowPackageUpdatedJson').fill(JSON.stringify(accountOriginal, null, 2));
+  await expect(
+    page.locator('[data-syntax-editor-for="flowPackageUpdatedJson"] .syntax-token--key').first()
+  ).toBeVisible();
   await page.getByRole('button', { name: 'Review update' }).click();
 
   await expect(page.getByRole('status')).toContainText('valid and ready to stage');
@@ -126,6 +160,47 @@ test('reports unsafe flow updates and keeps managed solutions read only', async 
   await expect(page.getByRole('button', { name: 'Review update' })).toBeDisabled();
   await expect(page.getByRole('button', { name: 'Generate updated ZIP' })).toBeDisabled();
   await expect(page.getByRole('status')).toContainText('read-only mode');
+});
+
+test('hands flow JSON and rendered Mermaid to the local workbenches', async ({ page }) => {
+  await page.goto('/#solution-package-inspector/flows');
+  await loadFlowEditorSolution(page);
+
+  const originalJson = await page.locator('#flowPackageOriginalJson').inputValue();
+  await expect(page.locator('#toolHandover')).toContainText('Continue with this JSON');
+  await page.locator('#toolHandover').getByRole('button', {
+    name: /Original flow JSON: Open in JSON Workbench/
+  }).click();
+
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Format');
+  await expect(page.getByLabel('JSON input')).toHaveValue(originalJson);
+
+  await page.goto('/#solution-package-inspector/flows');
+  await loadFlowEditorSolution(page);
+  const updated = JSON.parse(await page.locator('#flowPackageOriginalJson').inputValue());
+  updated.properties.definition.actions.Handover_action = { type: 'Compose' };
+  await page.locator('#flowPackageUpdatedJson').fill(JSON.stringify(updated, null, 2));
+  await page.locator('#toolHandover').getByRole('button', {
+    name: /Updated flow JSON: Open in JSON Workbench/
+  }).click();
+
+  await expect(page).toHaveURL(/#json-data-workbench$/);
+  await expect(page.getByLabel('JSON input')).toHaveValue(/Handover_action/);
+
+  await page.goto('/#solution-package-inspector/flows');
+  await loadFlowEditorSolution(page);
+  await page.locator('.flow-package-mermaid-section summary').click();
+  await page.getByRole('button', { name: 'Show original diagram' }).click();
+  await expect(page.locator('#flowPackageMermaidPreview svg')).toBeVisible();
+  await page.locator('#toolHandover').getByRole('button', {
+    name: /Rendered flow Mermaid: Preview and export/
+  }).click();
+
+  await expect(page).toHaveURL(/#mermaid-studio$/);
+  await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Editor');
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/^flowchart TD/);
+  await expect(page.getByLabel('Mermaid source')).toHaveValue(/Account approval/);
 });
 
 async function loadFlowEditorSolution(page) {
