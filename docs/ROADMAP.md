@@ -72,10 +72,11 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Table permissions mode for web roles, table access and scope review.
 - Dataverse OData Query Builder for `$select`, `$filter`, `$expand`, `$orderby`, `$top`, `$count`, headers and local fetch snippets.
 - Power Platform CLI Command Builder for common `pac auth`, `pac solution` and `pac pages` commands.
-- Solution Package Inspector for exported solution ZIP diagrams, documentation, cloud flow JSON editing and import preflight reports.
+- Solution Package Inspector for exported solution ZIP diagrams, documentation, cloud flow JSON and classic workflow XAML editing, and import preflight reports.
 - Solution Package Inspector diagrams mode for workflow component diagrams and automation dependency maps.
 - Solution Package Inspector documentation mode for operational Markdown documentation from exported solution ZIP files.
 - Solution Package Inspector Flow editor mode for reviewing, comparing and replacing multiple `Workflows/*.json` files in unmanaged solution exports.
+- Solution Package Inspector Classic workflow editor mode for reviewing, structurally comparing and replacing multiple referenced `Workflows/*.xaml` files in unmanaged solution exports, with an explicit unsupported-editing acknowledgement.
 - Solution Package Inspector preflight mode for local solution ZIP review, dependency metadata and import command checklists.
 - Power Automate Expression Formatter for Workflow Definition Language expressions.
 - Power Automate Email Template Builder for Outlook-friendly HTML email bodies from plain text.
@@ -87,7 +88,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Model-driven Solution Inspector for exported solution ZIP JavaScript event reports and web resource dependency maps.
 - Model-driven Solution Inspector events mode for JavaScript libraries, handlers and source findings.
 - Model-driven Solution Inspector dependencies mode for web resources, forms, handlers and HTML source references.
-- Status: Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, first wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation, local cloud flow package editing, Power Automate email templates and model-driven JavaScript tools implemented.
+- Status: Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, first wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation, local cloud flow and classic workflow package editing, Power Automate email templates and model-driven JavaScript tools implemented.
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 

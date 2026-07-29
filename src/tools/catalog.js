@@ -303,7 +303,7 @@ export const TOOL_CATALOGUE = [
     title: 'Solution Package Inspector',
     category: 'Power Platform',
     status: 'available',
-    summary: 'Inspect exported Power Platform solution ZIP files for diagrams, documentation, cloud flow editing and import preflight reports.',
+    summary: 'Inspect exported Power Platform solution ZIP files for diagrams, documentation, flow editing and import preflight reports.',
     renderer: 'solution-package-inspector',
     modes: [
       {
@@ -320,6 +320,11 @@ export const TOOL_CATALOGUE = [
         id: 'flows',
         title: 'Flow editor',
         summary: 'Review, compare and replace cloud flow JSON in unmanaged solution ZIP files.'
+      },
+      {
+        id: 'classic-workflows',
+        title: 'Classic workflow editor',
+        summary: 'Review, compare and replace classic workflow XAML in unmanaged solution ZIP files.'
       },
       {
         id: 'preflight',
@@ -346,6 +351,8 @@ export const TOOL_CATALOGUE = [
       'solution import',
       'solution documentation',
       'Power Automate flow JSON editor',
+      'classic workflow XAML editor',
+      'replace workflow XAML',
       'replace flow JSON',
       'updated solution ZIP',
       'automation dependency map'

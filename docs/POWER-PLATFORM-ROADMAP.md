@@ -2,7 +2,7 @@
 
 This roadmap covers Power Platform tools beyond the first Power Pages mini-roadmap. Every tool remains static, local-first and browser-only. The app can help compose snippets, commands and review artefacts, but it must not connect to Dataverse, call a tenant API, authenticate a user or run Power Platform CLI commands.
 
-Status: the implemented solution ZIP inspection, flow editing and preflight phases are consolidated in the visible Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the visible Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the visible Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools as compatibility hash routes, not separate menu entries.
+Status: the implemented solution ZIP inspection, cloud flow editing, classic workflow XAML editing and preflight phases are consolidated in the visible Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the visible Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the visible Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools as compatibility hash routes, not separate menu entries.
 
 ## References
 
@@ -23,6 +23,8 @@ Status: the implemented solution ZIP inspection, flow editing and preflight phas
 - [Export cloud flows to solutions](https://learn.microsoft.com/en-us/power-automate/export-flow-solution)
 - [Manage flows with code](https://learn.microsoft.com/en-us/power-automate/manage-flows-with-code)
 - [SolutionPackager tool](https://learn.microsoft.com/en-us/power-platform/alm/solution-packager-tool)
+- [When to edit the customisations file](https://learn.microsoft.com/en-us/power-platform/alm/when-edit-customization-file)
+- [Custom process action XAML limitations](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/custom-actions)
 
 ## Phase 1: Dataverse OData Query Builder
 
@@ -100,6 +102,15 @@ Status: the implemented solution ZIP inspection, flow editing and preflight phas
 - Accumulate updates for multiple flows and rebuild unmanaged solutions while preserving all untouched ZIP entries.
 - Increment `solution.xml` revision by default, verify the rebuilt archive and keep managed solutions read only.
 - Status: implemented as the Flow editor mode in Solution Package Inspector with unit and browser coverage.
+
+## Phase 7B: Classic Workflow XAML Package Editor
+
+- Correlate Category 0 classic workflow metadata in `customizations.xml` with referenced `Workflows/*.xaml` files.
+- Copy, download, structurally compare and render original or proposed XAML definitions as local Mermaid diagrams.
+- Validate XML/XAML shape, preserve `x:Class`, reject unsafe declarations and keep workflow metadata intact.
+- Accumulate multiple XAML updates, preserve UTF-8 or UTF-16 encoding and rebuild unmanaged solution ZIP files without changing untouched entries.
+- Require an explicit acknowledgement that external classic workflow editing is unsupported by Microsoft, and keep managed solutions read only.
+- Status: implemented as the Classic workflow editor mode in Solution Package Inspector with unit and browser coverage.
 
 ## Phase 8: Model-driven JavaScript Review Pack
 

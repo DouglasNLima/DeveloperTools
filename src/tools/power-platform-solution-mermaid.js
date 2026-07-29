@@ -21,6 +21,7 @@ import {
   readZipArchive,
   uniqueLabels
 } from './power-platform-solution.js';
+import { buildClassicWorkflowMermaid } from './power-platform-xaml.js';
 
 const MAX_ACTIONS_PER_COMPONENT = 80;
 const MAX_DEPENDENCY_RELATIONS = 180;
@@ -1043,6 +1044,20 @@ function buildBusinessRuleDiagram(component) {
 }
 
 function buildClassicWorkflowDiagram(component) {
+  if (String(component.raw?.xaml || '').includes('<')) {
+    try {
+      return buildClassicWorkflowMermaid({
+        ...component,
+        triggers: component.triggers || {}
+      }, component.raw.xaml);
+    } catch (error) {
+      component.warnings = [
+        ...(component.warnings || []),
+        `Classic workflow XAML could not be interpreted: ${error.message}`
+      ];
+    }
+  }
+
   const steps = extractWorkflowStepNames(component);
 
   if (steps.length === 0) {

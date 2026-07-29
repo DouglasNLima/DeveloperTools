@@ -1,3 +1,5 @@
+import { decodeTextBytes } from './power-platform-package-editor.js';
+
 const EOCD_SIGNATURE = 0x06054b50;
 const CENTRAL_DIRECTORY_SIGNATURE = 0x02014b50;
 const LOCAL_FILE_SIGNATURE = 0x04034b50;
@@ -24,10 +26,10 @@ export async function readPowerPlatformSolutionArchive(input, options = {}) {
   const zip = await readZipArchive(bytes, options);
   const textFiles = await readSolutionTextFiles(zip);
   const solution = parseSolutionMetadata(textFiles.solutionXml);
-  const metadataComponents = [
+  const metadataComponents = mergeClassicWorkflowXamlFiles([
     ...parseWorkflowMetadata(textFiles.customizationsXml),
     ...parsePluginStepMetadata(textFiles.customizationsXml)
-  ];
+  ], textFiles.workflowXamlFiles);
   const jsonFlowComponents = parseWorkflowJsonFiles(textFiles.workflowJsonFiles);
   const components = mergeWorkflowComponents(metadataComponents, jsonFlowComponents);
   const environmentVariables = parseEnvironmentVariables(textFiles.customizationsXml);
@@ -51,7 +53,8 @@ export async function readPowerPlatformSolutionArchive(input, options = {}) {
     }),
     zip: {
       entryCount: zip.entries.length,
-      workflowJsonCount: textFiles.workflowJsonFiles.length
+      workflowJsonCount: textFiles.workflowJsonFiles.length,
+      workflowXamlCount: textFiles.workflowXamlFiles.length
     },
     sourceFiles: textFiles,
     archiveBytes: bytes,
@@ -173,7 +176,7 @@ export async function readZipArchive(input, options = {}) {
 
   async function readText(name) {
     const entry = findZipEntry(entries, name);
-    return entry ? decodeUtf8(await readZipEntryBytes(bytes, view, entry, options)) : '';
+    return entry ? decodeTextBytes(await readZipEntryBytes(bytes, view, entry, options)) : '';
   }
 
   async function readMatchingText(predicate) {
@@ -187,7 +190,7 @@ export async function readZipArchive(input, options = {}) {
     for (const entry of matches) {
       files.push({
         path: normaliseZipPath(entry.name),
-        text: decodeUtf8(await readZipEntryBytes(bytes, view, entry, options)),
+        text: decodeTextBytes(await readZipEntryBytes(bytes, view, entry, options)),
         uncompressedSize: entry.uncompressedSize
       });
     }
@@ -372,7 +375,8 @@ export function parseWorkflowMetadata(customizationsXml = '') {
       const category = readCategoryValue(attrs.category || readXmlText(block.content, 'Category') || readXmlText(block.content, 'category'));
       const mapped = WORKFLOW_CATEGORY_TYPES[category] || { type: 'other-process', label: 'Other process' };
       const clientData = readXmlText(block.content, 'ClientData') || readXmlText(block.content, 'clientdata');
-      const xaml = readXmlText(block.content, 'Xaml') || readXmlText(block.content, 'xaml') || readXmlText(block.content, 'XamlFileName');
+      const embeddedXaml = readXmlText(block.content, 'Xaml') || readXmlText(block.content, 'xaml');
+      const xamlFileName = readXmlText(block.content, 'XamlFileName');
       const primaryEntity = attrs.primaryentity
         || attrs.primaryentityname
         || readXmlText(block.content, 'PrimaryEntity')
@@ -389,16 +393,63 @@ export function parseWorkflowMetadata(customizationsXml = '') {
         sourcePath: 'customizations.xml',
         primaryEntity: decodeXmlEntities(primaryEntity),
         state: decodeXmlEntities(attrs.state || readXmlText(block.content, 'StateCode') || readXmlText(block.content, 'statecode') || ''),
+        triggers: {
+          onCreate: readXmlBoolean(block.content, 'TriggerOnCreate'),
+          onDelete: readXmlBoolean(block.content, 'TriggerOnDelete'),
+          onDemand: readXmlBoolean(block.content, 'OnDemand'),
+          onUpdateAttributes: parseXmlList(readXmlText(block.content, 'TriggerOnUpdateAttributeList')),
+          mode: decodeXmlEntities(readXmlText(block.content, 'Mode')),
+          scope: decodeXmlEntities(readXmlText(block.content, 'Scope'))
+        },
         raw: {
           attributes: attrs,
           content: block.content,
           clientData: decodeXmlEntities(clientData),
-          xaml: decodeXmlEntities(xaml)
+          xaml: decodeXmlEntities(embeddedXaml),
+          xamlFileName: decodeXmlEntities(xamlFileName)
         },
         warnings: []
       };
     })
     .filter(component => component.name || component.id);
+}
+
+export function mergeClassicWorkflowXamlFiles(components = [], files = []) {
+  const fileMap = new Map(files.map(file => [
+    normaliseZipPath(file.path).toLocaleLowerCase('en-GB'),
+    file
+  ]));
+
+  return components.map(component => {
+    const xamlFileName = component.raw?.xamlFileName;
+
+    if (!xamlFileName) {
+      return component;
+    }
+
+    const path = normaliseZipPath(xamlFileName);
+    const file = fileMap.get(path.toLocaleLowerCase('en-GB'));
+
+    if (!file) {
+      return {
+        ...component,
+        warnings: [
+          ...(component.warnings || []),
+          `${path} is referenced by workflow metadata but was not found in the solution ZIP.`
+        ]
+      };
+    }
+
+    return {
+      ...component,
+      sourcePath: `${component.sourcePath}; ${file.path}`,
+      raw: {
+        ...component.raw,
+        xaml: file.text,
+        xamlFileName: file.path
+      }
+    };
+  });
 }
 
 export function parsePluginStepMetadata(customizationsXml = '') {
@@ -833,6 +884,7 @@ async function readSolutionTextFiles(zip) {
   const solutionXml = await zip.readText('solution.xml');
   const customizationsXml = await zip.readText('customizations.xml');
   const workflowJsonFiles = await zip.readMatchingText(path => /^workflows\/.+\.json$/i.test(path));
+  const workflowXamlFiles = await zip.readMatchingText(path => /^workflows\/.+\.xaml$/i.test(path));
   const warnings = [];
 
   if (!solutionXml) {
@@ -851,6 +903,7 @@ async function readSolutionTextFiles(zip) {
     solutionXml,
     customizationsXml,
     workflowJsonFiles,
+    workflowXamlFiles,
     warnings
   };
 }
@@ -1125,6 +1178,18 @@ function readXmlText(xml, tagName) {
   const pattern = new RegExp(`<${escapeRegExp(tagName)}\\b[^>]*>([\\s\\S]*?)<\\/${escapeRegExp(tagName)}>`, 'i');
   const match = pattern.exec(String(xml || ''));
   return match ? decodeXmlEntities(match[1].trim()) : '';
+}
+
+function readXmlBoolean(xml, tagName) {
+  const value = readXmlText(xml, tagName).trim().toLocaleLowerCase('en-GB');
+  return value === '1' || value === 'true' || value === 'yes';
+}
+
+function parseXmlList(value) {
+  return String(value || '')
+    .split(/[,\s;|]+/)
+    .map(item => item.trim())
+    .filter(Boolean);
 }
 
 function readFirstXmlAttribute(xml, tagName, attributeName) {

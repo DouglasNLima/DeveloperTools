@@ -242,6 +242,11 @@ test('resolves the phase 1 legacy hashes to consolidated workbench modes', () =>
     mode: 'flows',
     canonicalHash: '#solution-package-inspector/flows'
   });
+  assert.deepEqual(resolveSummary('#solution-package-inspector/classic-workflows'), {
+    toolId: 'solution-package-inspector',
+    mode: 'classic-workflows',
+    canonicalHash: '#solution-package-inspector/classic-workflows'
+  });
   assert.deepEqual(resolveSummary('#model-driven-javascript-reviewer'), {
     toolId: 'model-driven-javascript-workbench',
     mode: 'review',

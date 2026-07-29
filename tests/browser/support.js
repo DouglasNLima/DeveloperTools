@@ -226,6 +226,68 @@ export function createFlowEditorSolutionZip(options = {}) {
   ]);
 }
 
+export function createClassicWorkflowEditorSolutionZip(options = {}) {
+  const managed = options.managed ? '1' : '0';
+
+  return createStoredZip([
+    ['solution.xml', [
+      '<ImportExportXml>',
+      '  <SolutionManifest>',
+      '    <UniqueName>ops_toolkit</UniqueName>',
+      '    <LocalizedNames>',
+      '      <LocalizedName description="Operations Toolkit" languagecode="1033" />',
+      '    </LocalizedNames>',
+      '    <Version>1.2.3.4</Version>',
+      `    <Managed>${managed}</Managed>`,
+      '    <PublisherUniqueName>contoso</PublisherUniqueName>',
+      '  </SolutionManifest>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['customizations.xml', [
+      '<ImportExportXml>',
+      '  <Workflows>',
+      '    <Workflow WorkflowId="{11111111-1111-1111-1111-111111111111}" Name="Account follow up" Category="0">',
+      '      <XamlFileName>/Workflows/AccountFollowUp.xaml</XamlFileName>',
+      '      <PrimaryEntity>account</PrimaryEntity><Mode>0</Mode><Scope>4</Scope>',
+      '      <TriggerOnCreate>1</TriggerOnCreate><TriggerOnDelete>0</TriggerOnDelete>',
+      '      <TriggerOnUpdateAttributeList>name,statuscode</TriggerOnUpdateAttributeList><OnDemand>1</OnDemand>',
+      '      <StateCode>1</StateCode>',
+      '    </Workflow>',
+      '    <Workflow WorkflowId="{22222222-2222-2222-2222-222222222222}" Name="Case escalation" Category="0">',
+      '      <XamlFileName>/Workflows/CaseEscalation.xaml</XamlFileName>',
+      '      <PrimaryEntity>incident</PrimaryEntity><Mode>1</Mode><OnDemand>1</OnDemand>',
+      '    </Workflow>',
+      '    <Workflow WorkflowId="{33333333-3333-3333-3333-333333333333}" Name="Ignored action" Category="3">',
+      '      <XamlFileName>/Workflows/IgnoredAction.xaml</XamlFileName>',
+      '    </Workflow>',
+      '  </Workflows>',
+      '</ImportExportXml>'
+    ].join('\n')],
+    ['Workflows/AccountFollowUp.xaml', classicWorkflowXaml('XrmWorkflow111', 'Check account')],
+    ['Workflows/CaseEscalation.xaml', classicWorkflowXaml('XrmWorkflow222', 'Case start')],
+    ['WebResources/contoso_/unchanged.txt', 'This entry must remain unchanged.']
+  ]);
+}
+
+function classicWorkflowXaml(xClass, firstStep) {
+  return [
+    '<?xml version="1.0" encoding="utf-8"?>',
+    `<Activity x:Class="${xClass}" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities"`,
+    ' xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"',
+    ' xmlns:mxswa="clr-namespace:Microsoft.Xrm.Sdk.Workflow.Activities;assembly=Microsoft.Xrm.Sdk.Workflow, Version=9.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35">',
+    '  <mxswa:Workflow>',
+    '    <Sequence DisplayName="Main sequence">',
+    `      <mxswa:ActivityReference AssemblyQualifiedName="Microsoft.Crm.Workflow.Activities.EvaluateExpression, Microsoft.Crm.Workflow" DisplayName="${firstStep}" />`,
+    '      <If DisplayName="Account is active">',
+    '        <If.Then><mxswa:CreateEntity DisplayName="Create task" /></If.Then>',
+    '        <If.Else><mxswa:ActivityReference AssemblyQualifiedName="Contoso.Workflow.Activities.Notify, Contoso.Workflow" DisplayName="Notify owner" /></If.Else>',
+    '      </If>',
+    '    </Sequence>',
+    '  </mxswa:Workflow>',
+    '</Activity>'
+  ].join('\n');
+}
+
 export function createModelDrivenJavascriptSolutionZip() {
   const files = [
     ['solution.xml', [

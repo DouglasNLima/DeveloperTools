@@ -1,5 +1,16 @@
 import { buildJsonDiff } from './json-diff.js';
 import {
+  buildUpdatedPackageFileName,
+  bytesEqual,
+  compareSolutionVersions,
+  encodeTextLikeOriginal,
+  findDuplicateEntryPaths,
+  incrementSolutionRevision,
+  isValidSolutionVersion,
+  normaliseZipPath as normalisePath,
+  updateSolutionVersionXml
+} from './power-platform-package-editor.js';
+import {
   findCloudFlowDefinition,
   getCloudFlowDefinitionMetrics,
   isPlainObject,
@@ -11,7 +22,14 @@ import {
 } from './power-platform-solution.js';
 import { buildComponentDiagram } from './power-platform-solution-mermaid.js';
 
-const UTF8_BOM = new Uint8Array([0xef, 0xbb, 0xbf]);
+export {
+  buildUpdatedPackageFileName,
+  compareSolutionVersions,
+  incrementSolutionRevision,
+  isValidSolutionVersion,
+  updateSolutionVersionXml
+} from './power-platform-package-editor.js';
+
 const FLOW_IDENTITY_PATHS = [
   { path: ['properties', 'workflowEntityId'], type: 'id', label: 'properties.workflowEntityId' },
   { path: ['properties', 'workflowid'], type: 'id', label: 'properties.workflowid' },
@@ -194,75 +212,6 @@ export function buildFlowDiagram(flow, json = flow?.originalJson) {
   });
 }
 
-export function incrementSolutionRevision(version) {
-  const parts = parseSolutionVersion(version);
-
-  if (!parts) {
-    throw new Error('Solution version must use the major.minor.build.revision format.');
-  }
-
-  if (parts[3] >= 0xffffffff - 1) {
-    throw new Error('The solution revision cannot be incremented further.');
-  }
-
-  parts[3] += 1;
-  return parts.join('.');
-}
-
-export function isValidSolutionVersion(version) {
-  return Boolean(parseSolutionVersion(version));
-}
-
-export function compareSolutionVersions(left, right) {
-  const leftParts = parseSolutionVersion(left);
-  const rightParts = parseSolutionVersion(right);
-
-  if (!leftParts || !rightParts) {
-    throw new Error('Solution versions must use the major.minor.build.revision format.');
-  }
-
-  for (let index = 0; index < leftParts.length; index += 1) {
-    if (leftParts[index] !== rightParts[index]) {
-      return leftParts[index] < rightParts[index] ? -1 : 1;
-    }
-  }
-
-  return 0;
-}
-
-export function updateSolutionVersionXml(solutionXml, targetVersion) {
-  if (!isValidSolutionVersion(targetVersion)) {
-    throw new Error('Target version must use the major.minor.build.revision format.');
-  }
-
-  const source = String(solutionXml ?? '');
-  const manifestPattern = /(<SolutionManifest\b[^>]*>)([\s\S]*?)(<\/SolutionManifest>)/i;
-  const manifestMatch = manifestPattern.exec(source);
-
-  if (!manifestMatch) {
-    throw new Error('solution.xml does not contain a SolutionManifest element.');
-  }
-
-  const versionPattern = /(<Version\b[^>]*>)([^<]*)(<\/Version>)/i;
-
-  if (!versionPattern.test(manifestMatch[2])) {
-    throw new Error('solution.xml does not contain a solution Version element.');
-  }
-
-  const updatedManifest = manifestMatch[2].replace(
-    versionPattern,
-    (_, opening, value, closing) => `${opening}${preserveOuterWhitespace(value, targetVersion)}${closing}`
-  );
-
-  return [
-    source.slice(0, manifestMatch.index),
-    manifestMatch[1],
-    updatedManifest,
-    manifestMatch[3],
-    source.slice(manifestMatch.index + manifestMatch[0].length)
-  ].join('');
-}
-
 export async function buildUpdatedFlowPackage({
   archive,
   replacements,
@@ -357,17 +306,6 @@ export async function buildUpdatedFlowPackage({
       unchangedEntryCount: archive.zipArchive.entries.length - validatedReplacements.length - 1
     }
   };
-}
-
-export function buildUpdatedPackageFileName(uniqueName, version) {
-  const safeName = String(uniqueName || 'power-platform-solution')
-    .trim()
-    .replace(/[^A-Za-z0-9._-]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    || 'power-platform-solution';
-  const versionSuffix = String(version || '').replace(/\./g, '_');
-
-  return `${safeName}_${versionSuffix}.zip`;
 }
 
 async function verifyUpdatedPackage({
@@ -475,19 +413,6 @@ function buildPackagingErrors(archive, flows, duplicatePaths) {
   return errors;
 }
 
-function findDuplicateEntryPaths(entries) {
-  const counts = new Map();
-
-  entries.forEach(entry => {
-    const key = normalisePath(entry.name).toLocaleLowerCase('en-GB');
-    counts.set(key, (counts.get(key) || 0) + 1);
-  });
-
-  return [...counts.entries()]
-    .filter(([, count]) => count > 1)
-    .map(([path]) => path);
-}
-
 function findMergedFlowComponent(components, path, parsed) {
   const normalisedPath = normalisePath(path).toLocaleLowerCase('en-GB');
 
@@ -537,27 +462,6 @@ function readObjectPath(value, path) {
   return { present: true, value: current };
 }
 
-function parseSolutionVersion(version) {
-  const match = String(version ?? '').trim().match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
-
-  if (!match) {
-    return null;
-  }
-
-  const parts = match.slice(1).map(Number);
-
-  return parts.every(part => Number.isSafeInteger(part) && part >= 0 && part < 0xffffffff)
-    ? parts
-    : null;
-}
-
-function preserveOuterWhitespace(value, replacement) {
-  const text = String(value ?? '');
-  const leading = text.match(/^\s*/)?.[0] || '';
-  const trailing = text.match(/\s*$/)?.[0] || '';
-  return `${leading}${replacement}${trailing}`;
-}
-
 function normaliseFlowReplacements(replacements) {
   const values = replacements instanceof Map
     ? [...replacements.entries()].map(([path, value]) => ({
@@ -592,50 +496,6 @@ function normaliseFlowReplacements(replacements) {
   });
 }
 
-function encodeTextLikeOriginal(text, originalBytes) {
-  const encoded = new TextEncoder().encode(String(text ?? ''));
-  return hasUtf8Bom(originalBytes)
-    ? concatenate([UTF8_BOM, encoded])
-    : encoded;
-}
-
-function hasUtf8Bom(bytes) {
-  return bytes?.byteLength >= 3
-    && bytes[0] === UTF8_BOM[0]
-    && bytes[1] === UTF8_BOM[1]
-    && bytes[2] === UTF8_BOM[2];
-}
-
-function concatenate(chunks) {
-  const output = new Uint8Array(chunks.reduce((total, chunk) => total + chunk.byteLength, 0));
-  let offset = 0;
-
-  chunks.forEach(chunk => {
-    output.set(chunk, offset);
-    offset += chunk.byteLength;
-  });
-
-  return output;
-}
-
-function bytesEqual(left, right) {
-  if (!left || !right || left.byteLength !== right.byteLength) {
-    return false;
-  }
-
-  for (let index = 0; index < left.byteLength; index += 1) {
-    if (left[index] !== right[index]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 function normaliseGuid(value) {
   return String(value ?? '').trim().replace(/[{}]/g, '').toLocaleLowerCase('en-GB');
-}
-
-function normalisePath(path) {
-  return String(path ?? '').replace(/\\/g, '/').replace(/^\/+/, '');
 }

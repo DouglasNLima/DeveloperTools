@@ -1,3 +1,4 @@
+import { renderPowerPlatformClassicWorkflowPackageEditor } from './power-platform-classic-workflow-package.ui.js';
 import { renderPowerPlatformFlowPackageEditor } from './power-platform-flow-package.ui.js';
 import { renderPowerPlatformSolutionDocs } from './power-platform-solution-docs.ui.js';
 import { renderPowerPlatformSolutionImportPreflight } from './power-platform-solution-import-preflight.ui.js';
@@ -24,6 +25,12 @@ export function renderSolutionPackageInspector(container, context = {}) {
         label: 'Flow editor',
         summary: 'Review, compare and replace cloud flow JSON in unmanaged solution ZIP files.',
         renderer: renderPowerPlatformFlowPackageEditor
+      },
+      {
+        id: 'classic-workflows',
+        label: 'Classic workflow editor',
+        summary: 'Review, compare and replace classic workflow XAML in unmanaged solution ZIP files.',
+        renderer: renderPowerPlatformClassicWorkflowPackageEditor
       },
       {
         id: 'preflight',

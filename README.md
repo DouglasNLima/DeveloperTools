@@ -34,6 +34,7 @@ The implemented platform capabilities around those tools include:
 - A scalable tool menu with roadmap previews
 - Session-based handovers between compatible tools
 - Local review, comparison and replacement of cloud flow JSON in unmanaged solution ZIP files
+- Local review, structural comparison and guarded replacement of classic workflow XAML in unmanaged solution ZIP files
 - Unit and browser test scaffolding for future tools
 
 ## Local Usage
@@ -165,8 +166,11 @@ src/
     power-fx-formatter.ui.js
     power-platform-cli.js
     power-platform-cli.ui.js
+    power-platform-classic-workflow-package.js
+    power-platform-classic-workflow-package.ui.js
     power-platform-flow-package.js
     power-platform-flow-package.ui.js
+    power-platform-package-editor.js
     power-platform-solution-import-preflight.js
     power-platform-solution-import-preflight.ui.js
     power-platform-solution.js
@@ -174,6 +178,7 @@ src/
     power-platform-solution-docs.ui.js
     power-platform-solution-mermaid.js
     power-platform-solution-mermaid.ui.js
+    power-platform-xaml.js
     power-pages.js
     power-pages-site-settings.js
     power-pages-site-settings.ui.js
