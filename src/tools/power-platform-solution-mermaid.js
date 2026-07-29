@@ -1200,7 +1200,8 @@ function createMermaidContext(header) {
   let nodeCount = 0;
 
   function getId(rawId) {
-    const base = toMermaidId(rawId, `node_${nodeCount + 1}`);
+    const fallback = `node_${nodeCount + 1}`;
+    const base = toMermaidId(formatPowerPlatformDisplayName(rawId, fallback), fallback);
     let id = base;
     let suffix = 2;
 
@@ -1222,7 +1223,7 @@ function createMermaidContext(header) {
     },
     node(rawId, label, shape = 'box') {
       const id = ids.get(String(rawId)) || getId(rawId);
-      const safeLabel = escapeMermaidText(label);
+      const safeLabel = escapeMermaidText(formatPowerPlatformDisplayName(label, 'Step'));
       const declaration = shape === 'diamond'
         ? `  ${id}{"${safeLabel}"}`
         : shape === 'stadium'
@@ -1240,19 +1241,23 @@ function createMermaidContext(header) {
     },
     state(rawId, label) {
       const id = ids.get(String(rawId)) || getId(rawId);
-      lines.push(`  state "${escapeMermaidText(label)}" as ${id}`);
+      lines.push(`  state "${escapeMermaidText(formatPowerPlatformDisplayName(label, 'Stage'))}" as ${id}`);
       nodeCount += 1;
       return id;
     },
     edge(from, to, label = '') {
-      lines.push(label ? `  ${from} -->|"${escapeMermaidText(label)}"| ${to}` : `  ${from} --> ${to}`);
+      const displayLabel = formatPowerPlatformDisplayName(label);
+      lines.push(displayLabel ? `  ${from} -->|"${escapeMermaidText(displayLabel)}"| ${to}` : `  ${from} --> ${to}`);
     },
     relabelEdge(from, to, label) {
       const plain = `  ${from} --> ${to}`;
       const index = lines.indexOf(plain);
+      const displayLabel = formatPowerPlatformDisplayName(label);
 
       if (index >= 0) {
-        lines[index] = `  ${from} -->|"${escapeMermaidText(label)}"| ${to}`;
+        lines[index] = displayLabel
+          ? `  ${from} -->|"${escapeMermaidText(displayLabel)}"| ${to}`
+          : plain;
       }
     },
     raw(line) {

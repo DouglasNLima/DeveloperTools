@@ -52,6 +52,25 @@ test('documents limited solutions without process components', async () => {
   assert.match(result.documentationMarkdown, /No connection references detected/);
 });
 
+test('uses friendly display names throughout generated solution documentation', async () => {
+  const guid = '643ea8ee-9c35-4fd7-909c-facf7fb68428';
+  const result = await processPowerPlatformSolutionDocumentationArchive(createZipArchive([
+    ['solution.xml', solutionXml()],
+    ['customizations.xml', customizationsXml().replaceAll('Account approval', `Account approval-${guid}`)],
+    ['Workflows/11111111-1111-1111-1111-111111111111.json', JSON.stringify({
+      ...cloudFlowJson(),
+      properties: {
+        ...cloudFlowJson().properties,
+        displayName: `Account approval-${guid}`
+      }
+    }, null, 2)]
+  ]));
+
+  assert.match(result.documentationMarkdown, /Account approval/);
+  assert.doesNotMatch(result.documentationMarkdown, new RegExp(guid, 'i'));
+  assert.equal(result.components.find(component => component.type === 'cloud-flow').displayName, 'Account approval');
+});
+
 test('parses reusable solution metadata for documentation tools', async () => {
   const archive = createZipArchive([
     ['solution.xml', solutionXml()],

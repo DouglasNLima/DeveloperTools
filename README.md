@@ -35,6 +35,8 @@ The implemented platform capabilities around those tools include:
 - Session-based handovers between compatible tools
 - Local review, comparison and replacement of cloud flow JSON in unmanaged solution ZIP files, with friendly GUID-free display labels, syntax highlighting and interactive Mermaid exports
 - Local review, structural comparison and guarded replacement of classic workflow XAML in unmanaged solution ZIP files, with friendly GUID-free display labels, syntax highlighting and interactive Mermaid exports
+- Consistent selected, loading, loaded and error feedback for every local file drop zone
+- Consistent Power Platform display names and interactive Mermaid previews with copy, export, zoom and pan controls
 - Visible in-button success or failure feedback for copy actions throughout the app
 - Unit and browser test scaffolding for future tools
 
@@ -212,6 +214,7 @@ src/
     data-explorer.js
     data-explorer.ui.js
     file-drop-zone.js
+    file-import-feedback.js
     uuid-generator.js
     uuid-generator.ui.js
     url-codec.js

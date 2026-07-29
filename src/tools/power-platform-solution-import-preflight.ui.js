@@ -1,5 +1,6 @@
 import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import {
   buildSolutionImportPreflightFileName,
   processPowerPlatformSolutionImportPreflightArchive
@@ -120,6 +121,7 @@ export function renderPowerPlatformSolutionImportPreflight(container) {
   let currentFile = null;
   let currentResult = null;
   let objectUrl = '';
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'ZIP' });
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -128,6 +130,7 @@ export function renderPowerPlatformSolutionImportPreflight(container) {
 
   function setFile(file) {
     currentFile = file;
+    file ? fileFeedback.selected(file) : fileFeedback.clear();
 
     if (file && !pathInput.value.trim()) {
       pathInput.value = file.name;
@@ -143,6 +146,7 @@ export function renderPowerPlatformSolutionImportPreflight(container) {
     }
 
     analyseButton.disabled = true;
+    fileFeedback.loading(currentFile, 'ZIP selected · running import preflight locally');
     setStatus('Analysing solution import preflight locally...', null);
 
     try {
@@ -153,10 +157,12 @@ export function renderPowerPlatformSolutionImportPreflight(container) {
         forceOverwrite: forceOverwriteInput.checked
       });
       renderResult();
+      fileFeedback.loaded(currentFile, 'Loaded successfully · import preflight generated');
       setStatus('Power Platform solution import preflight generated successfully.', 'success');
     } catch (error) {
       currentResult = null;
       clearOutputs();
+      fileFeedback.error(currentFile, 'The selected ZIP could not be analysed. Choose another file or review the error below.');
       setStatus(error.message || 'Unable to analyse this solution export.', 'error');
     } finally {
       analyseButton.disabled = false;
@@ -271,6 +277,7 @@ export function renderPowerPlatformSolutionImportPreflight(container) {
     forceOverwriteInput.checked = false;
     analyseButton.disabled = false;
     clearOutputs();
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
 

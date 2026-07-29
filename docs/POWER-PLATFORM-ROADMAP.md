@@ -76,6 +76,7 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - Detect cloud flows, child flow calls, business process flows, business rules, classic workflows, custom actions and plug-in steps from solution metadata and `Workflows/*.json` files.
 - Generate semantic Mermaid diagrams and an automation dependency map with explicit and probable Dataverse trigger relations.
 - Produce a Markdown inventory and hand selected diagrams to Mermaid Studio.
+- Prefer exported display names, remove GUID noise from visible labels and render every generated diagram with copy, export, zoom and pan controls.
 - Status: implemented with unit and browser coverage, including dependency maps for flow-to-flow calls and Dataverse update to plug-in paths.
 
 ## Phase 6: Power Platform Solution Documentation Generator
@@ -136,6 +137,7 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - Detect JavaScript web resources and form event handlers from exported metadata where available.
 - Report Pass execution context, enabled state, handler ordering and missing library matches.
 - Generate Markdown event reports and Mermaid web resource dependency maps.
+- Render web resource dependency diagrams interactively with the same copy, export, zoom and pan controls used by the flow editors.
 - Status: implemented with unit and browser coverage.
 
 ## Phase 11: Model-driven JavaScript Hardening Pack

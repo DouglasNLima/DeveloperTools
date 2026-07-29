@@ -6,6 +6,7 @@ import {
   processDelimitedData
 } from './csv-tsv-helper.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 
 const CSV_FILE_ACCEPT = '.csv,.tsv,.txt,text/csv,text/tab-separated-values,text/plain';
 
@@ -132,6 +133,7 @@ export function renderCsvTsvHelper(container) {
   let currentObjectUrl = null;
   let currentSourceName = '';
   let unbindDropZone = null;
+  const fileFeedback = bindFileImportFeedback(container.querySelector('#csvFileDropZone'));
 
   function revokeObjectUrl() {
     if (currentObjectUrl) {
@@ -242,6 +244,9 @@ export function renderCsvTsvHelper(container) {
       return;
     }
 
+    fileFeedback.selected(file);
+    fileFeedback.loading(file);
+
     try {
       currentSourceName = file.name;
       input.value = await file.text();
@@ -249,8 +254,10 @@ export function renderCsvTsvHelper(container) {
       copyButton.disabled = true;
       revokeObjectUrl();
       resetDetails();
+      fileFeedback.loaded(file, 'Loaded successfully · content added to the input');
       setStatus(`Loaded ${file.name}.`, 'success');
     } catch {
+      fileFeedback.error(file, 'The selected file could not be read. Choose another file or review the error below.');
       setStatus('Unable to read the selected file.', 'error');
     }
   }
@@ -276,6 +283,7 @@ export function renderCsvTsvHelper(container) {
     copyButton.disabled = true;
     revokeObjectUrl();
     resetDetails();
+    fileFeedback.clear();
     setStatus('Ready.', null);
     input.focus();
   });

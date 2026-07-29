@@ -1,5 +1,6 @@
 import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import { formatValuePreview } from './json-diff.js';
 import { bindMermaidViewer } from './mermaid-viewer.ui.js';
 import {
@@ -169,8 +170,6 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
   const get = selector => container.querySelector(selector);
   const fileInput = get('#classicWorkflowFileInput');
   const dropZone = get('#classicWorkflowDropZone');
-  const dropTitle = get('#classicWorkflowDropTitle');
-  const dropHint = get('#classicWorkflowDropHint');
   const inspectButton = get('#inspectClassicWorkflowsButton');
   const clearButton = get('#clearClassicWorkflowsButton');
   const search = get('#classicWorkflowSearch');
@@ -233,6 +232,7 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
   const objectUrls = new Set();
   const originalXamlHighlight = bindSyntaxHighlight(originalXaml, { language: 'xml' });
   const updatedXamlHighlight = bindSyntaxHighlight(updatedXaml, { language: 'xml' });
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'ZIP' });
   const mermaidViewer = bindMermaidViewer(mermaidPreview, {
     label: 'Classic workflow diagram',
     emptyMessage: 'Choose which workflow version to render.',
@@ -247,31 +247,8 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
 
   function setFile(file) {
     currentFile = file;
-    updateDropZone();
+    file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(file ? `${file.name} selected.` : 'Ready.', null);
-  }
-
-  function updateDropZone(state = currentFile ? 'selected' : 'empty') {
-    dropZone.classList.toggle('has-file', Boolean(currentFile));
-    dropZone.classList.toggle('is-loaded', state === 'loaded');
-    dropZone.classList.toggle('has-error', state === 'error');
-
-    if (!currentFile) {
-      dropTitle.textContent = 'Drop an exported solution ZIP here or browse';
-      dropHint.textContent = 'Solution files and classic workflow XAML stay in this browser.';
-      return;
-    }
-
-    dropTitle.textContent = currentFile.name;
-
-    if (state === 'loaded') {
-      const count = currentArchive?.workflows.length || 0;
-      dropHint.textContent = `Loaded successfully · ${count.toLocaleString('en-GB')} classic workflow${count === 1 ? '' : 's'} found`;
-    } else if (state === 'error') {
-      dropHint.textContent = 'The selected ZIP could not be inspected. Choose another file or review the error below.';
-    } else {
-      dropHint.textContent = `ZIP selected · ${formatFileSize(currentFile.size)} · ready to inspect`;
-    }
   }
 
   function getSelectedWorkflow() {
@@ -304,7 +281,8 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
       riskAcknowledgement.checked = false;
       targetVersion.value = currentArchive.suggestedVersion;
       renderArchive();
-      updateDropZone('loaded');
+      const count = currentArchive.workflows.length;
+      fileFeedback.loaded(currentFile, `Loaded successfully · ${count.toLocaleString('en-GB')} classic workflow${count === 1 ? '' : 's'} found`);
 
       if (currentArchive.readOnly) {
         setStatus('Managed solution inspected in read-only mode.', 'warning');
@@ -317,7 +295,7 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
       currentArchive = null;
       selectedWorkflowPath = '';
       clearArchiveOutput();
-      updateDropZone('error');
+      fileFeedback.error(currentFile, 'The selected ZIP could not be inspected. Choose another file or review the error below.');
       setStatus(error.message || 'Unable to inspect this solution export.', 'error');
     } finally {
       inspectButton.disabled = false;
@@ -886,7 +864,7 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
     fileInput.value = '';
     search.value = '';
     clearArchiveOutput();
-    updateDropZone('empty');
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
   search.addEventListener('input', () => {
@@ -987,23 +965,4 @@ function buildClassicWorkflowDiagramName(path, useUpdated) {
 function capitalise(value) {
   const text = String(value || '');
   return `${text.charAt(0).toUpperCase()}${text.slice(1)}`;
-}
-
-function formatFileSize(value) {
-  const bytes = Math.max(0, Number(value) || 0);
-
-  if (bytes < 1024) {
-    return `${bytes.toLocaleString('en-GB')} B`;
-  }
-
-  const units = ['KB', 'MB', 'GB'];
-  let size = bytes / 1024;
-  let unitIndex = 0;
-
-  while (size >= 1024 && unitIndex < units.length - 1) {
-    size /= 1024;
-    unitIndex += 1;
-  }
-
-  return `${size.toLocaleString('en-GB', { maximumFractionDigits: 1 })} ${units[unitIndex]}`;
 }

@@ -600,6 +600,8 @@ test('loads a delimited file and reports header and row issues', async ({ page }
     mimeType: 'text/csv',
     buffer: Buffer.from('name,name,\nAda,,extra\nGrace')
   });
+  await expect(page.locator('#csvFileDropZone .drop-zone-label span')).toHaveText('contacts.csv');
+  await expect(page.locator('#csvFileDropZone .drop-zone-label small')).toContainText('Loaded successfully');
   await expect(page.getByRole('status')).toContainText('Loaded contacts.csv.');
 
   await page.getByLabel('Output format').selectOption('tsv');

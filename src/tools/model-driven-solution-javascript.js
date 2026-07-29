@@ -6,6 +6,7 @@ import {
   readPowerPlatformSolutionArchive,
   readZipArchive
 } from './power-platform-solution.js';
+import { formatPowerPlatformDisplayName } from './power-platform-display.js';
 
 const JAVASCRIPT_WEB_RESOURCE_TYPE = new Set(['3', 'script', 'javascript', 'js']);
 
@@ -150,7 +151,10 @@ export function parseJavaScriptWebResources(customizationsXml = '') {
       return {
         id: firstValue(attrs.webresourceid, readXmlText(block.content, 'WebResourceId'), `web-resource-${index + 1}`),
         name: normalisedName,
-        displayName: decodeXmlEntities(displayName || normalisedName),
+        displayName: formatPowerPlatformDisplayName(
+          decodeXmlEntities(displayName || normalisedName),
+          'Web resource'
+        ),
         type: type || (normalisedName.endsWith('.js') ? '3' : ''),
         sourcePath: 'customizations.xml'
       };
@@ -627,7 +631,7 @@ function buildDependencyMarkdown({ solution, webResources, libraries, formHandle
 function buildDependencyMermaid({ solution, webResources, libraries, formHandlers, webResourceSources, sourceDependencyMap }) {
   const lines = [
     'flowchart LR',
-    `  SOL["${escapeMermaidLabel(solution.name || 'Power Platform solution')}"]`
+    `  SOL["${escapeMermaidLabel(formatPowerPlatformDisplayName(solution.name, 'Power Platform solution'))}"]`
   ];
   const resourceIds = new Map();
   const formIds = new Map();
@@ -636,7 +640,7 @@ function buildDependencyMermaid({ solution, webResources, libraries, formHandler
   webResources.forEach((resource, index) => {
     const id = `WR${index + 1}`;
     resourceIds.set(resource.name, id);
-    lines.push(`  ${id}["${escapeMermaidLabel(resource.name)}"]`);
+    lines.push(`  ${id}["${escapeMermaidLabel(formatPowerPlatformDisplayName(resource.displayName || resource.name, 'Web resource'))}"]`);
     lines.push(`  SOL --> ${id}`);
   });
 
@@ -646,7 +650,7 @@ function buildDependencyMermaid({ solution, webResources, libraries, formHandler
     lines.push(`  ${resourceId} -->|form library| ${formId}`);
 
     if (!library.matchedWebResource) {
-      lines.push(`  LIB${index + 1}["${escapeMermaidLabel(library.libraryName)}"]`);
+      lines.push(`  LIB${index + 1}["${escapeMermaidLabel(formatPowerPlatformDisplayName(library.libraryName, 'Library'))}"]`);
       lines.push(`  SOL --> LIB${index + 1}`);
     }
   });
@@ -655,7 +659,7 @@ function buildDependencyMermaid({ solution, webResources, libraries, formHandler
     const handlerId = `H${index + 1}`;
     const formId = getOrCreateFormNode(handler.formName, formIds, lines);
     const resourceId = resourceIds.get(handler.matchedWebResource) || getOrCreateResourceNode(handler.libraryName || 'Unknown library', resourceIds, lines);
-    lines.push(`  ${handlerId}["${escapeMermaidLabel(`${handler.eventName}: ${handler.functionName}`)}"]`);
+    lines.push(`  ${handlerId}["${escapeMermaidLabel(formatPowerPlatformDisplayName(`${handler.eventName}: ${handler.functionName}`, 'Event handler'))}"]`);
     lines.push(`  ${resourceId} --> ${handlerId}`);
     lines.push(`  ${handlerId} --> ${formId}`);
   });
@@ -689,7 +693,7 @@ function getOrCreateFormNode(formName, formIds, lines) {
   if (!formIds.has(key)) {
     const id = `FORM${formIds.size + 1}`;
     formIds.set(key, id);
-    lines.push(`  ${id}["${escapeMermaidLabel(key)}"]`);
+    lines.push(`  ${id}["${escapeMermaidLabel(formatPowerPlatformDisplayName(key, 'Form'))}"]`);
   }
 
   return formIds.get(key);
@@ -701,7 +705,7 @@ function getOrCreateResourceNode(name, resourceIds, lines) {
   if (!resourceIds.has(key)) {
     const id = `WRX${resourceIds.size + 1}`;
     resourceIds.set(key, id);
-    lines.push(`  ${id}["${escapeMermaidLabel(key)}"]`);
+    lines.push(`  ${id}["${escapeMermaidLabel(formatPowerPlatformDisplayName(key, 'Web resource'))}"]`);
   }
 
   return resourceIds.get(key);
@@ -717,7 +721,7 @@ function getOrCreateSourceNode(source, sourceIds, resourceIds, lines) {
   if (!sourceIds.has(key)) {
     const id = `SRC${sourceIds.size + 1}`;
     sourceIds.set(key, id);
-    lines.push(`  ${id}["${escapeMermaidLabel(key)}"]`);
+    lines.push(`  ${id}["${escapeMermaidLabel(formatPowerPlatformDisplayName(key, 'Source file'))}"]`);
   }
 
   return sourceIds.get(key);

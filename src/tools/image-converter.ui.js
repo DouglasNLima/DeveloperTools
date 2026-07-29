@@ -1,5 +1,6 @@
 import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import { openFilePreviewModal } from './file-preview-modal.js';
 import {
   IMAGE_FILE_ACCEPT,
@@ -138,6 +139,7 @@ export function renderImageConverter(container) {
   };
   let unbindDropZone = null;
   let closePreviewDialog = null;
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'Image' });
 
   function closeOpenPreviewDialog() {
     closePreviewDialog?.();
@@ -241,10 +243,12 @@ export function renderImageConverter(container) {
     renderQueuedFiles();
 
     if (state.files.length === 0) {
+      fileFeedback.clear();
       setStatus('Ready.', null);
       return;
     }
 
+    fileFeedback.selected(state.files);
     const count = state.files.length.toLocaleString('en-GB');
     setStatus(`${count} image file${state.files.length === 1 ? '' : 's'} selected.`, null);
   }
@@ -334,6 +338,7 @@ export function renderImageConverter(container) {
     } else if (failed > 0) {
       setStatus(firstErrorMessage || 'Image conversion failed. Review the file type and settings.', 'error');
     } else {
+      fileFeedback.loaded(state.files, 'Processed successfully · image downloads are ready');
       setStatus('Image conversion completed successfully.', 'success');
     }
   }
@@ -426,6 +431,7 @@ export function renderImageConverter(container) {
     onFiles: setSelectedFiles,
     onReject: (_file, rejectedFiles = []) => {
       const count = rejectedFiles.length || 1;
+      fileFeedback.error(state.files, `${count.toLocaleString('en-GB')} unsupported file${count === 1 ? '' : 's'} skipped`);
       setStatus(`${count.toLocaleString('en-GB')} unsupported file${count === 1 ? '' : 's'} skipped.`, 'error');
     }
   });
@@ -447,6 +453,7 @@ export function renderImageConverter(container) {
     backgroundColour.value = '#ffffff';
     revokeObjectUrls();
     renderQueuedFiles();
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
 

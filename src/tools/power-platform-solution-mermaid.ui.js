@@ -1,5 +1,7 @@
 import { writeTextToClipboard } from './clipboard-feedback.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
+import { bindMermaidViewer } from './mermaid-viewer.ui.js';
 import {
   SOLUTION_MERMAID_COMPONENT_FILTERS,
   buildSolutionMermaidFileName,
@@ -79,6 +81,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
 
           <textarea id="solutionMermaidOutput" spellcheck="false" readonly placeholder="Analyse a solution to view the dependency map or a component Mermaid source."></textarea>
           <textarea id="solutionMermaidInventoryOutput" spellcheck="false" readonly hidden></textarea>
+          <div id="solutionMermaidPreview" aria-live="polite"></div>
 
           <div class="detail-grid solution-mermaid-selected-grid" aria-live="polite">
             <div class="detail-card">
@@ -116,6 +119,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
   const componentList = container.querySelector('#solutionMermaidComponentList');
   const output = container.querySelector('#solutionMermaidOutput');
   const inventoryOutput = container.querySelector('#solutionMermaidInventoryOutput');
+  const preview = container.querySelector('#solutionMermaidPreview');
   const mapButton = container.querySelector('#showSolutionMermaidMapButton');
   const copyButton = container.querySelector('#copySolutionMermaidButton');
   const downloadButton = container.querySelector('#downloadSolutionMermaidButton');
@@ -138,6 +142,12 @@ export function renderPowerPlatformSolutionMermaid(container) {
   let currentResult = null;
   let selectedDiagramId = '';
   const objectUrls = [];
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'ZIP' });
+  const mermaidViewer = bindMermaidViewer(preview, {
+    label: 'Power Platform solution diagram',
+    emptyMessage: 'Analyse a solution to render its dependency map or a component diagram.',
+    setStatus
+  });
 
   function trackObjectUrl(url) {
     objectUrls.push(url);
@@ -170,6 +180,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
 
   function setFile(file) {
     currentFile = file;
+    file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(file ? `${file.name} selected.` : 'Ready.', null);
   }
 
@@ -180,17 +191,21 @@ export function renderPowerPlatformSolutionMermaid(container) {
     }
 
     analyseButton.disabled = true;
+    fileFeedback.loading(currentFile, 'ZIP selected · analysing locally');
     setStatus('Analysing solution export locally...', null);
 
     try {
       currentResult = await processPowerPlatformSolutionArchive(currentFile);
       selectedDiagramId = currentResult.dependencyMap?.id || currentResult.components[0]?.id || '';
       renderResult();
+      const count = currentResult.components.length;
+      fileFeedback.loaded(currentFile, `Loaded successfully · ${count.toLocaleString('en-GB')} component${count === 1 ? '' : 's'} found`);
       setStatus('Power Platform solution analysed successfully.', 'success');
     } catch (error) {
       currentResult = null;
       selectedDiagramId = '';
       clearOutputs();
+      fileFeedback.error(currentFile, 'The selected ZIP could not be analysed. Choose another file or review the error below.');
       setStatus(error.message || 'Unable to analyse this solution export.', 'error');
     } finally {
       analyseButton.disabled = false;
@@ -239,7 +254,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
       button.dataset.componentId = component.id;
 
       const title = document.createElement('strong');
-      title.textContent = component.name;
+      title.textContent = component.displayName || component.name;
       const meta = document.createElement('span');
       meta.textContent = `${component.typeLabel} · ${component.stepCount.toLocaleString('en-GB')} step${component.stepCount === 1 ? '' : 's'}`;
       const source = document.createElement('small');
@@ -268,7 +283,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
         return true;
       }
 
-      return `${component.name} ${component.typeLabel} ${component.sourcePath}`.toLocaleLowerCase('en-GB').includes(term);
+      return `${component.displayName || ''} ${component.name} ${component.typeLabel} ${component.sourcePath}`.toLocaleLowerCase('en-GB').includes(term);
     });
   }
 
@@ -285,6 +300,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
       revokeObjectUrls();
       setInventoryDownload();
       dispatchOutputChange();
+      mermaidViewer.clear();
       return;
     }
 
@@ -297,6 +313,18 @@ export function renderPowerPlatformSolutionMermaid(container) {
     renderIssues(component);
     renderComponentList();
     dispatchOutputChange();
+    renderDiagram(component);
+  }
+
+  function renderDiagram(component) {
+    mermaidViewer.setLoading('Rendering selected solution diagram...');
+    mermaidViewer.render(component.mermaid, {
+      fileName: String(component.downloadName || component.displayName || component.name || 'solution-diagram')
+        .replace(/\.mmd$/i, '')
+    }).catch(error => {
+      mermaidViewer.clear('The selected Mermaid diagram could not be rendered.');
+      setStatus(error.message || 'Unable to render the selected Mermaid diagram.', 'error');
+    });
   }
 
   function selectComponent(componentId) {
@@ -357,6 +385,7 @@ export function renderPowerPlatformSolutionMermaid(container) {
     revokeObjectUrls();
     resetDetails();
     dispatchOutputChange();
+    mermaidViewer.clear();
   }
 
   async function copyOutput() {
@@ -413,11 +442,13 @@ export function renderPowerPlatformSolutionMermaid(container) {
     search.value = '';
     analyseButton.disabled = false;
     clearOutputs();
+    fileFeedback.clear();
     setStatus('Ready.', null);
   });
 
   return () => {
     unbindDropZone();
+    mermaidViewer.destroy();
     revokeObjectUrls();
   };
 }

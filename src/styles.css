@@ -2270,21 +2270,26 @@ button.danger {
   border-style: solid;
 }
 
+.drop-zone.has-file.is-loading {
+  border-style: dashed;
+}
+
 .drop-zone.has-file.is-loaded {
   background: var(--success-soft);
   border-color: var(--success);
 }
 
-.drop-zone.has-file.has-error {
+.drop-zone.has-error {
   background: var(--danger-soft);
   border-color: var(--danger);
+  border-style: solid;
 }
 
 .drop-zone.has-file.is-loaded .drop-zone-label span {
   color: var(--success);
 }
 
-.drop-zone.has-file.has-error .drop-zone-label span {
+.drop-zone.has-error .drop-zone-label span {
   color: var(--danger);
 }
 

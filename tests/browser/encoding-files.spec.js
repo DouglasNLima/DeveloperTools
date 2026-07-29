@@ -275,6 +275,9 @@ test('converts a selected file to raw Base64 and Data URL output', async ({ page
     buffer: Buffer.from('hello')
   });
 
+  await expect(page.locator('#dropZone .drop-zone-label span')).toHaveText('hello.txt');
+  await expect(page.locator('#dropZone .drop-zone-label small')).toContainText('Loaded successfully');
+  await expect(page.locator('#dropZone')).toHaveClass(/is-loaded/);
   await expect(page.locator('#base64Output')).toHaveValue('aGVsbG8=');
   await expect(page.locator('#sourceFileName')).toHaveText('hello.txt');
   await expect(page.locator('#downloadBase64Button')).toHaveAttribute('download', 'hello.txt.base64.txt');

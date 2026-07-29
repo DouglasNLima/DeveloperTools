@@ -1,5 +1,6 @@
 import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import { openFilePreviewModal } from './file-preview-modal.js';
 import { assertSafeSvgText, validateImageFile } from './image-converter.js';
 import {
@@ -213,6 +214,7 @@ export function renderImageResizerCompressor(container) {
 
   let unbindDropZone = null;
   let closePreviewDialog = null;
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'Image' });
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -337,10 +339,12 @@ export function renderImageResizerCompressor(container) {
     scheduleLivePreview();
 
     if (state.files.length === 0) {
+      fileFeedback.clear();
       setStatus('Ready.', null);
       return;
     }
 
+    fileFeedback.selected(state.files);
     const count = state.files.length.toLocaleString('en-GB');
     setStatus(`${count} image file${state.files.length === 1 ? '' : 's'} selected.`, null);
   }
@@ -564,6 +568,7 @@ export function renderImageResizerCompressor(container) {
     } else if (failed > 0) {
       setStatus(firstErrorMessage || 'Image resizing failed. Review the file type and settings.', 'error');
     } else {
+      fileFeedback.loaded(state.files, 'Processed successfully · resized image downloads are ready');
       setStatus('Image resizing completed successfully.', 'success');
     }
   }
@@ -672,6 +677,7 @@ export function renderImageResizerCompressor(container) {
     outputPreview.innerHTML = '<span>No output yet</span>';
     renderQueuedFiles();
     resetSummary();
+    fileFeedback.clear();
     setStatus('Ready.', null);
   }
 
@@ -697,6 +703,7 @@ export function renderImageResizerCompressor(container) {
     onFiles: setSelectedFiles,
     onReject: (_file, rejectedFiles = []) => {
       const count = rejectedFiles.length || 1;
+      fileFeedback.error(state.files, `${count.toLocaleString('en-GB')} unsupported file${count === 1 ? '' : 's'} skipped`);
       setStatus(`${count.toLocaleString('en-GB')} unsupported file${count === 1 ? '' : 's'} skipped.`, 'error');
     }
   });

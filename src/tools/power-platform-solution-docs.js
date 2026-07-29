@@ -102,7 +102,7 @@ export function buildSolutionDocumentationMarkdown({
   } else {
     warnings.forEach(warning => lines.push(`- ${warning}`));
     components.forEach(component => {
-      component.warnings.forEach(warning => lines.push(`- ${component.name}: ${warning}`));
+      component.warnings.forEach(warning => lines.push(`- ${component.displayName || component.name}: ${warning}`));
     });
   }
 
@@ -120,7 +120,7 @@ export function buildSolutionDocumentationMarkdown({
     components.forEach(component => {
       lines.push([
         component.typeLabel,
-        component.name,
+        component.displayName || component.name,
         component.primaryEntity || '-',
         component.state || '-',
         component.sourcePath
@@ -136,7 +136,7 @@ export function buildSolutionDocumentationMarkdown({
     components.forEach(component => {
       lines.push(
         '',
-        `### ${component.name}`,
+        `### ${component.displayName || component.name}`,
         '',
         `- Type: ${component.typeLabel}`,
         `- Source: ${component.sourcePath}`,

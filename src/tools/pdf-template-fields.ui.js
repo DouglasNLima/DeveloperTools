@@ -11,6 +11,7 @@ import {
   isPdfFieldAnnotation
 } from './pdf-template-fields.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 
 const PDFJS_MODULE_URL = new URL('../vendor/pdfjs/pdf.min.mjs', import.meta.url).href;
 const PDFJS_WORKER_URL = new URL('../vendor/pdfjs/pdf.worker.min.mjs', import.meta.url).href;
@@ -188,6 +189,7 @@ export function renderPdfTemplateFieldExplorer(container) {
     objectUrls: []
   };
   let unbindDropZone = null;
+  const fileFeedback = bindFileImportFeedback(dropZone, { kind: 'PDF' });
 
   function setStatus(message, type) {
     status.textContent = message;
@@ -351,9 +353,13 @@ export function renderPdfTemplateFieldExplorer(container) {
     }
 
     if (!isPdfFile(file)) {
+      fileFeedback.error(file, 'The selected file is not a supported PDF.');
       setStatus('Choose a PDF file.', 'error');
       return;
     }
+
+    fileFeedback.selected(file);
+    fileFeedback.loading(file);
 
     try {
       setStatus('Loading PDF locally...', null);
@@ -364,6 +370,7 @@ export function renderPdfTemplateFieldExplorer(container) {
       state.fileName = file.name;
       state.reviews = {};
       await renderPdf();
+      fileFeedback.loaded(file, `Loaded successfully · ${state.pdf.numPages.toLocaleString('en-GB')} page${state.pdf.numPages === 1 ? '' : 's'} and ${state.fields.length.toLocaleString('en-GB')} field${state.fields.length === 1 ? '' : 's'} found`);
       setStatus(`PDF loaded successfully. ${state.fields.length.toLocaleString('en-GB')} field${state.fields.length === 1 ? '' : 's'} found.`, 'success');
     } catch (error) {
       state.pdf = null;
@@ -372,6 +379,7 @@ export function renderPdfTemplateFieldExplorer(container) {
       state.reviews = {};
       viewer.innerHTML = emptyState('Unable to read this PDF', 'The file may not be a valid PDF or may use unsupported form features.');
       syncHandoverOutput();
+      fileFeedback.error(file, 'The selected PDF could not be read. Choose another file or review the error below.');
       setStatus(error.message || 'Unable to load this PDF.', 'error');
     } finally {
       updateSummary();

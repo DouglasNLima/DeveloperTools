@@ -5,6 +5,7 @@ import {
   processDataExplorer
 } from './data-explorer.js';
 import { bindFileDropZone } from './file-drop-zone.js';
+import { bindFileImportFeedback } from './file-import-feedback.js';
 import { bindSyntaxHighlight } from './syntax-highlight.js';
 
 const DATA_EXPLORER_FILE_ACCEPT = '.json,.xml,.txt,application/json,text/xml,application/xml,text/plain';
@@ -164,6 +165,7 @@ export function renderDataExplorer(container) {
   let currentObjectUrl = null;
   let currentSourceName = '';
   let unbindDropZone = null;
+  const fileFeedback = bindFileImportFeedback(container.querySelector('#dataExplorerFileDropZone'));
   const inputHighlight = bindSyntaxHighlight(input, { language: 'auto' });
   const outputHighlight = bindSyntaxHighlight(output, { language: 'json' });
 
@@ -335,6 +337,9 @@ export function renderDataExplorer(container) {
       return;
     }
 
+    fileFeedback.selected(file);
+    fileFeedback.loading(file);
+
     try {
       currentSourceName = file.name;
       input.value = await file.text();
@@ -353,8 +358,10 @@ export function renderDataExplorer(container) {
       revokeObjectUrl();
       resetDetails();
       syncQueryControls();
+      fileFeedback.loaded(file, 'Loaded successfully · content ready to explore');
       setStatus(`Loaded ${file.name}.`, 'success');
     } catch {
+      fileFeedback.error(file, 'The selected file could not be read. Choose another file or review the error below.');
       setStatus('Unable to read the selected file.', 'error');
     }
   }
@@ -437,6 +444,7 @@ export function renderDataExplorer(container) {
     revokeObjectUrl();
     resetDetails();
     syncQueryControls();
+    fileFeedback.clear();
     setStatus('Ready.', null);
     input.focus();
   });

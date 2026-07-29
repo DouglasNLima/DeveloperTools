@@ -62,6 +62,16 @@ test('parses root components and missing dependencies from solution metadata', (
   assert.equal(dependencies[0].dependent.name, 'Account approval');
 });
 
+test('uses display names without GUID noise in preflight inventories', () => {
+  const guid = '643ea8ee-9c35-4fd7-909c-facf7fb68428';
+  const components = parseRootComponents(solutionXml({ managed: false }).replace(
+    'schemaName="Account approval"',
+    `schemaName="contoso_accountapproval" displayName="Account approval-${guid}"`
+  ));
+
+  assert.equal(components.find(component => component.typeLabel === 'Process').displayName, 'Account approval');
+});
+
 test('reports managed package warnings without force overwrite warnings', async () => {
   const result = await processPowerPlatformSolutionImportPreflightArchive(createZipArchive([
     ['solution.xml', solutionXml({ managed: true })],
