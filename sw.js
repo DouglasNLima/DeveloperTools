@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v46';
+const CACHE_NAME = 'developer-tools-static-v47';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -74,6 +74,9 @@ const PRECACHE_URLS = [
   './src/tools/model-driven-solution-inspector.ui.js',
   './src/tools/model-driven-solution-javascript.js',
   './src/tools/model-driven-solution-javascript.ui.js',
+  './src/tools/pcf-development.js',
+  './src/tools/pcf-development.ui.js',
+  './src/tools/pcf-development-workbench.ui.js',
   './src/tools/pdf-template-fields.js',
   './src/tools/pdf-template-fields.ui.js',
   './src/tools/power-automate-email-template.js',

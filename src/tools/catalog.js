@@ -195,6 +195,51 @@ export const TOOL_CATALOGUE = [
     hidden: true
   },
   {
+    id: 'pcf-development-hub',
+    title: 'PCF Development Hub',
+    category: 'PCF controls',
+    status: 'available',
+    summary: 'Prepare reviewed PowerShell launchers for creating, developing, building, deploying and checking PCF controls.',
+    renderer: 'pcf-development-hub',
+    modes: [
+      {
+        id: 'create',
+        title: 'Create',
+        summary: 'Initialise a complete PCF control and Dataverse solution structure.'
+      },
+      {
+        id: 'develop',
+        title: 'Develop',
+        summary: 'Check local prerequisites and start the PCF test harness.'
+      },
+      {
+        id: 'build',
+        title: 'Version & build',
+        summary: 'Update versions, build the control and package its solution.'
+      },
+      {
+        id: 'deploy',
+        title: 'Deploy',
+        summary: 'Prepare rapid control pushes and complete solution imports.'
+      },
+      {
+        id: 'quality',
+        title: 'Quality',
+        summary: 'Prepare Solution Checker quality-gate runs.'
+      }
+    ],
+    defaultMode: 'create',
+    searchTerms: [
+      'Power Apps Component Framework',
+      'PCF project',
+      'PCF test harness',
+      'PCF build',
+      'PCF deploy',
+      'Solution Checker',
+      'PowerShell launcher'
+    ]
+  },
+  {
     id: 'power-pages-workbench',
     title: 'Power Pages Workbench',
     category: 'Power Platform',

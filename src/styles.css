@@ -1355,6 +1355,52 @@ textarea.syntax-editor-input::placeholder {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.pcf-boundary-note {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.7rem 0.8rem;
+}
+
+.pcf-boundary-note strong {
+  color: var(--text);
+  font-family: var(--font-display);
+}
+
+.pcf-boundary-note p {
+  color: var(--text-strong-soft);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.pcf-field-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pcf-field-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.pcf-field-help {
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.pcf-command-output {
+  min-height: 7rem;
+}
+
+.pcf-launcher-output {
+  min-height: 20rem;
+}
+
 .checkbox-row {
   align-items: center;
   background: var(--surface-muted);
@@ -3090,6 +3136,7 @@ button.danger {
   .form-grid--actions,
   .form-grid--split,
   .form-grid--triple,
+  .pcf-field-grid,
   .home-summary,
   .home-philosophy-grid,
   .home-library-grid,

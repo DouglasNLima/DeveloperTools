@@ -56,6 +56,7 @@ import {
   renderWebResourceDependencyMapper
 } from './tools/model-driven-solution-javascript.ui.js';
 import { renderPdfTemplateFieldExplorer } from './tools/pdf-template-fields.ui.js';
+import { renderPcfDevelopmentWorkbench } from './tools/pcf-development-workbench.ui.js';
 import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js';
 import { renderPowerAutomateEmailTemplateBuilder } from './tools/power-automate-email-template.ui.js';
 import { renderPowerAutomateExpressionFormatter } from './tools/power-automate-expression.ui.js';
@@ -116,6 +117,7 @@ const renderers = {
   'mermaid-studio': renderMermaidStudio,
   'mermaid-template-builder': renderMermaidTemplateBuilder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
+  'pcf-development-hub': renderPcfDevelopmentWorkbench,
   'power-automate-email-template-builder': renderPowerAutomateEmailTemplateBuilder,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
   'power-platform-solution-import-preflight': renderPowerPlatformSolutionImportPreflight,

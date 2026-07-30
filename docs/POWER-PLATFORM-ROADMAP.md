@@ -149,6 +149,16 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - Include HTML script and `$webresource:` source references in web resource Mermaid dependency maps.
 - Status: implemented with unit and browser coverage.
 
+## Phase 12: PCF Development Hub
+
+- Add a dedicated PCF controls category with Create, Develop, Version & build, Deploy and Quality modes.
+- Model the parameters used by `Initialize-NewPCFProject.ps1`, `Get-PCFDevEnvironmentReport.ps1`, `Start-PCFTestHarness.ps1`, `Update-Version.ps1`, `Build-And-Deploy-PCF.ps1`, `Push-PCFQuickDeploy.ps1`, `Deploy-Solution.ps1` and `Invoke-SolutionCheck.ps1`.
+- Generate safely quoted PowerShell commands and downloadable launchers that point to the user's existing PS Scripts folder.
+- Keep execution outside the browser and require the user to review and run the launcher in PowerShell.
+- Omit service principal secrets from generated artefacts and rely on the reviewed local `pac` authentication context.
+- Surface script-contract limitations, including the environment report baseline parameter not being exposed at script scope.
+- Status: implemented with unit and browser coverage.
+
 ## Candidate Next Tools
 
 - Dataverse FetchXML to OData helper.
@@ -156,6 +166,9 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - Power Automate trigger condition builder.
 - Power Pages deployment profile helper.
 - ALM pull request checklist for solutions and sites. Status: planned.
+- PCF manifest property builder and validator.
+- PCF control/solution version inspector with a preview-only consistency report.
+- PCF release checklist exporter for CI/CD handover.
 
 ## Delivery Rules
 

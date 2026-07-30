@@ -24,9 +24,9 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('.statusbar')).toContainText('Static local workspace');
   await expect(page.getByRole('status')).toHaveCount(0);
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
-  await expect(page.locator('#activeToolStatus')).toHaveText('22 tools');
+  await expect(page.locator('#activeToolStatus')).toHaveText('23 tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('[data-home-tool-id]')).toHaveCount(22);
+  await expect(page.locator('[data-home-tool-id]')).toHaveCount(23);
   await expect(page.locator('[data-home-tool-id="json-data-workbench"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="json-formatter"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="web-api-workbench"]')).toBeVisible();
@@ -44,6 +44,7 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('[data-home-tool-id="file-to-base64"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="mermaid-studio"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="mermaid-editor"]')).toHaveCount(0);
+  await expect(page.locator('[data-home-tool-id="pcf-development-hub"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="power-pages-workbench"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="fetchxml-liquid-builder"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="power-pages-web-api-snippets"]')).toHaveCount(0);

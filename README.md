@@ -10,6 +10,7 @@ The catalogue currently exposes these available tools in the app menu:
 - Image Converter & Optimiser
 - Image OCR
 - Mermaid Studio
+- PCF Development Hub
 - Power Pages Workbench
 - Dataverse OData Query Builder
 - Power Platform CLI Command Builder
@@ -32,6 +33,7 @@ The catalogue currently exposes these available tools in the app menu:
 The implemented platform capabilities around those tools include:
 
 - A scalable tool menu with roadmap previews
+- A PCF Development Hub that validates parameters and creates reviewed commands and downloadable PowerShell launchers for the supplied PCF script workflow
 - Session-based handovers between compatible tools
 - Local review, comparison and replacement of cloud flow JSON in unmanaged solution ZIP files, with friendly GUID-free display labels, syntax highlighting and interactive Mermaid exports
 - Local review, structural comparison and guarded replacement of classic workflow XAML in unmanaged solution ZIP files, with friendly GUID-free display labels, syntax highlighting and interactive Mermaid exports
@@ -77,7 +79,7 @@ Tools that produce compatible JSON, XML, Mermaid, Markdown, text, CSV or Base64 
 
 Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
-The catalogue currently has 22 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
+The catalogue currently has 23 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -153,6 +155,9 @@ src/
     model-driven-solution-inspector.ui.js
     model-driven-solution-javascript.js
     model-driven-solution-javascript.ui.js
+    pcf-development.js
+    pcf-development.ui.js
+    pcf-development-workbench.ui.js
     markdown.js
     markdown-workbench.ui.js
     markdown-preview.ui.js
