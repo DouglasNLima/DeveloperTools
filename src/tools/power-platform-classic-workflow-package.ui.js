@@ -108,13 +108,13 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
           </div>
 
           <div class="detail-grid flow-package-change-grid" aria-live="polite">
-            <div class="detail-card"><span>Added</span><strong id="classicWorkflowAddedDetail">-</strong></div>
-            <div class="detail-card"><span>Removed</span><strong id="classicWorkflowRemovedDetail">-</strong></div>
-            <div class="detail-card"><span>Changed</span><strong id="classicWorkflowChangedDetail">-</strong></div>
-            <div class="detail-card"><span>Steps</span><strong id="classicWorkflowStepsDetail">-</strong></div>
-            <div class="detail-card"><span>Conditions</span><strong id="classicWorkflowConditionsDetail">-</strong></div>
-            <div class="detail-card"><span>Branches</span><strong id="classicWorkflowBranchesDetail">-</strong></div>
-            <div class="detail-card"><span>Custom activities</span><strong id="classicWorkflowCustomActivitiesDetail">-</strong></div>
+            <div class="detail-card"><span>XAML additions</span><strong id="classicWorkflowAddedDetail">-</strong></div>
+            <div class="detail-card"><span>XAML removals</span><strong id="classicWorkflowRemovedDetail">-</strong></div>
+            <div class="detail-card"><span>XAML value changes</span><strong id="classicWorkflowChangedDetail">-</strong></div>
+            <div class="detail-card"><span>Steps (total)</span><strong id="classicWorkflowStepsDetail">-</strong></div>
+            <div class="detail-card"><span>Conditions (total)</span><strong id="classicWorkflowConditionsDetail">-</strong></div>
+            <div class="detail-card"><span>Branches (total)</span><strong id="classicWorkflowBranchesDetail">-</strong></div>
+            <div class="detail-card"><span>Custom activities (total)</span><strong id="classicWorkflowCustomActivitiesDetail">-</strong></div>
           </div>
 
           <div id="classicWorkflowIssueList" class="solution-mermaid-issue-list" aria-live="polite"></div>
@@ -247,6 +247,16 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
 
   function setFile(file) {
     currentFile = file;
+
+    if (file) {
+      currentArchive = null;
+      selectedWorkflowPath = '';
+      currentReview = null;
+      search.value = '';
+      updatedFileInput.value = '';
+      clearArchiveOutput();
+    }
+
     file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(file ? `${file.name} selected.` : 'Ready.', null);
   }
@@ -327,6 +337,13 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
 
   function renderWorkflowList() {
     workflowList.innerHTML = '';
+
+    if (!currentArchive) {
+      details.shown.textContent = '0 shown';
+      workflowList.innerHTML = '<p class="empty-state">Load a solution export to list classic workflows.</p>';
+      return;
+    }
+
     const workflows = getFilteredWorkflows();
     details.shown.textContent = `${workflows.length.toLocaleString('en-GB')} shown`;
 
@@ -825,6 +842,12 @@ export function renderPowerPlatformClassicWorkflowPackageEditor(container) {
 
   function clearArchiveOutput() {
     revokeAllUrls();
+    downloadOriginalButton.hidden = true;
+    downloadOriginalButton.removeAttribute('href');
+    downloadUpdatedButton.hidden = true;
+    downloadUpdatedButton.removeAttribute('href');
+    downloadPackageButton.hidden = true;
+    downloadPackageButton.removeAttribute('href');
     Object.values(details).forEach(detail => {
       detail.textContent = '-';
     });

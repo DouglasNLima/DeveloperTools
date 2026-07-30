@@ -116,23 +116,23 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
           <div class="detail-grid flow-package-change-grid" aria-live="polite">
             <div class="detail-card">
-              <span>Added</span>
+              <span>JSON additions</span>
               <strong id="flowPackageAddedDetail">-</strong>
             </div>
             <div class="detail-card">
-              <span>Removed</span>
+              <span>JSON removals</span>
               <strong id="flowPackageRemovedDetail">-</strong>
             </div>
             <div class="detail-card">
-              <span>Changed</span>
+              <span>JSON value changes</span>
               <strong id="flowPackageChangedDetail">-</strong>
             </div>
             <div class="detail-card">
-              <span>Triggers</span>
+              <span>Triggers (total)</span>
               <strong id="flowPackageTriggersDetail">-</strong>
             </div>
             <div class="detail-card">
-              <span>Actions</span>
+              <span>Actions (all levels)</span>
               <strong id="flowPackageActionsDetail">-</strong>
             </div>
           </div>
@@ -254,6 +254,16 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   function setFile(file) {
     currentFile = file;
+
+    if (file) {
+      currentArchive = null;
+      selectedFlowPath = '';
+      currentReview = null;
+      search.value = '';
+      updatedFileInput.value = '';
+      clearArchiveOutput();
+    }
+
     file ? fileFeedback.selected(file) : fileFeedback.clear();
     setStatus(file ? `${file.name} selected.` : 'Ready.', null);
   }
@@ -331,6 +341,13 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   function renderFlowList() {
     flowList.innerHTML = '';
+
+    if (!currentArchive) {
+      details.shown.textContent = '0 shown';
+      flowList.innerHTML = '<p class="empty-state">Load a solution export to list cloud flows.</p>';
+      return;
+    }
+
     const flows = getFilteredFlows();
     details.shown.textContent = `${flows.length.toLocaleString('en-GB')} shown`;
 
@@ -760,6 +777,12 @@ export function renderPowerPlatformFlowPackageEditor(container) {
 
   function clearArchiveOutput() {
     revokeAllUrls();
+    downloadOriginalButton.hidden = true;
+    downloadOriginalButton.removeAttribute('href');
+    downloadUpdatedButton.hidden = true;
+    downloadUpdatedButton.removeAttribute('href');
+    downloadPackageButton.hidden = true;
+    downloadPackageButton.removeAttribute('href');
     Object.values(details).forEach(detail => {
       detail.textContent = '-';
     });

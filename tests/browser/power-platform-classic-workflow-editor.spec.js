@@ -10,6 +10,18 @@ test('inspects classic workflow XAML, metadata and an on-demand diagram', async 
 
   await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
   await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Classic workflow editor');
+  const reviewMetricLabels = page.locator('.flow-package-change-grid')
+    .filter({ has: page.locator('#classicWorkflowAddedDetail') })
+    .locator('.detail-card span');
+  await expect(reviewMetricLabels).toHaveText([
+    'XAML additions',
+    'XAML removals',
+    'XAML value changes',
+    'Steps (total)',
+    'Conditions (total)',
+    'Branches (total)',
+    'Custom activities (total)'
+  ]);
   await page.getByRole('button', { name: 'Inspect classic workflows' }).click();
   await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP');
 
@@ -57,6 +69,46 @@ test('inspects classic workflow XAML, metadata and an on-demand diagram', async 
   await page.getByRole('button', { name: 'Zoom out' }).click();
   await expect(page.locator('#classicWorkflowMermaidPreview [data-mermaid-zoom-level]')).not.toHaveText('100%');
   await page.getByRole('button', { name: 'Fit diagram' }).click();
+});
+
+test('clears the previous classic workflow form state when a new package is selected', async ({ page }) => {
+  await page.goto('/#solution-package-inspector/classic-workflows');
+  await loadClassicWorkflowSolution(page);
+
+  const updated = (await page.locator('#classicWorkflowOriginalXaml').inputValue())
+    .replace('Create task', 'Create reviewed task');
+  await page.locator('#classicWorkflowUpdatedXaml').fill(updated);
+  await page.getByRole('button', { name: 'Review update' }).click();
+  await page.getByRole('button', { name: 'Stage update' }).click();
+  await page.locator('#classicWorkflowSearch').fill('Account');
+  await page.locator('#classicWorkflowTargetVersion').fill('2.0.0.0');
+  await page.locator('#classicWorkflowRiskAcknowledgement').check();
+
+  await page.setInputFiles('#classicWorkflowFileInput', {
+    name: 'replacement-classic-workflow-package.zip',
+    mimeType: 'application/zip',
+    buffer: createClassicWorkflowEditorSolutionZip({ managed: true })
+  });
+
+  await expect(page.getByRole('status')).toContainText('replacement-classic-workflow-package.zip selected.');
+  await expect(page.locator('#classicWorkflowSearch')).toHaveValue('');
+  await expect(page.locator('#classicWorkflowSolutionDetail')).toHaveText('-');
+  await expect(page.locator('#classicWorkflowShownDetail')).toHaveText('0 shown');
+  await expect(page.locator('#classicWorkflowUpdatesDetail')).toHaveText('-');
+  await expect(page.locator('#classicWorkflowAddedDetail')).toHaveText('-');
+  await expect(page.locator('#classicWorkflowTargetVersion')).toHaveValue('');
+  await expect(page.locator('#classicWorkflowTargetVersion')).toBeDisabled();
+  await expect(page.locator('#classicWorkflowRiskAcknowledgement')).not.toBeChecked();
+  await expect(page.locator('#classicWorkflowRiskAcknowledgement')).toBeDisabled();
+  await expect(page.locator('#classicWorkflowSelectedTitle')).toHaveText('No workflow selected');
+  await expect(page.locator('#classicWorkflowOriginalXaml')).toHaveValue('');
+  await expect(page.locator('#classicWorkflowUpdatedXaml')).toHaveValue('');
+  await expect(page.locator('#classicWorkflowList')).toContainText('Load a solution export');
+  await expect(page.locator('#classicWorkflowStagedList')).toContainText('No classic workflow updates staged');
+  await expect(page.locator('#downloadClassicWorkflowOriginalButton')).toBeHidden();
+  await expect(page.locator('#downloadClassicWorkflowUpdatedButton')).toBeHidden();
+  await expect(page.locator('#downloadClassicWorkflowPackageButton')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Review update' })).toBeDisabled();
 });
 
 test('uses friendly classic workflow and XAML step labels', async ({ page }) => {

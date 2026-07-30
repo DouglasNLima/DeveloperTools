@@ -12,6 +12,13 @@ test('inspects cloud flow JSON and renders the selected flow diagram', async ({ 
 
   await expect(page.getByRole('heading', { name: 'Solution Package Inspector' })).toBeVisible();
   await expect(page.locator('.tool-workbench-tab[aria-current="page"]')).toHaveText('Flow editor');
+  await expect(page.locator('.flow-package-change-grid .detail-card span')).toHaveText([
+    'JSON additions',
+    'JSON removals',
+    'JSON value changes',
+    'Triggers (total)',
+    'Actions (all levels)'
+  ]);
   await page.getByRole('button', { name: 'Inspect flows' }).click();
   await expect(page.getByRole('status')).toContainText('Choose an exported solution ZIP');
 
@@ -65,6 +72,43 @@ test('inspects cloud flow JSON and renders the selected flow diagram', async ({ 
   await viewport.focus();
   await viewport.press('ArrowRight');
   await expect(canvas).not.toHaveAttribute('style', initialTransform);
+});
+
+test('clears the previous flow form state when a new package is selected', async ({ page }) => {
+  await page.goto('/#solution-package-inspector/flows');
+  await loadFlowEditorSolution(page);
+
+  const updated = JSON.parse(await page.locator('#flowPackageOriginalJson').inputValue());
+  updated.properties.definition.actions.Review_state = { type: 'Compose' };
+  await page.locator('#flowPackageUpdatedJson').fill(JSON.stringify(updated, null, 2));
+  await page.getByRole('button', { name: 'Review update' }).click();
+  await page.getByRole('button', { name: 'Stage update' }).click();
+  await page.locator('#flowPackageSearch').fill('Account');
+  await page.locator('#flowPackageTargetVersion').fill('2.0.0.0');
+
+  await page.setInputFiles('#flowPackageFileInput', {
+    name: 'replacement-flow-package.zip',
+    mimeType: 'application/zip',
+    buffer: createFlowEditorSolutionZip({ managed: true })
+  });
+
+  await expect(page.getByRole('status')).toContainText('replacement-flow-package.zip selected.');
+  await expect(page.locator('#flowPackageSearch')).toHaveValue('');
+  await expect(page.locator('#flowPackageSolutionDetail')).toHaveText('-');
+  await expect(page.locator('#flowPackageShownDetail')).toHaveText('0 shown');
+  await expect(page.locator('#flowPackageUpdatesDetail')).toHaveText('-');
+  await expect(page.locator('#flowPackageAddedDetail')).toHaveText('-');
+  await expect(page.locator('#flowPackageTargetVersion')).toHaveValue('');
+  await expect(page.locator('#flowPackageTargetVersion')).toBeDisabled();
+  await expect(page.locator('#flowPackageSelectedTitle')).toHaveText('No flow selected');
+  await expect(page.locator('#flowPackageOriginalJson')).toHaveValue('');
+  await expect(page.locator('#flowPackageUpdatedJson')).toHaveValue('');
+  await expect(page.locator('#flowPackageList')).toContainText('Load a solution export');
+  await expect(page.locator('#flowPackageStagedList')).toContainText('No flow updates staged');
+  await expect(page.locator('#downloadFlowOriginalButton')).toBeHidden();
+  await expect(page.locator('#downloadFlowUpdatedButton')).toBeHidden();
+  await expect(page.locator('#downloadFlowPackageButton')).toBeHidden();
+  await expect(page.getByRole('button', { name: 'Review update' })).toBeDisabled();
 });
 
 test('uses friendly labels and keeps a long cloud flow list separated', async ({ page }) => {
