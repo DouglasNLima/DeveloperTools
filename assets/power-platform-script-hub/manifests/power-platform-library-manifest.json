@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "package": "Power Platform Script Library",
+  "packageDirectory": "Power-Platform-Script-Library-v1.0.0",
+  "version": "1.0.0",
+  "goal": "POWER_PLATFORM_SCRIPT_LIBRARY_PACKAGE_V1",
+  "language": "British English",
+  "maturity": "Experimental",
+  "scriptCount": 14,
+  "documentationCount": 18,
+  "exampleFileCount": 1,
+  "packageFileCount": 37,
+  "scripts": [
+    {
+      "name": "Get-PowerPlatformEnvironmentSnapshot.ps1",
+      "category": "Environment and ALM",
+      "maturity": "Experimental",
+      "safetyClassification": "READ_ONLY_REMOTE",
+      "implementationStatus": "IMPLEMENTED_BEST_EFFORT_REMOTE",
+      "lineCount": 984,
+      "documentation": "docs/Get-PowerPlatformEnvironmentSnapshot.md"
+    },
+    {
+      "name": "Compare-PowerPlatformEnvironmentSnapshots.ps1",
+      "category": "Environment and ALM",
+      "maturity": "Experimental",
+      "safetyClassification": "LOCAL_ONLY_READ_ONLY",
+      "implementationStatus": "IMPLEMENTED_LOCAL",
+      "lineCount": 493,
+      "documentation": "docs/Compare-PowerPlatformEnvironmentSnapshots.md"
+    },
+    {
+      "name": "Test-SolutionTargetReadiness.ps1",
+      "category": "Environment and ALM",
+      "maturity": "Experimental",
+      "safetyClassification": "READ_ONLY_REMOTE_AND_LOCAL_INSPECTION",
+      "implementationStatus": "IMPLEMENTED_BEST_EFFORT_REMOTE",
+      "lineCount": 1070,
+      "documentation": "docs/Test-SolutionTargetReadiness.md"
+    },
+    {
+      "name": "Get-SolutionDeploymentHistory.ps1",
+      "category": "Environment and ALM",
+      "maturity": "Experimental",
+      "safetyClassification": "READ_ONLY_REMOTE",
+      "implementationStatus": "IMPLEMENTED_BEST_EFFORT_REMOTE",
+      "lineCount": 657,
+      "documentation": "docs/Get-SolutionDeploymentHistory.md"
+    },
+    {
+      "name": "Get-PluginRegistrationInventory.ps1",
+      "category": "Plug-ins",
+      "maturity": "Experimental",
+      "safetyClassification": "READ_ONLY_REMOTE",
+      "implementationStatus": "IMPLEMENTED_BEST_EFFORT_REMOTE",
+      "lineCount": 746,
+      "documentation": "docs/Get-PluginRegistrationInventory.md"
+    },
+    {
+      "name": "Compare-PluginRegistration.ps1",
+      "category": "Plug-ins",
+      "maturity": "Experimental",
+      "safetyClassification": "LOCAL_ONLY_READ_ONLY",
+      "implementationStatus": "IMPLEMENTED_LOCAL",
+      "lineCount": 409,
+      "documentation": "docs/Compare-PluginRegistration.md"
+    },
+    {
+      "name": "Test-EnvironmentReferences.ps1",
+      "category": "Environment configuration",
+      "maturity": "Experimental",
+      "safetyClassification": "READ_ONLY_REMOTE",
+      "implementationStatus": "IMPLEMENTED_BEST_EFFORT_REMOTE",
+      "lineCount": 597,
+      "documentation": "docs/Test-EnvironmentReferences.md"
+    },
+    {
+      "name": "Get-FlowDeploymentState.ps1",
+      "category": "Environment configuration",
+      "maturity": "Experimental",
+      "safetyClassification": "READ_ONLY_REMOTE",
+      "implementationStatus": "IMPLEMENTED_BEST_EFFORT_REMOTE",
+      "lineCount": 624,
+      "documentation": "docs/Get-FlowDeploymentState.md"
+    },
+    {
+      "name": "Test-PCFProjectHealth.ps1",
+      "category": "PCF",
+      "maturity": "Experimental",
+      "safetyClassification": "LOCAL_ONLY_READ_ONLY",
+      "implementationStatus": "IMPLEMENTED_LOCAL",
+      "lineCount": 414,
+      "documentation": "docs/Test-PCFProjectHealth.md"
+    },
+    {
+      "name": "Test-PCFReleasePackage.ps1",
+      "category": "PCF",
+      "maturity": "Experimental",
+      "safetyClassification": "LOCAL_ONLY_READ_ONLY",
+      "implementationStatus": "IMPLEMENTED_LOCAL",
+      "lineCount": 486,
+      "documentation": "docs/Test-PCFReleasePackage.md"
+    },
+    {
+      "name": "Get-PowerPagesSiteInventory.ps1",
+      "category": "Power Pages",
+      "maturity": "Experimental",
+      "safetyClassification": "READ_ONLY_REMOTE_WITH_LOCAL_AUTH_CONTEXT_MUTATION",
+      "implementationStatus": "IMPLEMENTED_BEST_EFFORT_PAC_OUTPUT",
+      "lineCount": 310,
+      "documentation": "docs/Get-PowerPagesSiteInventory.md"
+    },
+    {
+      "name": "Sync-PowerPagesSite.ps1",
+      "category": "Power Pages",
+      "maturity": "Experimental",
+      "safetyClassification": "LOCAL_FILESYSTEM_MUTATION",
+      "implementationStatus": "IMPLEMENTED_LOCAL_MUTATION_WITH_READ_ONLY_REMOTE_DOWNLOAD",
+      "lineCount": 533,
+      "documentation": "docs/Sync-PowerPagesSite.md"
+    },
+    {
+      "name": "Backup-PowerPagesSite.ps1",
+      "category": "Power Pages",
+      "maturity": "Experimental",
+      "safetyClassification": "CREATE_ONLY_LOCAL_BACKUP",
+      "implementationStatus": "IMPLEMENTED_LOCAL_MUTATION_WITH_READ_ONLY_REMOTE_DOWNLOAD",
+      "lineCount": 421,
+      "documentation": "docs/Backup-PowerPagesSite.md"
+    },
+    {
+      "name": "Compare-PowerPagesSites.ps1",
+      "category": "Power Pages",
+      "maturity": "Experimental",
+      "safetyClassification": "LOCAL_ONLY_READ_ONLY",
+      "implementationStatus": "IMPLEMENTED_LOCAL",
+      "lineCount": 362,
+      "documentation": "docs/Compare-PowerPagesSites.md"
+    }
+  ],
+  "safety": {
+    "credentialsEmbedded": false,
+    "secretValuesIntentionallyEmitted": false,
+    "remoteDataverseMutationCommandsIncluded": false,
+    "powerPagesRemoteMutationCommandsIncluded": false,
+    "powerPagesAuthenticationProfileCreationDefault": false,
+    "filesystemDeletionGuardedByCanonicalDescendantChecks": true,
+    "synchronisationUsesValidatedStagingAndRollback": true
+  },
+  "supportedToolingReview": {
+    "reviewedUtc": "2026-08-28T00:00:00Z",
+    "microsoftSupportedSurfacesUsed": [
+      "pac auth list",
+      "pac auth select",
+      "pac auth create (explicit opt-in only)",
+      "pac --version",
+      "pac pages list --environment --verbose",
+      "pac pages download --path --webSiteId --environment --overwrite [--modelVersion Standard|Enhanced]",
+      "pac solution create-settings --solution-zip --settings-file"
+    ],
+    "note": "Command surfaces were checked against current Microsoft Learn documentation during package generation. Runtime behaviour was not field-validated in this environment."
+  },
+  "validation": {
+    "livePowerPlatformValidation": {
+      "status": "NOT_PERFORMED",
+      "reason": "No authorised live Power Platform environment was provided or required for package validation."
+    },
+    "officialPowerShellParser": {
+      "status": "NOT_EXECUTED",
+      "scriptsPassed": null,
+      "scriptsFailed": null,
+      "reason": "The package-generation container does not contain pwsh or Windows PowerShell and external runtime installation was unavailable."
+    },
+    "psScriptAnalyzer": {
+      "status": "NOT_EXECUTED",
+      "reason": "PSScriptAnalyzer is not installed in the package-generation container; no dependency was introduced solely for this build."
+    },
+    "supplementaryLexicalDelimiterValidation": {
+      "status": "PASS",
+      "scriptsPassed": 14,
+      "scriptsFailed": 0,
+      "note": "A custom lexical delimiter validator checked balanced PowerShell braces, parentheses and brackets while ignoring comments and quoted/here-string content. This is supplementary and is not a substitute for the official PowerShell parser."
+    },
+    "localPolicyFixtureAndSafetyTests": {
+      "status": "PASS",
+      "checksExecuted": 181,
+      "checksPassed": 181,
+      "checksFailed": 0,
+      "coverage": [
+        "required package structure and per-script documentation",
+        "CmdletBinding, comment-based help, strict-mode and Experimental maturity markers",
+        "customer-neutralisation and fixed-customer identifier scans",
+        "remote-mutation verb and PAC-command policy scans",
+        "secret-output policy markers",
+        "deterministic fixture checks for comparison logic",
+        "negative path and path-traversal safety model checks",
+        "Power Pages destructive-operation guard markers",
+        "British English prose policy scan"
+      ]
+    }
+  },
+  "knownLimitations": [
+    {
+      "script": "Test-SolutionTargetReadiness.ps1",
+      "limitation": "Server-side import validation is not executed. Holding-upgrade state, full dependency resolution, plug-in prerequisites and PCF identity conflicts can remain UNKNOWN when read-only evidence is inconclusive."
+    },
+    {
+      "script": "Get-SolutionDeploymentHistory.ps1",
+      "limitation": "History is limited to rows retained and exposed by msdyn_solutionhistories; the oldest retained timestamp is reported and must not be interpreted as lifetime history."
+    },
+    {
+      "script": "Get-FlowDeploymentState.ps1",
+      "limitation": "Flow-to-connection-reference relationships are conservative best-effort matches against known logical names in workflow clientData. Raw clientData is not emitted."
+    },
+    {
+      "script": "Get-PowerPagesSiteInventory.ps1",
+      "limitation": "Site inventory depends on the human-readable PAC pages list output because a stable JSON output contract is not assumed. Unrecognised fields remain unparsed rather than guessed."
+    },
+    {
+      "script": "Remote Dataverse collectors",
+      "limitation": "Table/column exposure and permissions vary by tenant, security role and platform version. Optional query gaps are surfaced explicitly rather than converted into false absence."
+    }
+  ],
+  "releaseAuthority": {
+    "productionAuthoritative": false,
+    "reason": "All scripts are Experimental; official PowerShell parser/PSScriptAnalyzer and authorised live-environment validation were not executed in this build environment."
+  }
+}

@@ -3220,3 +3220,215 @@ button.danger {
     transition-duration: 0.01ms !important;
   }
 }
+
+.script-hub-tool {
+  gap: 1rem;
+}
+
+.script-hub-boundary {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.script-hub-boundary strong,
+.script-hub-script-summary h2,
+.script-hub-section-heading h2 {
+  color: var(--text);
+  font-family: var(--font-display);
+  margin: 0;
+}
+
+.script-hub-boundary p,
+.script-hub-script-summary p,
+.script-hub-script-summary small,
+.script-hub-info-card p,
+.script-hub-info-card ul,
+.script-hub-runtime-note {
+  color: var(--text-strong-soft);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.script-hub-selector-row {
+  align-items: end;
+}
+
+.script-hub-script-summary {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.75rem 0.85rem;
+}
+
+.script-hub-script-summary small {
+  color: var(--text-soft);
+  font-family: var(--font-mono);
+}
+
+.script-hub-input-grid {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.script-hub-input-grid--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.script-hub-checkbox-row {
+  align-content: start;
+  align-items: start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.script-hub-checkbox-row small,
+.script-hub-field-help {
+  color: var(--text-soft);
+  font-size: 0.76rem;
+  grid-column: 2;
+  line-height: 1.4;
+}
+
+.script-hub-runtime-note {
+  background: var(--surface-muted);
+  border: 1px dashed var(--accent-border);
+  border-radius: var(--radius-control);
+  grid-column: 1 / -1;
+  padding: 0.65rem 0.75rem;
+}
+
+.script-hub-details {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.script-hub-section-heading {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.script-hub-info-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.script-hub-info-card {
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.7rem;
+}
+
+.script-hub-info-card > span {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.script-hub-info-card ul {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 1.1rem;
+}
+
+.script-hub-safety-list,
+.script-hub-maturity {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.script-hub-safety-item,
+.script-hub-maturity {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  color: var(--text-strong-soft);
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 700;
+  list-style: none;
+  padding: 0.25rem 0.5rem;
+}
+
+.script-hub-safety-list ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.script-hub-maturity--field-tested {
+  background: color-mix(in srgb, var(--success-soft) 75%, var(--surface));
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.script-hub-maturity--experimental {
+  background: color-mix(in srgb, var(--warning-soft) 75%, var(--surface));
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
+.script-hub-output-panel {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.output-toolbar--subtle {
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+
+.script-hub-command-output {
+  min-height: 7rem;
+}
+
+.script-hub-launcher-output,
+.script-hub-script-output {
+  min-height: 24rem;
+}
+
+.script-hub-output-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.script-hub-result-details {
+  margin-top: 0.1rem;
+}
+
+@media (max-width: 1080px) {
+  .script-hub-input-grid,
+  .script-hub-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .script-hub-input-grid,
+  .script-hub-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .script-hub-output-actions {
+    justify-content: flex-start;
+  }
+}

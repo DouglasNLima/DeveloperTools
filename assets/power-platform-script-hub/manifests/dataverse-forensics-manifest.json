@@ -1,0 +1,42 @@
+{
+  "toolkit": "Dynamics / Dataverse Forensics Toolkit",
+  "version": "1.0.0",
+  "scripts": [
+    "App-Module-Forensics.txt",
+    "Async-Operations-Health.txt",
+    "BPF-Forensics.txt",
+    "Compare-Environment-Fingerprints.txt",
+    "Component-Forensics-Generic.txt",
+    "Environment-Fingerprint.txt",
+    "Environment-Reference-Audit.txt",
+    "Flow-Forensics.txt",
+    "Form-Forensics.txt",
+    "PCF-Forensics-Generic.txt",
+    "Plugin-Step-Forensics.txt",
+    "Security-Role-Audit.txt",
+    "Security-Role-Diff.txt",
+    "Solution-Forensics-Generic.txt",
+    "WebResource-Integrity-Audit.txt"
+  ],
+  "documentation": [
+    "00-Quick-Start.md",
+    "01-Safety-and-Interpretation.md",
+    "02-Common-Report-Model.md",
+    "10-PCF-Forensics-Generic.md",
+    "11-Solution-Forensics-Generic.md",
+    "12-Plugin-Step-Forensics.md",
+    "13-Flow-Forensics.md",
+    "14-Environment-Fingerprint.md",
+    "15-Compare-Environment-Fingerprints.md",
+    "16-Component-Forensics-Generic.md",
+    "17-WebResource-Integrity-Audit.md",
+    "18-Form-Forensics.md",
+    "19-BPF-Forensics.md",
+    "20-Environment-Reference-Audit.md",
+    "21-App-Module-Forensics.md",
+    "22-Async-Operations-Health.md",
+    "23-Security-Role-Audit.md",
+    "24-Security-Role-Diff.md"
+  ],
+  "safety": "Dataverse collectors are designed for GET-only diagnostics. Comparison utilities are local-only."
+}

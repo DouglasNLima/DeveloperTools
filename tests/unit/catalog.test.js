@@ -393,6 +393,20 @@ test('builds canonical hashes with default modes omitted', () => {
   assert.equal(buildToolHash(workbench, 'schema'), '#json-data-workbench/schema');
 });
 
+test('resolves the modern Script Hub and preserves the PCF legacy phase paths', () => {
+  const canonical = resolveToolRoute('#power-platform-script-hub/investigation');
+  const legacy = resolveToolRoute('#pcf-development-hub/build');
+
+  assert.equal(canonical.tool.id, 'power-platform-script-hub');
+  assert.equal(canonical.mode, 'investigation');
+  assert.equal(canonical.canonicalHash, '#power-platform-script-hub/investigation');
+  assert.equal(legacy.tool.id, 'power-platform-script-hub');
+  assert.equal(legacy.mode, 'development');
+  assert.equal(legacy.requestedMode, 'build');
+  assert.equal(legacy.canonicalHash, '#power-platform-script-hub');
+  assert.equal(matchesToolSearch(canonical.tool, 'Dataverse forensic'), true);
+});
+
 test('reports invalid catalogue aliases and modes', () => {
   const result = validateToolCatalogue([
     {
@@ -442,7 +456,10 @@ test('reports invalid catalogue aliases and modes', () => {
       status: 'available',
       summary: 'Gamma.',
       renderer: 'gamma',
-      legacyIds: ['visible-old']
+      legacyIds: ['visible-old'],
+      modePathAliases: {
+        old: 'missing'
+      }
     }
   ]);
   const errors = result.errors.join('\n');
@@ -455,6 +472,7 @@ test('reports invalid catalogue aliases and modes', () => {
   assert.match(errors, /beta modeAliases must be an object\./);
   assert.match(errors, /beta alias old-alpha is already used by alpha\./);
   assert.match(errors, /gamma alias visible-old conflicts with a visible tool id\./);
+  assert.match(errors, /gamma mode path alias old references unknown mode missing\./);
 });
 
 function resolveSummary(hashOrId) {

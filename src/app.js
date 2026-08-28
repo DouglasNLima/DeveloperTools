@@ -56,7 +56,7 @@ import {
   renderWebResourceDependencyMapper
 } from './tools/model-driven-solution-javascript.ui.js';
 import { renderPdfTemplateFieldExplorer } from './tools/pdf-template-fields.ui.js';
-import { renderPcfDevelopmentWorkbench } from './tools/pcf-development-workbench.ui.js';
+import { renderPowerPlatformScriptHub } from './tools/power-platform-script-hub.ui.js';
 import { renderDataverseODataQueryBuilder } from './tools/dataverse-odata.ui.js';
 import { renderPowerAutomateEmailTemplateBuilder } from './tools/power-automate-email-template.ui.js';
 import { renderPowerAutomateExpressionFormatter } from './tools/power-automate-expression.ui.js';
@@ -117,7 +117,7 @@ const renderers = {
   'mermaid-studio': renderMermaidStudio,
   'mermaid-template-builder': renderMermaidTemplateBuilder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
-  'pcf-development-hub': renderPcfDevelopmentWorkbench,
+  'power-platform-script-hub': renderPowerPlatformScriptHub,
   'power-automate-email-template-builder': renderPowerAutomateEmailTemplateBuilder,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
   'power-platform-solution-import-preflight': renderPowerPlatformSolutionImportPreflight,
@@ -167,6 +167,7 @@ const HANDOVER_HISTORY_STORAGE_KEY = 'developer-tools-handover-history';
 let activeView = HOME_VIEW;
 let activeTool = null;
 let activeMode = '';
+let activeRequestedMode = '';
 let activeCleanup = null;
 let selectedTheme = readStorage(THEME_STORAGE_KEY);
 let handoverHistory = readHandoverHistory();
@@ -321,6 +322,7 @@ function resolveRoute() {
       view: 'tool',
       tool: resolvedRoute.tool,
       mode: resolvedRoute.mode,
+      requestedMode: resolvedRoute.requestedMode,
       canonicalHash: resolvedRoute.canonicalHash
     };
   }
@@ -448,6 +450,7 @@ function selectTool(toolId, options = {}) {
     view: 'tool',
     tool: resolvedRoute.tool,
     mode: resolvedRoute.mode,
+    requestedMode: resolvedRoute.requestedMode,
     canonicalHash: resolvedRoute.canonicalHash
   });
 }
@@ -456,6 +459,7 @@ function renderRoute(route) {
   activeView = route.view;
   activeTool = route.tool;
   activeMode = route.mode || '';
+  activeRequestedMode = route.requestedMode || activeMode;
 
   if (route.canonicalHash && window.location.hash !== route.canonicalHash) {
     history.replaceState(null, '', route.canonicalHash);
@@ -678,7 +682,11 @@ function renderActiveTool() {
     return;
   }
 
-  activeCleanup = renderer(toolMount, { tool: activeTool, mode: activeMode });
+  activeCleanup = renderer(toolMount, {
+    tool: activeTool,
+    mode: activeMode,
+    legacyMode: activeRequestedMode
+  });
   applyPendingToolState();
   renderHandoverTrail();
   renderHandoverSuggestions();

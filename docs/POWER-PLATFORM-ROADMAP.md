@@ -1,8 +1,8 @@
 # Power Platform Roadmap
 
-This roadmap covers Power Platform tools beyond the first Power Pages mini-roadmap. Every tool remains static, local-first and browser-only. The app can help compose snippets, commands and review artefacts, but it must not connect to Dataverse, call a tenant API, authenticate a user or run Power Platform CLI commands.
+This roadmap covers Power Platform tools beyond the first Power Pages mini-roadmap. Every tool remains static and local-first. The Power Platform Script Hub prepares reviewed PowerShell launchers and browser-console forensic scripts, but Developer Tools must not connect to Dataverse, call a tenant API, authenticate a user or run Power Platform CLI commands.
 
-Status: the implemented solution ZIP inspection, cloud flow editing, classic workflow XAML editing and preflight phases are consolidated in the visible Solution Package Inspector, the model-driven JavaScript review, migration and builder phases are consolidated in the visible Model-driven JavaScript Workbench, and the exported solution JavaScript inspection phases are consolidated in the visible Model-driven Solution Inspector. Legacy route aliases are preserved for the original standalone tools as compatibility hash routes, not separate menu entries.
+Status: the former PCF Development Hub is now the visible Power Platform Script Hub. Its Development mode retains the PCF workflows, its Investigation mode prepares the supplied Power Platform and Dynamics / Dataverse diagnostics, and its Power Pages mode prepares site inventory, backup, synchronisation and comparison workflows. The solution ZIP inspection, cloud flow editing, classic workflow XAML editing and preflight phases remain consolidated in the visible Solution Package Inspector; model-driven JavaScript phases remain consolidated in the visible Model-driven JavaScript Workbench and Model-driven Solution Inspector. Legacy route aliases are preserved as compatibility hash routes, not separate menu entries.
 
 ## References
 
@@ -19,7 +19,7 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - [Client API form context](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/clientapi-form-context)
 - [Xrm.WebApi](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/clientapi/reference/xrm-webapi)
 - [JavaScript web resources](https://learn.microsoft.com/en-us/power-apps/developer/model-driven-apps/script-jscript-web-resources)
-- [Customize the command bar](https://learn.microsoft.com/en-us/power-apps/maker/model-driven-apps/use-command-designer)
+- [Customise the command bar](https://learn.microsoft.com/en-us/power-apps/maker/model-driven-apps/use-command-designer)
 - [Export cloud flows to solutions](https://learn.microsoft.com/en-us/power-automate/export-flow-solution)
 - [Manage flows with code](https://learn.microsoft.com/en-us/power-automate/manage-flows-with-code)
 - [SolutionPackager tool](https://learn.microsoft.com/en-us/power-platform/alm/solution-packager-tool)
@@ -149,15 +149,17 @@ Status: the implemented solution ZIP inspection, cloud flow editing, classic wor
 - Include HTML script and `$webresource:` source references in web resource Mermaid dependency maps.
 - Status: implemented with unit and browser coverage.
 
-## Phase 12: PCF Development Hub
+## Phase 12: Power Platform Script Hub
 
-- Add a dedicated PCF controls category with Create, Develop, Version & build, Deploy and Quality modes.
-- Model the parameters used by `Initialize-NewPCFProject.ps1`, `Get-PCFDevEnvironmentReport.ps1`, `Start-PCFTestHarness.ps1`, `Update-Version.ps1`, `Build-And-Deploy-PCF.ps1`, `Push-PCFQuickDeploy.ps1`, `Deploy-Solution.ps1` and `Invoke-SolutionCheck.ps1`.
-- Generate safely quoted PowerShell commands and downloadable launchers that point to the user's existing PS Scripts folder.
-- Keep execution outside the browser and require the user to review and run the launcher in PowerShell.
-- Omit service principal secrets from generated artefacts and rely on the reviewed local `pac` authentication context.
-- Surface script-contract limitations, including the environment report baseline parameter not being exposed at script scope.
-- Status: implemented with unit and browser coverage.
+- Evolve the former PCF Development Hub into one catalogue with Development, Investigation and Power Pages modes; do not create a competing script generator.
+- Retain the existing PCF Create, Develop, Version & build, Deploy and Quality workflows, including their legacy action API and hash routes.
+- Integrate all 14 PowerShell scripts from `Power-Platform-Script-Library-v1.0.0` and the 11 non-superseded executable PCF helpers from `PS Scripts`.
+- Integrate all 15 scripts from `Dynamics-Dataverse-Forensics-Toolkit-v1.0.0`, including the field-tested PCF Forensics source without simplifying its queries, HTTP checks, evidence collection or `window.__PCF_FORENSICS` report contract.
+- Generate deterministic, safely quoted PowerShell commands and downloadable `.ps1` launchers for PowerShell workflows. Generate copyable/downloadable `.txt` scripts for browser-console JavaScript workflows.
+- Show purpose, applicability, runtime, version, maturity, safety, inputs, outputs and limitations before generation. Distinguish remote read-only collection, local-only comparison, local filesystem mutation and local authentication-context mutation.
+- Keep execution outside the browser. The Hub does not execute PowerShell, PAC CLI or Dataverse scripts, call tenant APIs, persist credentials or emit secrets. Existing PAC authentication context is used only when the user manually runs a generated workflow.
+- Preserve source files as static local assets with SHA-256 and line-count integrity metadata. The two older PCF validators remain in the imported package for provenance but are explicitly superseded by `Test-PCFProjectHealth.ps1` and `Test-PCFReleasePackage.ps1`.
+- Status: implemented with unit, browser and local static-host validation. See [the reconciliation inventory](./POWER-PLATFORM-SCRIPT-HUB-INVENTORY.md).
 
 ## Candidate Next Tools
 

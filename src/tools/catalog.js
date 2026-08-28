@@ -195,48 +195,57 @@ export const TOOL_CATALOGUE = [
     hidden: true
   },
   {
-    id: 'pcf-development-hub',
-    title: 'PCF Development Hub',
-    category: 'PCF controls',
+    id: 'power-platform-script-hub',
+    title: 'Power Platform Script Hub',
+    category: 'Power Platform',
     status: 'available',
-    summary: 'Prepare reviewed PowerShell launchers for creating, developing, building, deploying and checking PCF controls.',
-    renderer: 'pcf-development-hub',
+    summary: 'Browse, validate and prepare local PowerShell workflows and Dynamics / Dataverse forensic scripts.',
+    renderer: 'power-platform-script-hub',
     modes: [
       {
-        id: 'create',
-        title: 'Create',
-        summary: 'Initialise a complete PCF control and Dataverse solution structure.'
+        id: 'development',
+        title: 'Development',
+        summary: 'Create, develop, build, deploy and quality-check PCF projects.'
       },
       {
-        id: 'develop',
-        title: 'Develop',
-        summary: 'Check local prerequisites and start the PCF test harness.'
+        id: 'investigation',
+        title: 'Investigation',
+        summary: 'Prepare Power Platform diagnostics and Dynamics / Dataverse forensic evidence.'
       },
       {
-        id: 'build',
-        title: 'Version & build',
-        summary: 'Update versions, build the control and package its solution.'
-      },
-      {
-        id: 'deploy',
-        title: 'Deploy',
-        summary: 'Prepare rapid control pushes and complete solution imports.'
-      },
-      {
-        id: 'quality',
-        title: 'Quality',
-        summary: 'Prepare Solution Checker quality-gate runs.'
+        id: 'power-pages',
+        title: 'Power Pages',
+        summary: 'Prepare site discovery, backup, synchronisation and comparison workflows.'
       }
     ],
-    defaultMode: 'create',
+    defaultMode: 'development',
+    legacyIds: ['pcf-development-hub'],
+    modePathAliases: {
+      create: 'development',
+      develop: 'development',
+      build: 'development',
+      deploy: 'development',
+      quality: 'development'
+    },
     searchTerms: [
+      'PCF',
       'Power Apps Component Framework',
-      'PCF project',
-      'PCF test harness',
-      'PCF build',
-      'PCF deploy',
-      'Solution Checker',
-      'PowerShell launcher'
+      'Dataverse',
+      'Power Platform',
+      'Power Pages',
+      'forensic',
+      'investigation',
+      'diagnostics',
+      'solution history',
+      'plug-in steps',
+      'WebResource',
+      'environment drift',
+      'environment comparison',
+      'flow state',
+      'solution readiness',
+      'PAC',
+      'PowerShell',
+      'script launcher'
     ]
   },
   {
@@ -1213,12 +1222,18 @@ function resolveToolMode(tool, requestedMode = '') {
   const modeIds = getToolModeIds(tool);
   const fallbackMode = tool.defaultMode || modeIds[0] || '';
   const normalisedMode = normaliseRouteSegment(requestedMode);
+  const modePathAliases = isPlainObject(tool.modePathAliases) ? tool.modePathAliases : {};
+  const aliasedMode = normaliseRouteSegment(modePathAliases[normalisedMode]);
 
   if (!normalisedMode) {
     return fallbackMode;
   }
 
-  return modeIds.includes(normalisedMode) ? normalisedMode : fallbackMode;
+  if (modeIds.includes(normalisedMode)) {
+    return normalisedMode;
+  }
+
+  return modeIds.includes(aliasedMode) ? aliasedMode : fallbackMode;
 }
 
 function getToolModeIds(tool) {
@@ -1278,6 +1293,24 @@ function validateToolModes(errors, tool) {
 
     if (!modeIds.includes(normalisedMode)) {
       errors.push(`${tool.id} mode alias ${normalisedAlias || alias} references unknown mode ${normalisedMode || mode}.`);
+    }
+  });
+
+  if (tool.modePathAliases && !isPlainObject(tool.modePathAliases)) {
+    errors.push(`${tool.id} modePathAliases must be an object.`);
+    return;
+  }
+
+  Object.entries(tool.modePathAliases || {}).forEach(([alias, mode]) => {
+    const normalisedAlias = normaliseRouteSegment(alias);
+    const normalisedMode = normaliseRouteSegment(mode);
+
+    if (!normalisedAlias) {
+      errors.push(`${tool.id} has an empty mode path alias.`);
+    }
+
+    if (!modeIds.includes(normalisedMode)) {
+      errors.push(`${tool.id} mode path alias ${normalisedAlias || alias} references unknown mode ${normalisedMode || mode}.`);
     }
   });
 }

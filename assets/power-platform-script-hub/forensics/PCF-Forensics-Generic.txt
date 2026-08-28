@@ -1,0 +1,2883 @@
+/*
+ * PCF-Forensics-Generic
+ * Version: 2.0.1
+ *
+ * Read-only Dataverse PCF forensic snapshot for browser DevTools.
+ *
+ * NORMAL USE:
+ *   Change only CONFIG.controlName.
+ *
+ * SAFETY:
+ *   - GET requests only.
+ *   - No PATCH / POST / PUT / DELETE.
+ *   - Does not persist or repair anything in Dataverse.
+ *   - Raw WebResource Base64 content is inspected only for presence/length
+ *     and is never stored in the final report.
+ *
+ * OUTPUT:
+ *   - Rich console tables.
+ *   - Final JSON in window.__PCF_FORENSICS.
+ *   - Visible top-right panel with Download JSON / Copy JSON / Print JSON.
+ */
+
+(async () => {
+    "use strict";
+
+    // =========================================================
+    // CONFIGURATION
+    // Change only controlName for normal use.
+    // =========================================================
+    const CONFIG = {
+        controlName: "tek_tek.Controls.InspectionReportPCFV2",
+
+        apiVersion: "v9.2",
+
+        requestTimeoutMs: 15000,
+        requestRetries: 1,
+
+        historyOldestTop: 25,
+        historyNewestTop: 25,
+        historyRelatedTop: 200,
+
+        broadWebResourceTop: 200,
+        componentLayerTop: 200,
+        solutionComponentTop: 200,
+
+        httpTest: true,
+        printFinalJson: true
+    };
+
+    const SCRIPT_VERSION = "2.0.1";
+    const apiBase = `/api/data/${CONFIG.apiVersion}`;
+
+    // =========================================================
+    // REPORT MODEL
+    // =========================================================
+    const report = {
+        schemaVersion: 4,
+        scriptVersion: SCRIPT_VERSION,
+        capturedUtc: new Date().toISOString(),
+        environment: location.origin,
+        configuration: { ...CONFIG },
+
+        identity: null,
+
+        control: null,
+        resources: [],
+
+        referencedWebResources: [],
+        canonicalWebResources: [],
+        broadWebResourceMatches: [],
+        expectedWebResources: [],
+        httpResults: [],
+
+        objects: [],
+        solutionComponents: [],
+        componentLayersById: [],
+        componentLayersByName: [],
+
+        solutions: [],
+
+        solutionHistoryRetention: {
+            oldestAvailableUtc: null,
+            newestAvailableUtc: null,
+            oldestRecords: [],
+            newestRecords: []
+        },
+
+        relatedSolutionHistory: [],
+
+        missingGuidTrace: [],
+
+        findings: [],
+        summary: null,
+        errors: []
+    };
+
+    window.__PCF_FORENSICS = report;
+
+    // =========================================================
+    // UI
+    // Created immediately so it is available even on a fatal error.
+    // =========================================================
+    const UI_ID = "__pcfForensicsV2Host";
+    let ui = null;
+
+    function createUi() {
+        try {
+            const existing = document.getElementById(UI_ID);
+            if (existing) existing.remove();
+
+            const host = document.createElement("div");
+            host.id = UI_ID;
+
+            Object.assign(host.style, {
+                all: "initial",
+                position: "fixed",
+                top: "12px",
+                right: "12px",
+                zIndex: "2147483647",
+                pointerEvents: "auto"
+            });
+
+            const root = host.attachShadow
+                ? host.attachShadow({ mode: "open" })
+                : host;
+
+            const wrapper = document.createElement("div");
+            wrapper.innerHTML = `
+                <style>
+                    .pcf-box {
+                        box-sizing: border-box;
+                        width: 360px;
+                        max-width: calc(100vw - 24px);
+                        padding: 12px;
+                        border: 1px solid #666;
+                        border-radius: 8px;
+                        background: #fff;
+                        color: #111;
+                        box-shadow: 0 6px 24px rgba(0,0,0,.28);
+                        font-family: "Segoe UI", Arial, sans-serif;
+                        font-size: 12px;
+                        line-height: 1.35;
+                    }
+
+                    .pcf-head {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        gap: 8px;
+                        margin-bottom: 8px;
+                    }
+
+                    .pcf-title {
+                        font-weight: 700;
+                        font-size: 13px;
+                    }
+
+                    .pcf-version {
+                        color: #666;
+                        font-size: 11px;
+                    }
+
+                    .pcf-status {
+                        margin: 6px 0 10px 0;
+                        padding: 7px 8px;
+                        border-radius: 5px;
+                        background: #f3f3f3;
+                        word-break: break-word;
+                    }
+
+                    .pcf-status[data-state="running"] {
+                        background: #fff7dc;
+                    }
+
+                    .pcf-status[data-state="success"] {
+                        background: #e8f5e9;
+                    }
+
+                    .pcf-status[data-state="warning"] {
+                        background: #fff3e0;
+                    }
+
+                    .pcf-status[data-state="error"] {
+                        background: #fdecea;
+                    }
+
+                    .pcf-buttons {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px;
+                    }
+
+                    button {
+                        box-sizing: border-box;
+                        min-height: 30px;
+                        padding: 5px 9px;
+                        border: 1px solid #888;
+                        border-radius: 5px;
+                        background: #f8f8f8;
+                        color: #111;
+                        font: inherit;
+                        cursor: pointer;
+                    }
+
+                    button:hover:not(:disabled) {
+                        background: #eee;
+                    }
+
+                    button:disabled {
+                        opacity: .45;
+                        cursor: default;
+                    }
+
+                    .pcf-close {
+                        min-width: 28px;
+                        padding: 3px 7px;
+                    }
+
+                    .pcf-note {
+                        margin-top: 8px;
+                        color: #666;
+                        font-size: 11px;
+                        word-break: break-word;
+                    }
+                </style>
+
+                <div class="pcf-box">
+                    <div class="pcf-head">
+                        <div>
+                            <div class="pcf-title">PCF Forensics</div>
+                            <div class="pcf-version">v${SCRIPT_VERSION}</div>
+                        </div>
+                        <button class="pcf-close" id="pcfClose" title="Close">×</button>
+                    </div>
+
+                    <div class="pcf-status" id="pcfStatus" data-state="running">
+                        Starting…
+                    </div>
+
+                    <div class="pcf-buttons">
+                        <button id="pcfDownload" disabled>Download JSON</button>
+                        <button id="pcfCopy" disabled>Copy JSON</button>
+                        <button id="pcfPrint" disabled>Print JSON</button>
+                    </div>
+
+                    <div class="pcf-note" id="pcfNote">
+                        Change only CONFIG.controlName for normal use.
+                    </div>
+                </div>
+            `;
+
+            root.appendChild(wrapper);
+            (document.documentElement || document.body).appendChild(host);
+
+            const status = root.getElementById
+                ? root.getElementById("pcfStatus")
+                : wrapper.querySelector("#pcfStatus");
+
+            const note = root.getElementById
+                ? root.getElementById("pcfNote")
+                : wrapper.querySelector("#pcfNote");
+
+            const download = root.getElementById
+                ? root.getElementById("pcfDownload")
+                : wrapper.querySelector("#pcfDownload");
+
+            const copyButton = root.getElementById
+                ? root.getElementById("pcfCopy")
+                : wrapper.querySelector("#pcfCopy");
+
+            const printButton = root.getElementById
+                ? root.getElementById("pcfPrint")
+                : wrapper.querySelector("#pcfPrint");
+
+            const closeButton = root.getElementById
+                ? root.getElementById("pcfClose")
+                : wrapper.querySelector("#pcfClose");
+
+            closeButton.onclick = () => host.remove();
+
+            download.onclick = () => {
+                const currentReport = window.__PCF_FORENSICS;
+
+                if (!currentReport) return;
+
+                const json = JSON.stringify(currentReport, null, 2);
+                const blob = new Blob(
+                    [json],
+                    { type: "application/json;charset=utf-8" }
+                );
+
+                const blobUrl = URL.createObjectURL(blob);
+
+                const safeControlName = String(
+                    currentReport.identity?.constructor ??
+                    currentReport.configuration?.controlName ??
+                    "PCF"
+                ).replace(/[^a-zA-Z0-9._-]/g, "_");
+
+                const safeHost = location.hostname
+                    .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+                const timestamp = new Date()
+                    .toISOString()
+                    .replace(/[:.]/g, "-");
+
+                const fileName =
+                    `PCF-Forensics-${safeControlName}-${safeHost}-${timestamp}.json`;
+
+                const a = document.createElement("a");
+                a.href = blobUrl;
+                a.download = fileName;
+                a.style.display = "none";
+
+                (document.body || document.documentElement).appendChild(a);
+                a.click();
+                a.remove();
+
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+
+                console.log(`[PCF FORENSICS] Download requested: ${fileName}`);
+            };
+
+            copyButton.onclick = async () => {
+                const currentReport = window.__PCF_FORENSICS;
+                if (!currentReport) return;
+
+                const json = JSON.stringify(currentReport, null, 2);
+
+                try {
+                    if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(json);
+                        copyButton.textContent = "Copied";
+                        setTimeout(() => {
+                            copyButton.textContent = "Copy JSON";
+                        }, 1500);
+                        return;
+                    }
+                } catch {
+                    // Fall through to textarea fallback.
+                }
+
+                const textarea = document.createElement("textarea");
+                textarea.value = json;
+                textarea.style.position = "fixed";
+                textarea.style.left = "-9999px";
+                textarea.style.top = "-9999px";
+
+                (document.body || document.documentElement).appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+
+                try {
+                    document.execCommand("copy");
+                    copyButton.textContent = "Copied";
+                } catch (error) {
+                    console.warn(
+                        "[PCF FORENSICS] Clipboard copy failed. Use Print JSON instead.",
+                        error
+                    );
+                } finally {
+                    textarea.remove();
+                    setTimeout(() => {
+                        copyButton.textContent = "Copy JSON";
+                    }, 1500);
+                }
+            };
+
+            printButton.onclick = () => {
+                const currentReport = window.__PCF_FORENSICS;
+                if (!currentReport) return;
+
+                console.log("=== PCF FORENSICS JSON START ===");
+                console.log(JSON.stringify(currentReport, null, 2));
+                console.log("=== PCF FORENSICS JSON END ===");
+            };
+
+            ui = {
+                host,
+                root,
+                status,
+                note,
+                download,
+                copyButton,
+                printButton
+            };
+
+            console.log(
+                "[PCF FORENSICS] Control panel installed at the top-right of the page."
+            );
+        } catch (error) {
+            console.warn(
+                "[PCF FORENSICS] Unable to install the on-page control panel.",
+                error
+            );
+            ui = null;
+        }
+    }
+
+    function setUiStatus(message, state = "running") {
+        if (!ui?.status) return;
+
+        ui.status.textContent = message;
+        ui.status.setAttribute("data-state", state);
+    }
+
+    function enableUiActions() {
+        if (!ui) return;
+
+        ui.download.disabled = false;
+        ui.copyButton.disabled = false;
+        ui.printButton.disabled = false;
+    }
+
+    createUi();
+
+    // =========================================================
+    // CORE HELPERS
+    // =========================================================
+    const componentTypeNames = {
+        61: "Web Resource",
+        66: "Custom Control"
+    };
+
+    function normaliseGuid(value) {
+        if (!value) return null;
+
+        const guid = String(value)
+            .replace(/[{}]/g, "")
+            .trim()
+            .toLowerCase();
+
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+            .test(guid)
+            ? guid
+            : null;
+    }
+
+    function escapeODataString(value) {
+        return String(value).replace(/'/g, "''");
+    }
+
+    function toApiUrl(pathOrUrl) {
+        if (!pathOrUrl) {
+            throw new Error("Empty Dataverse request URL.");
+        }
+
+        const value = String(pathOrUrl);
+
+        if (/^https?:\/\//i.test(value)) {
+            const absolute = new URL(value);
+
+            if (absolute.origin !== location.origin) {
+                throw new Error(
+                    `Refusing cross-origin forensic GET: ${absolute.href}`
+                );
+            }
+
+            return absolute.href;
+        }
+
+        // Runtime WebResource URLs are application-root routes, not Web API routes.
+        // Preserve them exactly so /webresources/... never becomes
+        // /api/data/v9.2/webresources/....
+        if (value.startsWith("/webresources/")) {
+            return value;
+        }
+
+        if (value.startsWith("webresources/")) {
+            return `/${value}`;
+        }
+
+        if (value.startsWith("/api/data/")) {
+            return value;
+        }
+
+        if (value.startsWith("api/data/")) {
+            return `/${value}`;
+        }
+
+        const path = value.startsWith("/")
+            ? value
+            : `/${value}`;
+
+        return `${apiBase}${path}`;
+    }
+
+    function xhrGet(pathOrUrl, options = {}) {
+        const {
+            allow404 = false,
+            asArrayBuffer = false,
+            timeoutMs = CONFIG.requestTimeoutMs
+        } = options;
+
+        const url = toApiUrl(pathOrUrl);
+
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+
+            xhr.open("GET", url, true);
+            xhr.timeout = timeoutMs;
+
+            const resolvedUrl = new URL(url, location.origin);
+            const isDataverseApi =
+                resolvedUrl.pathname.startsWith("/api/data/");
+
+            if (isDataverseApi) {
+                xhr.setRequestHeader("OData-MaxVersion", "4.0");
+                xhr.setRequestHeader("OData-Version", "4.0");
+            }
+
+            xhr.setRequestHeader(
+                "Accept",
+                asArrayBuffer ? "*/*" : "application/json"
+            );
+
+            if (asArrayBuffer) {
+                xhr.responseType = "arraybuffer";
+            }
+
+            xhr.onload = () => {
+                let body = null;
+
+                if (asArrayBuffer) {
+                    body = xhr.response ?? new ArrayBuffer(0);
+                } else {
+                    const text = xhr.responseText ?? "";
+
+                    if (text) {
+                        try {
+                            body = JSON.parse(text);
+                        } catch {
+                            body = text;
+                        }
+                    }
+                }
+
+                const ok = xhr.status >= 200 && xhr.status < 300;
+
+                if (!ok && !(allow404 && xhr.status === 404)) {
+                    reject(
+                        new Error(
+                            `${xhr.status} ${xhr.statusText}\n` +
+                            `${url}\n` +
+                            (
+                                typeof body === "string"
+                                    ? body
+                                    : JSON.stringify(body)
+                            )
+                        )
+                    );
+                    return;
+                }
+
+                resolve({
+                    ok,
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    body,
+                    headers: {
+                        contentType: xhr.getResponseHeader("content-type")
+                    },
+                    url
+                });
+            };
+
+            xhr.onerror = () => {
+                reject(
+                    new Error(
+                        `Network error while requesting:\n${url}`
+                    )
+                );
+            };
+
+            xhr.ontimeout = () => {
+                reject(
+                    new Error(
+                        `Request timed out after ${timeoutMs} ms:\n${url}`
+                    )
+                );
+            };
+
+            xhr.onabort = () => {
+                reject(
+                    new Error(
+                        `Request aborted:\n${url}`
+                    )
+                );
+            };
+
+            xhr.send();
+        });
+    }
+
+    async function request(pathOrUrl, options = {}) {
+        const retries =
+            options.retries ?? CONFIG.requestRetries;
+
+        let lastError = null;
+
+        for (
+            let attempt = 0;
+            attempt <= retries;
+            attempt++
+        ) {
+            const url = toApiUrl(pathOrUrl);
+
+            console.debug(
+                `[PCF FORENSICS] GET ${attempt + 1}/${retries + 1}: ${url}`
+            );
+
+            try {
+                return await xhrGet(pathOrUrl, options);
+            } catch (error) {
+                lastError = error;
+
+                if (attempt < retries) {
+                    console.warn(
+                        `[PCF FORENSICS] GET failed; retrying: ${url}`,
+                        error
+                    );
+                }
+            }
+        }
+
+        throw lastError ?? new Error(
+            `GET failed: ${toApiUrl(pathOrUrl)}`
+        );
+    }
+
+    async function requiredQuery(label, pathOrUrl) {
+        try {
+            const result = await request(pathOrUrl);
+
+            return Array.isArray(result.body?.value)
+                ? result.body.value
+                : [];
+        } catch (error) {
+            report.errors.push({
+                section: label,
+                path: pathOrUrl,
+                error: String(error)
+            });
+
+            throw new Error(
+                `Required Dataverse query failed (${label}): ${String(error)}`
+            );
+        }
+    }
+
+    async function query(label, pathOrUrl) {
+        try {
+            const result = await request(pathOrUrl);
+
+            return Array.isArray(result.body?.value)
+                ? result.body.value
+                : [];
+        } catch (error) {
+            report.errors.push({
+                section: label,
+                path: pathOrUrl,
+                error: String(error)
+            });
+
+            console.warn(
+                `[PCF FORENSICS] Non-blocking query failure: ${label}`,
+                error
+            );
+
+            return [];
+        }
+    }
+
+    async function getAll(
+        label,
+        pathOrUrl,
+        maxRows = 1000
+    ) {
+        const rows = [];
+        let next = pathOrUrl;
+
+        try {
+            while (
+                next &&
+                rows.length < maxRows
+            ) {
+                const page = await request(next);
+
+                if (Array.isArray(page.body?.value)) {
+                    rows.push(...page.body.value);
+                }
+
+                next =
+                    page.body?.["@odata.nextLink"] ??
+                    null;
+            }
+        } catch (error) {
+            report.errors.push({
+                section: label,
+                path: pathOrUrl,
+                error: String(error)
+            });
+
+            console.warn(
+                `[PCF FORENSICS] Non-blocking paged query failure: ${label}`,
+                error
+            );
+        }
+
+        return rows.slice(0, maxRows);
+    }
+
+    function hasValue(value) {
+        if (value === null || value === undefined) {
+            return false;
+        }
+
+        if (typeof value === "string") {
+            return value.length > 0;
+        }
+
+        return true;
+    }
+
+    function deriveIdentity(controlName) {
+        const underscore = controlName.indexOf("_");
+
+        const schemaIdentity =
+            underscore >= 0
+                ? controlName.slice(underscore + 1)
+                : controlName;
+
+        const lastDot =
+            schemaIdentity.lastIndexOf(".");
+
+        if (
+            lastDot <= 0 ||
+            lastDot === schemaIdentity.length - 1
+        ) {
+            throw new Error(
+                `Unable to derive PCF namespace/constructor from '${controlName}'. ` +
+                `Expected a Dataverse CustomControl name similar to ` +
+                `'publisher_namespace.Control'.`
+            );
+        }
+
+        const namespace =
+            schemaIdentity.slice(0, lastDot);
+
+        const constructor =
+            schemaIdentity.slice(lastDot + 1);
+
+        const canonicalPrefix =
+            `cc_${namespace}.${constructor}/`;
+
+        return {
+            controlName,
+            schemaIdentity,
+            namespace,
+            constructor,
+            identityToken: constructor,
+            canonicalPrefix,
+            expectedBundleName:
+                `${canonicalPrefix}bundle.js`
+        };
+    }
+
+    function webResourceSummary(wr) {
+        if (!wr) return null;
+
+        return {
+            webresourceid:
+                wr.webresourceid ?? null,
+
+            webresourceidunique:
+                wr.webresourceidunique ?? null,
+
+            name:
+                wr.name ?? null,
+
+            displayname:
+                wr.displayname ?? null,
+
+            webresourcetype:
+                wr.webresourcetype ?? null,
+
+            ismanaged:
+                wr.ismanaged ?? null,
+
+            componentstate:
+                wr.componentstate ?? null,
+
+            solutionid:
+                wr.solutionid ?? null,
+
+            createdon:
+                wr.createdon ?? null,
+
+            modifiedon:
+                wr.modifiedon ?? null,
+
+            overwritetime:
+                wr.overwritetime ?? null,
+
+            versionnumber:
+                wr.versionnumber ?? null,
+
+            contentPresent:
+                typeof wr.content === "string" &&
+                wr.content.length > 0,
+
+            contentLength:
+                typeof wr.content === "string"
+                    ? wr.content.length
+                    : 0,
+
+            contentfilerefPresent:
+                hasValue(wr.contentfileref),
+
+            contentfileref:
+                wr.contentfileref ?? null
+        };
+    }
+
+    function deriveExpectedRuntimeName(
+        resourceName,
+        identity
+    ) {
+        if (!resourceName) return null;
+
+        const trimmed =
+            String(resourceName).replace(/^\/+/, "");
+
+        if (
+            trimmed.startsWith(
+                identity.canonicalPrefix
+            )
+        ) {
+            return trimmed;
+        }
+
+        if (/bundle\.js$/i.test(trimmed)) {
+            return identity.expectedBundleName;
+        }
+
+        if (trimmed.includes("/")) {
+            return (
+                `${identity.canonicalPrefix}${trimmed}`
+            );
+        }
+
+        return null;
+    }
+
+    function addFinding(
+        code,
+        severity,
+        message,
+        details = {}
+    ) {
+        report.findings.push({
+            code,
+            severity,
+            message,
+            ...details
+        });
+    }
+
+    function uniqueBy(items, keySelector) {
+        return Array.from(
+            new Map(
+                items.map(
+                    item => [
+                        keySelector(item),
+                        item
+                    ]
+                )
+            ).values()
+        );
+    }
+
+    const objectMap = new Map();
+
+    function addObject(
+        label,
+        id,
+        expectedComponentType = null
+    ) {
+        const guid = normaliseGuid(id);
+        if (!guid) return;
+
+        let item =
+            objectMap.get(guid);
+
+        if (!item) {
+            item = {
+                id: guid,
+                labels: [],
+                expectedComponentTypes: []
+            };
+
+            objectMap.set(guid, item);
+        }
+
+        if (!item.labels.includes(label)) {
+            item.labels.push(label);
+        }
+
+        if (
+            expectedComponentType !== null &&
+            !item.expectedComponentTypes.includes(
+                expectedComponentType
+            )
+        ) {
+            item.expectedComponentTypes.push(
+                expectedComponentType
+            );
+        }
+    }
+
+    function setProgress(message) {
+        console.log(`[PCF FORENSICS] ${message}`);
+        setUiStatus(message, "running");
+    }
+
+    // =========================================================
+    // FINALIZATION
+    // =========================================================
+    function buildSummary() {
+        const control = report.control;
+
+        const criticalFindings =
+            report.findings.filter(
+                x => x.severity === "CRITICAL"
+            );
+
+        const warningFindings =
+            report.findings.filter(
+                x => x.severity === "WARNING"
+            );
+
+        const danglingCount =
+            report.referencedWebResources.filter(
+                x => x.exists === false
+            ).length;
+
+        const payloadDefectCount =
+            report.referencedWebResources.filter(
+                x =>
+                    x.exists === true &&
+                    !(
+                        x.contentPresent ||
+                        x.contentfilerefPresent
+                    )
+            ).length;
+
+        const httpHealthyCount =
+            report.httpResults.filter(
+                x =>
+                    x.ok === true &&
+                    x.bytes > 0
+            ).length;
+
+        const resourceVersions = [
+            ...new Set(
+                report.resources
+                    .map(x => x.version)
+                    .filter(Boolean)
+            )
+        ];
+
+        report.summary = {
+            controlId:
+                control?.customcontrolid ?? null,
+
+            controlName:
+                control?.name ??
+                CONFIG.controlName,
+
+            controlVersion:
+                control?.version ?? null,
+
+            controlManaged:
+                control?.ismanaged ?? null,
+
+            controlState:
+                control?.componentstate ?? null,
+
+            controlCreatedOn:
+                control?.createdon ?? null,
+
+            controlModifiedOn:
+                control?.modifiedon ?? null,
+
+            customControlResourceCount:
+                report.resources.length,
+
+            resourceVersions,
+
+            referencedWebResourcesResolved:
+                report.referencedWebResources
+                    .filter(x => x.exists === true)
+                    .length,
+
+            danglingWebResourceLinks:
+                danglingCount,
+
+            referencedPayloadDefects:
+                payloadDefectCount,
+
+            canonicalWebResourceCount:
+                report.canonicalWebResources.length,
+
+            broadWebResourceMatchCount:
+                report.broadWebResourceMatches.length,
+
+            expectedRuntimeResourceCount:
+                report.expectedWebResources.length,
+
+            httpTests:
+                report.httpResults.length,
+
+            httpHealthy:
+                httpHealthyCount,
+
+            solutionComponentRows:
+                report.solutionComponents.length,
+
+            componentLayerRowsById:
+                report.componentLayersById.length,
+
+            componentLayerRowsByName:
+                report.componentLayersByName.length,
+
+            solutionsResolved:
+                report.solutions.length,
+
+            oldestSolutionHistoryAvailableUtc:
+                report.solutionHistoryRetention
+                    .oldestAvailableUtc,
+
+            newestSolutionHistoryAvailableUtc:
+                report.solutionHistoryRetention
+                    .newestAvailableUtc,
+
+            relatedSolutionHistoryRows:
+                report.relatedSolutionHistory.length,
+
+            criticalFindings:
+                criticalFindings.length,
+
+            warningFindings:
+                warningFindings.length,
+
+            nonBlockingErrors:
+                report.errors.length,
+
+            classification:
+                criticalFindings.length > 0
+                    ? "INTEGRITY_DEFECT_DETECTED"
+                    : warningFindings.length > 0
+                        ? "NO_CRITICAL_DEFECT_WITH_WARNINGS"
+                        : "HEALTHY"
+        };
+    }
+
+    function finalise(
+        terminalMessage = null,
+        terminalState = null
+    ) {
+        if (!report.summary) {
+            buildSummary();
+        }
+
+        window.__PCF_FORENSICS = report;
+
+        console.log("=== PCF FORENSIC FINDINGS ===");
+        console.table(report.findings);
+
+        console.log("=== PCF FORENSIC SUMMARY ===");
+        console.table([report.summary]);
+
+        if (report.errors.length > 0) {
+            console.log("=== NON-BLOCKING QUERY ERRORS ===");
+            console.table(report.errors);
+        }
+
+        if (CONFIG.printFinalJson) {
+            console.log("=== PCF FORENSICS JSON START ===");
+            console.log(
+                JSON.stringify(report, null, 2)
+            );
+            console.log("=== PCF FORENSICS JSON END ===");
+        }
+
+        console.log(
+            "Full object available as window.__PCF_FORENSICS"
+        );
+
+        enableUiActions();
+
+        const state =
+            terminalState ??
+            (
+                report.summary.classification === "HEALTHY"
+                    ? "success"
+                    : report.summary.classification ===
+                        "NO_CRITICAL_DEFECT_WITH_WARNINGS"
+                        ? "warning"
+                        : "error"
+            );
+
+        setUiStatus(
+            terminalMessage ??
+            `Completed: ${report.summary.classification}`,
+            state
+        );
+
+        if (ui?.note) {
+            ui.note.textContent =
+                `${report.identity?.constructor ?? CONFIG.controlName} • ` +
+                `${location.hostname} • ` +
+                `errors=${report.errors.length}`;
+        }
+
+        return report;
+    }
+
+    // =========================================================
+    // RUN
+    // =========================================================
+    try {
+        // -----------------------------------------------------
+        // 0. IDENTITY
+        // -----------------------------------------------------
+        report.identity =
+            deriveIdentity(CONFIG.controlName);
+
+        const identity =
+            report.identity;
+
+        console.log("=== PCF FORENSIC SNAPSHOT ===");
+
+        console.table([{
+            scriptVersion:
+                SCRIPT_VERSION,
+
+            environment:
+                location.origin,
+
+            controlName:
+                identity.controlName,
+
+            namespace:
+                identity.namespace,
+
+            constructor:
+                identity.constructor,
+
+            canonicalPrefix:
+                identity.canonicalPrefix
+        }]);
+
+        // -----------------------------------------------------
+        // 1. CUSTOM CONTROL
+        // -----------------------------------------------------
+        setProgress("1/12 Reading CustomControl…");
+
+        const controls =
+            await requiredQuery(
+                "customcontrol",
+                `/customcontrols` +
+                `?$select=` +
+                [
+                    "customcontrolid",
+                    "customcontrolidunique",
+                    "name",
+                    "version",
+                    "versionnumber",
+                    "introducedversion",
+                    "ismanaged",
+                    "componentstate",
+                    "solutionid",
+                    "createdon",
+                    "modifiedon",
+                    "overwritetime"
+                ].join(",") +
+                `&$filter=name eq '${escapeODataString(CONFIG.controlName)}'` +
+                `&$top=10`
+            );
+
+        console.log(
+            "=== 1. CUSTOM CONTROL ==="
+        );
+
+        console.table(controls);
+
+        if (controls.length === 0) {
+            addFinding(
+                "CUSTOM_CONTROL_NOT_FOUND",
+                "CRITICAL",
+                `No CustomControl named '${CONFIG.controlName}' was found.`
+            );
+
+            report.control = null;
+            buildSummary();
+
+            return finalise(
+                "Stopped: CustomControl not found.",
+                "error"
+            );
+        }
+
+        if (controls.length > 1) {
+            addFinding(
+                "MULTIPLE_CUSTOM_CONTROLS_FOUND",
+                "CRITICAL",
+                `Expected one CustomControl named '${CONFIG.controlName}', but found ${controls.length}.`
+            );
+
+            report.control = controls[0];
+
+            buildSummary();
+
+            return finalise(
+                "Stopped: multiple matching CustomControls.",
+                "error"
+            );
+        }
+
+        report.control =
+            controls[0];
+
+        const control =
+            report.control;
+
+        const controlId =
+            normaliseGuid(
+                control.customcontrolid
+            );
+
+        addObject(
+            "CustomControl",
+            control.customcontrolid,
+            66
+        );
+
+        // -----------------------------------------------------
+        // 2. CUSTOM CONTROL RESOURCES
+        // -----------------------------------------------------
+        setProgress("2/12 Reading CustomControlResources…");
+
+        report.resources =
+            await requiredQuery(
+                "customcontrolresources",
+                `/customcontrols(${controlId})/customcontrol_resource_id` +
+                `?$select=` +
+                [
+                    "customcontrolresourceid",
+                    "customcontrolresourceidunique",
+                    "customcontrolid",
+                    "name",
+                    "version",
+                    "versionnumber",
+                    "versionrequirement",
+                    "introducedversion",
+                    "webresourceid",
+                    "ismanaged",
+                    "componentstate",
+                    "solutionid",
+                    "createdon",
+                    "modifiedon",
+                    "overwritetime"
+                ].join(",")
+            );
+
+        console.log(
+            "=== 2. CUSTOM CONTROL RESOURCES ==="
+        );
+
+        console.table(
+            report.resources.map(
+                x => ({
+                    customcontrolresourceid:
+                        x.customcontrolresourceid,
+
+                    name:
+                        x.name,
+
+                    version:
+                        x.version,
+
+                    introducedversion:
+                        x.introducedversion,
+
+                    webresourceid:
+                        x.webresourceid,
+
+                    ismanaged:
+                        x.ismanaged,
+
+                    componentstate:
+                        x.componentstate,
+
+                    solutionid:
+                        x.solutionid,
+
+                    createdon:
+                        x.createdon,
+
+                    modifiedon:
+                        x.modifiedon,
+
+                    overwritetime:
+                        x.overwritetime
+                })
+            )
+        );
+
+        for (
+            const resource
+            of report.resources
+        ) {
+            addObject(
+                `CustomControlResource:${resource.name}`,
+                resource.customcontrolresourceid,
+                null
+            );
+
+            addObject(
+                `ReferencedWebResource:${resource.name}`,
+                resource.webresourceid,
+                61
+            );
+        }
+
+        // -----------------------------------------------------
+        // 3. REFERENCED WEBRESOURCES
+        // -----------------------------------------------------
+        setProgress("3/12 Resolving referenced WebResources…");
+
+        for (
+            const resource
+            of report.resources
+        ) {
+            const wrId =
+                normaliseGuid(
+                    resource.webresourceid
+                );
+
+            if (!wrId) {
+                report.referencedWebResources.push({
+                    customcontrolresourceid:
+                        resource.customcontrolresourceid,
+
+                    resourceName:
+                        resource.name,
+
+                    resourceVersion:
+                        resource.version,
+
+                    webresourceid:
+                        null,
+
+                    exists:
+                        false,
+
+                    status:
+                        null,
+
+                    error:
+                        "CustomControlResource has no valid WebResourceId"
+                });
+
+                continue;
+            }
+
+            try {
+                const result =
+                    await request(
+                        `/webresourceset(${wrId})` +
+                        `?$select=` +
+                        [
+                            "webresourceid",
+                            "webresourceidunique",
+                            "name",
+                            "displayname",
+                            "webresourcetype",
+                            "content",
+                            "contentfileref",
+                            "ismanaged",
+                            "componentstate",
+                            "solutionid",
+                            "createdon",
+                            "modifiedon",
+                            "overwritetime",
+                            "versionnumber"
+                        ].join(","),
+                        {
+                            allow404: true
+                        }
+                    );
+
+                if (!result.ok) {
+                    report.referencedWebResources.push({
+                        customcontrolresourceid:
+                            resource.customcontrolresourceid,
+
+                        resourceName:
+                            resource.name,
+
+                        resourceVersion:
+                            resource.version,
+
+                        webresourceid:
+                            wrId,
+
+                        exists:
+                            false,
+
+                        status:
+                            result.status,
+
+                        error:
+                            result.body?.error?.message ??
+                            result.body ??
+                            `${result.status} ${result.statusText}`
+                    });
+
+                    continue;
+                }
+
+                report.referencedWebResources.push({
+                    customcontrolresourceid:
+                        resource.customcontrolresourceid,
+
+                    resourceName:
+                        resource.name,
+
+                    resourceVersion:
+                        resource.version,
+
+                    exists:
+                        true,
+
+                    status:
+                        result.status,
+
+                    ...webResourceSummary(
+                        result.body
+                    )
+                });
+            } catch (error) {
+                report.errors.push({
+                    section:
+                        `referenced webresource ${resource.name}`,
+
+                    path:
+                        `/webresourceset(${wrId})`,
+
+                    error:
+                        String(error)
+                });
+
+                report.referencedWebResources.push({
+                    customcontrolresourceid:
+                        resource.customcontrolresourceid,
+
+                    resourceName:
+                        resource.name,
+
+                    resourceVersion:
+                        resource.version,
+
+                    webresourceid:
+                        wrId,
+
+                    exists:
+                        false,
+
+                    status:
+                        "REQUEST_FAILED",
+
+                    error:
+                        String(error)
+                });
+            }
+        }
+
+        console.log(
+            "=== 3. REFERENCED WEBRESOURCE IDS ==="
+        );
+
+        console.table(
+            report.referencedWebResources
+        );
+
+        // -----------------------------------------------------
+        // 4. CANONICAL + BROAD DISCOVERY
+        // -----------------------------------------------------
+        setProgress("4/12 Discovering canonical WebResources…");
+
+        const canonicalMetadata =
+            await query(
+                "canonical webresources",
+                `/webresourceset` +
+                `?$select=` +
+                [
+                    "webresourceid",
+                    "webresourceidunique",
+                    "name",
+                    "displayname",
+                    "webresourcetype",
+                    "contentfileref",
+                    "ismanaged",
+                    "componentstate",
+                    "solutionid",
+                    "createdon",
+                    "modifiedon",
+                    "overwritetime",
+                    "versionnumber"
+                ].join(",") +
+                `&$filter=startswith(name,'${escapeODataString(identity.canonicalPrefix)}')` +
+                `&$top=${CONFIG.broadWebResourceTop}`
+            );
+
+        const canonicalFull = [];
+
+        for (
+            const metadata
+            of canonicalMetadata
+        ) {
+            const id =
+                normaliseGuid(
+                    metadata.webresourceid
+                );
+
+            const alreadyResolved =
+                report.referencedWebResources.find(
+                    x =>
+                        x.exists === true &&
+                        normaliseGuid(
+                            x.webresourceid
+                        ) === id
+                );
+
+            if (alreadyResolved) {
+                canonicalFull.push({
+                    ...alreadyResolved
+                });
+
+                continue;
+            }
+
+            try {
+                const result =
+                    await request(
+                        `/webresourceset(${id})` +
+                        `?$select=` +
+                        [
+                            "webresourceid",
+                            "webresourceidunique",
+                            "name",
+                            "displayname",
+                            "webresourcetype",
+                            "content",
+                            "contentfileref",
+                            "ismanaged",
+                            "componentstate",
+                            "solutionid",
+                            "createdon",
+                            "modifiedon",
+                            "overwritetime",
+                            "versionnumber"
+                        ].join(","),
+                        {
+                            allow404: true
+                        }
+                    );
+
+                if (result.ok) {
+                    canonicalFull.push(
+                        webResourceSummary(
+                            result.body
+                        )
+                    );
+                }
+            } catch (error) {
+                report.errors.push({
+                    section:
+                        `canonical WebResource ${metadata.name}`,
+
+                    path:
+                        `/webresourceset(${id})`,
+
+                    error:
+                        String(error)
+                });
+            }
+        }
+
+        report.canonicalWebResources =
+            uniqueBy(
+                canonicalFull,
+                x =>
+                    normaliseGuid(
+                        x.webresourceid
+                    ) ??
+                    x.name
+            );
+
+        console.log(
+            "=== 4A. CANONICAL WEBRESOURCES ==="
+        );
+
+        console.table(
+            report.canonicalWebResources
+        );
+
+        report.broadWebResourceMatches =
+            await query(
+                "broad webresource matches",
+                `/webresourceset` +
+                `?$select=` +
+                [
+                    "webresourceid",
+                    "webresourceidunique",
+                    "name",
+                    "displayname",
+                    "webresourcetype",
+                    "contentfileref",
+                    "ismanaged",
+                    "componentstate",
+                    "solutionid",
+                    "createdon",
+                    "modifiedon",
+                    "overwritetime",
+                    "versionnumber"
+                ].join(",") +
+                `&$filter=contains(name,'${escapeODataString(identity.identityToken)}')` +
+                `&$top=${CONFIG.broadWebResourceTop}`
+            );
+
+        console.log(
+            "=== 4B. BROAD WEBRESOURCE MATCHES ==="
+        );
+
+        console.table(
+            report.broadWebResourceMatches
+        );
+
+        for (
+            const wr
+            of report.canonicalWebResources
+        ) {
+            addObject(
+                `CanonicalWebResource:${wr.name}`,
+                wr.webresourceid,
+                61
+            );
+        }
+
+        // -----------------------------------------------------
+        // 5. EXPECTED RUNTIME CORRELATION
+        // -----------------------------------------------------
+        setProgress("5/12 Correlating runtime resource names…");
+
+        report.expectedWebResources =
+            report.resources.map(
+                resource => {
+                    const expectedRuntimeName =
+                        deriveExpectedRuntimeName(
+                            resource.name,
+                            identity
+                        );
+
+                    const canonical =
+                        expectedRuntimeName
+                            ? report.canonicalWebResources.find(
+                                x =>
+                                    x.name ===
+                                    expectedRuntimeName
+                            )
+                            : null;
+
+                    const referencedId =
+                        normaliseGuid(
+                            resource.webresourceid
+                        );
+
+                    const canonicalId =
+                        normaliseGuid(
+                            canonical?.webresourceid
+                        );
+
+                    return {
+                        customcontrolresourceid:
+                            resource.customcontrolresourceid,
+
+                        resourceName:
+                            resource.name,
+
+                        resourceVersion:
+                            resource.version,
+
+                        referencedWebResourceId:
+                            resource.webresourceid,
+
+                        expectedRuntimeName,
+
+                        expectedRuntimeResourceExists:
+                            !!canonical,
+
+                        expectedRuntimeWebResourceId:
+                            canonical?.webresourceid ??
+                            null,
+
+                        expectedContentPresent:
+                            canonical?.contentPresent ??
+                            false,
+
+                        expectedContentLength:
+                            canonical?.contentLength ??
+                            0,
+
+                        expectedContentfilerefPresent:
+                            canonical?.contentfilerefPresent ??
+                            false,
+
+                        expectedUsesDifferentId:
+                            !!canonical &&
+                            !!referencedId &&
+                            !!canonicalId &&
+                            referencedId !==
+                                canonicalId
+                    };
+                }
+            );
+
+        console.log(
+            "=== 5. EXPECTED RUNTIME RESOURCE CORRELATION ==="
+        );
+
+        console.table(
+            report.expectedWebResources
+        );
+
+        // -----------------------------------------------------
+        // 6. HTTP RUNTIME TEST
+        // -----------------------------------------------------
+        setProgress("6/12 Testing runtime /webresources URLs…");
+
+        if (CONFIG.httpTest) {
+            const runtimeNames = [
+                ...new Set(
+                    report.expectedWebResources
+                        .map(
+                            x =>
+                                x.expectedRuntimeName
+                        )
+                        .filter(Boolean)
+                )
+            ];
+
+            for (
+                const name
+                of runtimeNames
+            ) {
+                const started =
+                    performance.now();
+
+                const url =
+                    `/webresources/${name}`;
+
+                try {
+                    const result =
+                        await request(
+                            url,
+                            {
+                                asArrayBuffer: true,
+                                allow404: true,
+                                retries: 0
+                            }
+                        );
+
+                    report.httpResults.push({
+                        name,
+                        url,
+                        status:
+                            result.status,
+
+                        ok:
+                            result.ok,
+
+                        contentType:
+                            result.headers
+                                ?.contentType ??
+                            null,
+
+                        bytes:
+                            result.body
+                                ?.byteLength ??
+                            0,
+
+                        elapsedMs:
+                            Math.round(
+                                performance.now() -
+                                started
+                            )
+                    });
+                } catch (error) {
+                    report.httpResults.push({
+                        name,
+                        url,
+                        status:
+                            "REQUEST_FAILED",
+
+                        ok:
+                            false,
+
+                        contentType:
+                            null,
+
+                        bytes:
+                            0,
+
+                        elapsedMs:
+                            Math.round(
+                                performance.now() -
+                                started
+                            ),
+
+                        error:
+                            String(error)
+                    });
+                }
+            }
+        }
+
+        console.log(
+            "=== 6. HTTP RUNTIME TEST ==="
+        );
+
+        console.table(
+            report.httpResults
+        );
+
+        // -----------------------------------------------------
+        // 7. SOLUTION COMPONENT MEMBERSHIP
+        // -----------------------------------------------------
+        setProgress("7/12 Reading SolutionComponent membership…");
+
+        report.objects =
+            Array.from(
+                objectMap.values()
+            );
+
+        for (
+            const object
+            of report.objects
+        ) {
+            const rows =
+                await query(
+                    `solutioncomponents ${object.id}`,
+                    `/solutioncomponents` +
+                    `?$select=` +
+                    [
+                        "solutioncomponentid",
+                        "componenttype",
+                        "objectid",
+                        "rootsolutioncomponentid",
+                        "rootcomponentbehavior",
+                        "ismetadata",
+                        "createdon",
+                        "modifiedon",
+                        "versionnumber",
+                        "_solutionid_value"
+                    ].join(",") +
+                    `&$filter=objectid eq ${object.id}` +
+                    `&$top=${CONFIG.solutionComponentTop}`
+                );
+
+            for (
+                const row
+                of rows
+            ) {
+                report.solutionComponents.push({
+                    objectLabels:
+                        object.labels.join(" | "),
+
+                    expectedComponentTypes:
+                        object.expectedComponentTypes.join(","),
+
+                    solutioncomponentid:
+                        row.solutioncomponentid,
+
+                    componenttype:
+                        row.componenttype,
+
+                    componentTypeName:
+                        componentTypeNames[
+                            row.componenttype
+                        ] ??
+                        `Unknown (${row.componenttype})`,
+
+                    objectid:
+                        row.objectid,
+
+                    rootsolutioncomponentid:
+                        row.rootsolutioncomponentid,
+
+                    rootcomponentbehavior:
+                        row.rootcomponentbehavior,
+
+                    ismetadata:
+                        row.ismetadata,
+
+                    solutionid:
+                        row._solutionid_value,
+
+                    createdon:
+                        row.createdon,
+
+                    modifiedon:
+                        row.modifiedon,
+
+                    versionnumber:
+                        row.versionnumber
+                });
+            }
+        }
+
+        console.log(
+            "=== 7. SOLUTION COMPONENT MEMBERSHIP ==="
+        );
+
+        console.table(
+            report.solutionComponents
+        );
+
+        // -----------------------------------------------------
+        // 8. COMPONENT LAYERS
+        // -----------------------------------------------------
+        setProgress("8/12 Reading msdyn_componentlayers…");
+
+        for (
+            const object
+            of report.objects
+        ) {
+            const id =
+                object.id;
+
+            const rows =
+                await query(
+                    `msdyn_componentlayers ${id}`,
+                    `/msdyn_componentlayers` +
+                    `?$select=` +
+                    [
+                        "msdyn_componentlayerid",
+                        "msdyn_name",
+                        "msdyn_componentid",
+                        "msdyn_order",
+                        "msdyn_solutionname",
+                        "msdyn_solutioncomponentname",
+                        "msdyn_publishername",
+                        "msdyn_overwritetime"
+                    ].join(",") +
+                    `&$filter=` +
+                    `msdyn_componentid eq '${id}'` +
+                    ` or msdyn_componentid eq '{${id}}'` +
+                    `&$orderby=msdyn_order asc` +
+                    `&$top=${CONFIG.componentLayerTop}`
+                );
+
+            for (
+                const row
+                of rows
+            ) {
+                report.componentLayersById.push({
+                    objectLabels:
+                        object.labels.join(" | "),
+
+                    queriedObjectId:
+                        id,
+
+                    ...row
+                });
+            }
+        }
+
+        report.componentLayersByName =
+            await query(
+                "msdyn_componentlayers name search",
+                `/msdyn_componentlayers` +
+                `?$select=` +
+                [
+                    "msdyn_componentlayerid",
+                    "msdyn_name",
+                    "msdyn_componentid",
+                    "msdyn_order",
+                    "msdyn_solutionname",
+                    "msdyn_solutioncomponentname",
+                    "msdyn_publishername",
+                    "msdyn_overwritetime"
+                ].join(",") +
+                `&$filter=` +
+                `contains(msdyn_name,'${escapeODataString(identity.identityToken)}')` +
+                ` or contains(msdyn_solutioncomponentname,'${escapeODataString(identity.identityToken)}')` +
+                `&$orderby=msdyn_order asc` +
+                `&$top=${CONFIG.componentLayerTop}`
+            );
+
+        console.log(
+            "=== 8A. COMPONENT LAYERS BY GUID ==="
+        );
+
+        console.table(
+            report.componentLayersById
+        );
+
+        console.log(
+            "=== 8B. COMPONENT LAYERS BY NAME ==="
+        );
+
+        console.table(
+            report.componentLayersByName
+        );
+
+        // -----------------------------------------------------
+        // 9. SOLUTIONS
+        // -----------------------------------------------------
+        setProgress("9/12 Resolving solutions and parent solutions…");
+
+        const solutionIds =
+            new Set();
+
+        function addSolutionId(value) {
+            const id =
+                normaliseGuid(value);
+
+            if (id) {
+                solutionIds.add(id);
+            }
+        }
+
+        addSolutionId(
+            control.solutionid
+        );
+
+        for (
+            const resource
+            of report.resources
+        ) {
+            addSolutionId(
+                resource.solutionid
+            );
+        }
+
+        for (
+            const wr
+            of report.referencedWebResources
+        ) {
+            addSolutionId(
+                wr.solutionid
+            );
+        }
+
+        for (
+            const wr
+            of report.canonicalWebResources
+        ) {
+            addSolutionId(
+                wr.solutionid
+            );
+        }
+
+        for (
+            const component
+            of report.solutionComponents
+        ) {
+            addSolutionId(
+                component.solutionid
+            );
+        }
+
+        const solutionQueue =
+            Array.from(
+                solutionIds
+            );
+
+        const visitedSolutions =
+            new Set();
+
+        while (
+            solutionQueue.length > 0
+        ) {
+            const solutionId =
+                solutionQueue.shift();
+
+            if (
+                !solutionId ||
+                visitedSolutions.has(
+                    solutionId
+                )
+            ) {
+                continue;
+            }
+
+            visitedSolutions.add(
+                solutionId
+            );
+
+            try {
+                const result =
+                    await request(
+                        `/solutions(${solutionId})` +
+                        `?$select=` +
+                        [
+                            "solutionid",
+                            "uniquename",
+                            "friendlyname",
+                            "version",
+                            "solutionpackageversion",
+                            "ismanaged",
+                            "solutiontype",
+                            "installedon",
+                            "createdon",
+                            "modifiedon",
+                            "updatedon",
+                            "_parentsolutionid_value"
+                        ].join(","),
+                        {
+                            allow404: true
+                        }
+                    );
+
+                if (!result.ok) {
+                    report.errors.push({
+                        section:
+                            "solution lookup",
+
+                        solutionId,
+
+                        status:
+                            result.status,
+
+                        error:
+                            result.body?.error
+                                ?.message ??
+                            result.body
+                    });
+
+                    continue;
+                }
+
+                report.solutions.push(
+                    result.body
+                );
+
+                const parentId =
+                    normaliseGuid(
+                        result.body
+                            ?._parentsolutionid_value
+                    );
+
+                if (
+                    parentId &&
+                    !visitedSolutions.has(
+                        parentId
+                    )
+                ) {
+                    solutionQueue.push(
+                        parentId
+                    );
+
+                    solutionIds.add(
+                        parentId
+                    );
+                }
+            } catch (error) {
+                report.errors.push({
+                    section:
+                        "solution lookup",
+
+                    solutionId,
+
+                    error:
+                        String(error)
+                });
+            }
+        }
+
+        console.log(
+            "=== 9. SOLUTIONS / PARENT CHAIN ==="
+        );
+
+        console.table(
+            report.solutions.map(
+                x => ({
+                    solutionid:
+                        x.solutionid,
+
+                    uniquename:
+                        x.uniquename,
+
+                    friendlyname:
+                        x.friendlyname,
+
+                    version:
+                        x.version,
+
+                    solutionpackageversion:
+                        x.solutionpackageversion,
+
+                    ismanaged:
+                        x.ismanaged,
+
+                    parentSolutionId:
+                        x._parentsolutionid_value,
+
+                    installedon:
+                        x.installedon,
+
+                    createdon:
+                        x.createdon,
+
+                    modifiedon:
+                        x.modifiedon,
+
+                    updatedon:
+                        x.updatedon
+                })
+            )
+        );
+
+        // -----------------------------------------------------
+        // 10. SOLUTION HISTORY RETENTION + RELATED HISTORY
+        // -----------------------------------------------------
+        setProgress("10/12 Reading retained solution history…");
+
+        const historySelect = [
+            "msdyn_solutionhistoryid",
+            "msdyn_name",
+            "msdyn_solutionid",
+            "msdyn_solutionversion",
+            "msdyn_packageversion",
+            "msdyn_packagename",
+            "msdyn_publishername",
+            "msdyn_ismanaged",
+            "msdyn_ispatch",
+            "msdyn_isoverwritecustomizations",
+            "msdyn_operation",
+            "msdyn_suboperation",
+            "msdyn_status",
+            "msdyn_result",
+            "msdyn_starttime",
+            "msdyn_endtime",
+            "msdyn_totaltime",
+            "msdyn_retrycount",
+            "msdyn_activityid",
+            "msdyn_correlationid",
+            "msdyn_errorcode",
+            "msdyn_exceptionmessage"
+        ].join(",");
+
+        const oldest =
+            await query(
+                "oldest msdyn_solutionhistories",
+                `/msdyn_solutionhistories` +
+                `?$select=${historySelect}` +
+                `&$orderby=msdyn_starttime asc` +
+                `&$top=${CONFIG.historyOldestTop}`
+            );
+
+        const newest =
+            await query(
+                "newest msdyn_solutionhistories",
+                `/msdyn_solutionhistories` +
+                `?$select=${historySelect}` +
+                `&$orderby=msdyn_starttime desc` +
+                `&$top=${CONFIG.historyNewestTop}`
+            );
+
+        report.solutionHistoryRetention
+            .oldestRecords =
+            oldest;
+
+        report.solutionHistoryRetention
+            .newestRecords =
+            newest;
+
+        report.solutionHistoryRetention
+            .oldestAvailableUtc =
+            oldest[0]
+                ?.msdyn_starttime ??
+            null;
+
+        report.solutionHistoryRetention
+            .newestAvailableUtc =
+            newest[0]
+                ?.msdyn_starttime ??
+            null;
+
+        console.log(
+            "=== 10A. SOLUTION HISTORY RETENTION ==="
+        );
+
+        console.table([{
+            oldestAvailableUtc:
+                report.solutionHistoryRetention
+                    .oldestAvailableUtc,
+
+            newestAvailableUtc:
+                report.solutionHistoryRetention
+                    .newestAvailableUtc,
+
+            oldestRows:
+                oldest.length,
+
+            newestRows:
+                newest.length
+        }]);
+
+        const relatedHistory = [];
+
+        const relatedSolutionIds =
+            uniqueBy(
+                report.solutions
+                    .filter(
+                        x =>
+                            x.solutionid &&
+                            ![
+                                "Active",
+                                "Default"
+                            ].includes(x.uniquename)
+                    )
+                    .map(
+                        x => ({
+                            id: normaliseGuid(x.solutionid),
+                            uniquename: x.uniquename
+                        })
+                    )
+                    .filter(x => x.id),
+                x => x.id
+            );
+
+        for (
+            const item
+            of relatedSolutionIds
+        ) {
+            const id =
+                item.id;
+
+            const rows =
+                await query(
+                    `msdyn_solutionhistories solution ${id}`,
+                    `/msdyn_solutionhistories` +
+                    `?$select=${historySelect}` +
+                    `&$filter=msdyn_solutionid eq '${id}'` +
+                    `&$orderby=msdyn_starttime desc` +
+                    `&$top=${CONFIG.historyRelatedTop}`
+                );
+
+            relatedHistory.push(
+                ...rows
+            );
+        }
+
+        const solutionNames =
+            report.solutions
+                .map(
+                    x =>
+                        x.uniquename
+                )
+                .filter(
+                    x =>
+                        x &&
+                        ![
+                            "Active",
+                            "Default"
+                        ].includes(x)
+                );
+
+        for (
+            const name
+            of [
+                ...new Set(
+                    solutionNames
+                )
+            ]
+        ) {
+            const rows =
+                await query(
+                    `msdyn_solutionhistories name ${name}`,
+                    `/msdyn_solutionhistories` +
+                    `?$select=${historySelect}` +
+                    `&$filter=contains(msdyn_name,'${escapeODataString(name)}')` +
+                    `&$orderby=msdyn_starttime desc` +
+                    `&$top=${CONFIG.historyRelatedTop}`
+                );
+
+            relatedHistory.push(
+                ...rows
+            );
+        }
+
+        report.relatedSolutionHistory =
+            uniqueBy(
+                relatedHistory,
+                x =>
+                    x.msdyn_solutionhistoryid ??
+                    [
+                        x.msdyn_starttime,
+                        x.msdyn_name,
+                        x.msdyn_correlationid
+                    ].join("|")
+            );
+
+        console.log(
+            "=== 10B. RELATED RETAINED SOLUTION HISTORY ==="
+        );
+
+        console.table(
+            report.relatedSolutionHistory
+        );
+
+        // -----------------------------------------------------
+        // 11. MISSING GUID TRACE
+        // -----------------------------------------------------
+        setProgress("11/12 Tracing missing WebResource GUIDs…");
+
+        const missingReferencedResources =
+            report.referencedWebResources.filter(
+                x =>
+                    x.exists === false &&
+                    normaliseGuid(
+                        x.webresourceid
+                    )
+            );
+
+        for (
+            const missing
+            of missingReferencedResources
+        ) {
+            const id =
+                normaliseGuid(
+                    missing.webresourceid
+                );
+
+            const resource =
+                report.resources.find(
+                    x =>
+                        x.customcontrolresourceid ===
+                        missing.customcontrolresourceid
+                );
+
+            const expected =
+                report.expectedWebResources.find(
+                    x =>
+                        x.customcontrolresourceid ===
+                        missing.customcontrolresourceid
+                );
+
+            const solutionComponentRows =
+                report.solutionComponents.filter(
+                    x =>
+                        normaliseGuid(
+                            x.objectid
+                        ) === id
+                );
+
+            const layersById =
+                report.componentLayersById.filter(
+                    x =>
+                        normaliseGuid(
+                            x.queriedObjectId
+                        ) === id ||
+                        normaliseGuid(
+                            x.msdyn_componentid
+                        ) === id
+                );
+
+            const layersByName =
+                report.componentLayersByName.filter(
+                    x =>
+                        normaliseGuid(
+                            x.msdyn_componentid
+                        ) === id
+                );
+
+            report.missingGuidTrace.push({
+                customcontrolresourceid:
+                    missing.customcontrolresourceid,
+
+                resourceName:
+                    missing.resourceName,
+
+                resourceVersion:
+                    resource?.version ??
+                    null,
+
+                missingWebResourceId:
+                    id,
+
+                directWebResourceStatus:
+                    missing.status,
+
+                solutionComponentRows:
+                    solutionComponentRows.length,
+
+                componentLayersById:
+                    layersById.length,
+
+                componentLayersByName:
+                    layersByName.length,
+
+                expectedRuntimeName:
+                    expected?.expectedRuntimeName ??
+                    null,
+
+                expectedRuntimeResourceExists:
+                    expected
+                        ?.expectedRuntimeResourceExists ??
+                    false,
+
+                expectedRuntimeWebResourceId:
+                    expected
+                        ?.expectedRuntimeWebResourceId ??
+                    null,
+
+                recreatedWithDifferentId:
+                    expected
+                        ?.expectedUsesDifferentId ??
+                    false
+            });
+        }
+
+        console.log(
+            "=== 11. MISSING WEBRESOURCE GUID TRACE ==="
+        );
+
+        console.table(
+            report.missingGuidTrace
+        );
+
+        // -----------------------------------------------------
+        // 12. FINDINGS
+        // -----------------------------------------------------
+        setProgress("12/12 Classifying findings…");
+
+        if (
+            report.resources.length === 0
+        ) {
+            addFinding(
+                "NO_CUSTOM_CONTROL_RESOURCES",
+                "CRITICAL",
+                "The CustomControl has no CustomControlResource rows."
+            );
+        }
+
+        const resourceVersions = [
+            ...new Set(
+                report.resources
+                    .map(
+                        x => x.version
+                    )
+                    .filter(Boolean)
+            )
+        ];
+
+        if (
+            resourceVersions.length > 0 &&
+            (
+                !resourceVersions.includes(
+                    control.version
+                ) ||
+                resourceVersions.length > 1
+            )
+        ) {
+            addFinding(
+                "RESOURCE_VERSION_DRIFT",
+                "WARNING",
+                "CustomControl and CustomControlResource versions are not fully aligned.",
+                {
+                    controlVersion:
+                        control.version,
+
+                    resourceVersions
+                }
+            );
+        }
+
+        for (
+            const resource
+            of report.resources
+        ) {
+            const direct =
+                report.referencedWebResources.find(
+                    x =>
+                        x.customcontrolresourceid ===
+                        resource.customcontrolresourceid
+                );
+
+            const expected =
+                report.expectedWebResources.find(
+                    x =>
+                        x.customcontrolresourceid ===
+                        resource.customcontrolresourceid
+                );
+
+            if (
+                !normaliseGuid(
+                    resource.webresourceid
+                )
+            ) {
+                addFinding(
+                    "MISSING_WEBRESOURCE_ID",
+                    "CRITICAL",
+                    `CustomControlResource '${resource.name}' has no valid WebResourceId.`,
+                    {
+                        customcontrolresourceid:
+                            resource.customcontrolresourceid
+                    }
+                );
+
+                continue;
+            }
+
+            if (
+                direct?.exists === false
+            ) {
+                addFinding(
+                    "DANGLING_WEBRESOURCE_REFERENCE",
+                    "CRITICAL",
+                    `CustomControlResource '${resource.name}' references a WebResource that does not exist.`,
+                    {
+                        customcontrolresourceid:
+                            resource.customcontrolresourceid,
+
+                        webresourceid:
+                            resource.webresourceid,
+
+                        status:
+                            direct.status
+                    }
+                );
+            }
+
+            if (
+                direct?.exists === true &&
+                !(
+                    direct.contentPresent ||
+                    direct.contentfilerefPresent
+                )
+            ) {
+                addFinding(
+                    "WEBRESOURCE_PAYLOAD_DEFECT",
+                    "CRITICAL",
+                    `Referenced WebResource '${direct.name}' has neither content nor contentfileref.`,
+                    {
+                        webresourceid:
+                            direct.webresourceid,
+
+                        name:
+                            direct.name
+                    }
+                );
+            }
+
+            if (
+                expected?.expectedRuntimeName &&
+                !expected
+                    .expectedRuntimeResourceExists
+            ) {
+                addFinding(
+                    "CANONICAL_RUNTIME_RESOURCE_MISSING",
+                    "CRITICAL",
+                    `Expected runtime WebResource '${expected.expectedRuntimeName}' was not found.`,
+                    {
+                        customcontrolresourceid:
+                            resource.customcontrolresourceid,
+
+                        resourceName:
+                            resource.name
+                    }
+                );
+            }
+
+            if (
+                expected
+                    ?.expectedUsesDifferentId
+            ) {
+                addFinding(
+                    "STALE_WEBRESOURCE_LINK",
+                    "CRITICAL",
+                    `CustomControlResource '${resource.name}' points to a different WebResourceId than the runtime resource currently found by canonical name.`,
+                    {
+                        referencedWebResourceId:
+                            resource.webresourceid,
+
+                        canonicalWebResourceId:
+                            expected
+                                .expectedRuntimeWebResourceId,
+
+                        expectedRuntimeName:
+                            expected
+                                .expectedRuntimeName
+                    }
+                );
+            }
+
+            if (
+                direct?.exists === true &&
+                resource.ismanaged !==
+                    direct.ismanaged
+            ) {
+                addFinding(
+                    "MANAGEMENT_STATE_MISMATCH",
+                    "WARNING",
+                    `CustomControlResource '${resource.name}' and its referenced WebResource have different ismanaged values.`,
+                    {
+                        customControlResourceManaged:
+                            resource.ismanaged,
+
+                        webResourceManaged:
+                            direct.ismanaged,
+
+                        webresourceid:
+                            direct.webresourceid
+                    }
+                );
+            }
+        }
+
+        if (CONFIG.httpTest) {
+            for (
+                const expected
+                of report.expectedWebResources
+            ) {
+                if (
+                    !expected
+                        .expectedRuntimeName
+                ) {
+                    continue;
+                }
+
+                const http =
+                    report.httpResults.find(
+                        x =>
+                            x.name ===
+                            expected
+                                .expectedRuntimeName
+                    );
+
+                if (
+                    !http ||
+                    !http.ok ||
+                    http.bytes <= 0
+                ) {
+                    addFinding(
+                        "HTTP_SERVING_DEFECT",
+                        "CRITICAL",
+                        `Runtime WebResource '${expected.expectedRuntimeName}' did not return a healthy HTTP response.`,
+                        {
+                            status:
+                                http?.status ??
+                                null,
+
+                            bytes:
+                                http?.bytes ??
+                                0
+                        }
+                    );
+                }
+            }
+        }
+
+        const oldestHistoryUtc =
+            report.solutionHistoryRetention
+                .oldestAvailableUtc;
+
+        if (
+            oldestHistoryUtc &&
+            control.createdon &&
+            new Date(
+                control.createdon
+            ) <
+            new Date(
+                oldestHistoryUtc
+            )
+        ) {
+            addFinding(
+                "CREATION_EVENT_OUTSIDE_HISTORY_RETENTION",
+                "INFO",
+                "The CustomControl predates the oldest currently retained msdyn_solutionhistories record.",
+                {
+                    controlCreatedOn:
+                        control.createdon,
+
+                    oldestHistoryAvailableUtc:
+                        oldestHistoryUtc
+                }
+            );
+        }
+
+        const oldestRelevantTimestamp = [
+            control.createdon,
+            ...report.resources.map(
+                x => x.createdon
+            )
+        ]
+            .filter(Boolean)
+            .sort()[0] ??
+            null;
+
+        if (
+            oldestHistoryUtc &&
+            oldestRelevantTimestamp &&
+            new Date(
+                oldestRelevantTimestamp
+            ) <
+            new Date(
+                oldestHistoryUtc
+            )
+        ) {
+            addFinding(
+                "EARLY_COMPONENT_EVENTS_OUTSIDE_HISTORY_RETENTION",
+                "INFO",
+                "One or more inspected PCF component creation events predate the oldest retained solution history."
+            );
+        }
+
+        if (
+            report.componentLayersById
+                .length === 0
+        ) {
+            addFinding(
+                "NO_COMPONENT_LAYERS_RETURNED_BY_ID",
+                "INFO",
+                "msdyn_componentlayers returned no rows for the inspected object GUIDs. This is not treated as proof that no internal layers exist."
+            );
+        }
+
+        // Build final report.
+        buildSummary();
+
+        return finalise();
+    } catch (error) {
+        report.errors.push({
+            section:
+                "FATAL",
+
+            error:
+                String(error),
+
+            stack:
+                error?.stack ??
+                null
+        });
+
+        addFinding(
+            "FORENSIC_SCRIPT_FATAL_ERROR",
+            "CRITICAL",
+            "The forensic script encountered a fatal execution error.",
+            {
+                error:
+                    String(error)
+            }
+        );
+
+        buildSummary();
+
+        console.error(
+            "[PCF FORENSICS] Fatal error",
+            error
+        );
+
+        return finalise(
+            `Stopped by error: ${String(error)}`,
+            "error"
+        );
+    }
+})();

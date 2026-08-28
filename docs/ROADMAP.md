@@ -4,7 +4,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Current Catalogue Snapshot
 
-- The app menu currently exposes 23 available tools across Encoding & files, Charts & diagrams, PCF controls, Power Platform, JSON & data, Documents, Web/API and Text utilities.
+- The app menu currently exposes 23 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
 - There are currently no visible planned tools; planned roadmap previews remain supported for future entries.
 - The catalogue preserves 38 hidden legacy alias entries so older hash links continue to resolve to the current workbench and mode.
 - Renderer mappings, catalogue aliases and handover contracts are covered by unit tests, and user-visible navigation and handover flows are covered by Playwright tests.
@@ -65,10 +65,11 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Phase 7: Power Platform
 
-- PCF Development Hub with Create, Develop, Version & build, Deploy and Quality phases in a dedicated PCF controls category.
-- PCF launcher generation for the supplied project initialisation, environment report, test harness, version update, build/deploy, quick deploy, solution deploy and Solution Checker scripts.
-- Safe PowerShell single-quote escaping, focused validation, action-specific checklists and downloadable `.ps1` launchers.
-- Explicit browser boundary: the static app prepares reviewed launchers but never starts local processes, stores credentials or calls a tenant.
+- Power Platform Script Hub, evolved from the former PCF Development Hub, with Development, Investigation and Power Pages modes.
+- Catalogue and launcher generation for 25 authoritative or retained PCF/Power Platform PowerShell workflows and all 15 supplied Dynamics / Dataverse forensic JavaScript scripts.
+- Script metadata for purpose, applicability, runtime, version, maturity, safety, inputs, outputs and limitations, with safe PowerShell and JavaScript interpolation.
+- Safe PowerShell single-quote escaping, dynamic validation, action-specific checklists and downloadable `.ps1` or `.txt` outputs.
+- Explicit browser boundary: the static app prepares reviewed outputs but never starts local processes, stores credentials or calls a tenant.
 - Power Pages Workbench for FetchXML/Liquid, Web API snippets, site settings and table permissions.
 - FetchXML mode for formatting FetchXML and building Power Pages Liquid fetchxml blocks.
 - Web API mode for generating safeAjax snippets and required site setting reminders.
@@ -92,7 +93,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - Model-driven Solution Inspector for exported solution ZIP JavaScript event reports and web resource dependency maps.
 - Model-driven Solution Inspector events mode for JavaScript libraries, handlers and source findings.
 - Model-driven Solution Inspector dependencies mode for web resources, forms, handlers and HTML source references.
-- Status: PCF Development Hub, Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, first wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation, local cloud flow and classic workflow package editing, Power Automate email templates and model-driven JavaScript tools implemented.
+- Status: Power Platform Script Hub, Power Pages Workbench, Solution Package Inspector, Model-driven JavaScript Workbench, Model-driven Solution Inspector, the wider Power Platform utility set, solution-to-Mermaid workflow inspection, automation dependency mapping, solution documentation generation, local cloud flow and classic workflow package editing, Power Automate email templates and model-driven JavaScript tools implemented.
 
 See [POWER-PAGES-ROADMAP.md](./POWER-PAGES-ROADMAP.md) and [POWER-PLATFORM-ROADMAP.md](./POWER-PLATFORM-ROADMAP.md) for detailed mini-roadmaps.
 

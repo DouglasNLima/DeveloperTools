@@ -1,0 +1,39 @@
+/*
+ * Compare-Environment-Fingerprints
+ * Version: 1.0.0
+ * Dynamics / Dataverse Forensics Toolkit 1.0.0
+ *
+ * Local-only comparison utility. No network requests are made.
+ */
+(() => {
+    "use strict";
+    const TOOL='Compare-Environment-Fingerprints';
+    const old=document.getElementById('__localForensicsCompare'); if(old)old.remove();
+    const host=document.createElement('div'); host.id='__localForensicsCompare'; Object.assign(host.style,{position:'fixed',top:'12px',right:'12px',zIndex:'2147483647',background:'#fff',color:'#111',border:'1px solid #666',borderRadius:'8px',padding:'12px',width:'430px',fontFamily:'Segoe UI,Arial,sans-serif',fontSize:'12px',boxShadow:'0 6px 24px rgba(0,0,0,.28)'});
+    host.innerHTML=`<div style="font-weight:700;margin-bottom:8px">${TOOL}</div><div style="margin-bottom:6px">File A <input id="a" type="file" accept="application/json,.json"></div><div style="margin-bottom:8px">File B <input id="b" type="file" accept="application/json,.json"></div><button id="go">Compare</button> <button id="download" disabled>Download diff</button> <button id="close">×</button><pre id="status" style="max-height:220px;overflow:auto;white-space:pre-wrap"></pre>`;
+    document.documentElement.appendChild(host);
+    const q=id=>host.querySelector('#'+id); q('close').onclick=()=>host.remove();
+    let diff=null;
+    const read=f=>new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>{try{resolve(JSON.parse(r.result))}catch(e){reject(e)}};r.onerror=reject;r.readAsText(f)});
+    q('go').onclick=async()=>{try{const fa=q('a').files[0],fb=q('b').files[0];if(!fa||!fb)throw new Error('Select both JSON files.');const A=await read(fa),B=await read(fb);diff=(() => {
+    const getFp=x=>x?.evidence?.fingerprint||x?.fingerprint||{};
+    const a=getFp(A), b=getFp(B);
+    function compareArray(name,key,fields){
+        const am=new Map((a[name]||[]).map(x=>[x[key],x])), bm=new Map((b[name]||[]).map(x=>[x[key],x]));
+        const onlyA=[...am.keys()].filter(k=>!bm.has(k)), onlyB=[...bm.keys()].filter(k=>!am.has(k)), changed=[];
+        for(const k of am.keys()){if(!bm.has(k))continue;const av=am.get(k),bv=bm.get(k),delta={};for(const f of fields){if(JSON.stringify(av[f])!==JSON.stringify(bv[f]))delta[f]={a:av[f],b:bv[f]};}if(Object.keys(delta).length)changed.push({key:k,changes:delta});}
+        return {onlyA,onlyB,changed};
+    }
+    const sections={
+      solutions:compareArray('solutions','uniqueName',['version','managed','parentId']),
+      pcfs:compareArray('pcfs','name',['version','managed','state']),
+      pluginAssemblies:compareArray('pluginAssemblies','name',['version','isolationMode','sourceType']),
+      flows:compareArray('flows','name',['state','status']),
+      environmentVariables:compareArray('environmentVariables','schemaName',['defaultValue','currentValues']),
+      connectionReferences:compareArray('connectionReferences','logicalName',['connectorId','connectionId','state','status'])
+    };
+    const counts={};let total=0;for(const [k,v] of Object.entries(sections)){const c=v.onlyA.length+v.onlyB.length+v.changed.length;counts[k]=c;total+=c;}
+    return {tool:'Compare-Environment-Fingerprints',capturedUtc:new Date().toISOString(),environmentA:A.environment||null,environmentB:B.environment||null,sections,summary:{totalDifferences:total,differencesBySection:counts}};
+})();window.__DYNAMICS_FORENSICS_DIFF=diff;console.log('=== FORENSICS DIFF ===');console.log(diff);q('status').textContent=JSON.stringify(diff.summary,null,2);q('download').disabled=false;}catch(e){q('status').textContent=String(e);console.error(e)}};
+    q('download').onclick=()=>{if(!diff)return;const blob=new Blob([JSON.stringify(diff,null,2)],{type:'application/json'});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=`${TOOL.replace(/[^a-zA-Z0-9._-]/g,'_')}-${new Date().toISOString().replace(/[:.]/g,'-')}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),5000)};
+})();

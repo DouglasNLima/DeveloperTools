@@ -10,26 +10,26 @@ import {
 
 const scriptsPath = String.raw`C:\Projects\PCF\PS Scripts`;
 
-test('builds a safely quoted new PCF project command and launcher', () => {
+test('preserves the legacy PCF create command and launcher API', () => {
   const result = buildPcfScriptCommand({
     action: 'initialise-project',
     scriptsPath,
     controlName: 'InspectionControl',
-    publisherName: "Director's Tools",
-    publisherPrefix: 'dt',
+    publisherName: 'Contoso',
+    publisherPrefix: 'cts',
     projectPath: String.raw`C:\Projects\PCF Controls\InspectionControl`,
     solutionUniqueName: 'Inspection_Control',
     controlTemplate: 'dataset',
     controlFramework: 'react',
-    solutionDescription: "Director's inspection control"
+    solutionDescription: "Director's $([System.IO.File]::Delete('x'))"
   });
 
   assert.equal(result.phaseLabel, 'Create');
   assert.equal(result.scriptName, 'Initialize-NewPCFProject.ps1');
   assert.match(result.command, /& \(Join-Path 'C:\\Projects\\PCF\\PS Scripts' 'Initialize-NewPCFProject\.ps1'\)/);
-  assert.match(result.command, /-PublisherName 'Director''s Tools'/);
+  assert.match(result.command, /-PublisherName 'Contoso'/);
   assert.match(result.command, /-ControlTemplate 'dataset'/);
-  assert.match(result.command, /-SolutionDescription 'Director''s inspection control'/);
+  assert.match(result.command, /-SolutionDescription 'Director''s \$\(\[System\.IO\.File\]::Delete\(''x''\)\)'/);
   assert.match(result.launcher, /\$parameters = \[ordered\]@\{/);
   assert.match(result.launcher, /ControlName = 'InspectionControl'/);
   assert.match(result.launcher, /& \$scriptPath @parameters/);
@@ -37,73 +37,36 @@ test('builds a safely quoted new PCF project command and launcher', () => {
   assert.equal(result.summary.parameterCount, 8);
 });
 
-test('builds commands for every attached PCF helper script', () => {
+test('keeps every legacy PCF action available with authoritative parameters', () => {
   const fixtures = [
-    {
-      action: 'environment-report',
-      scriptsPath
-    },
-    {
-      action: 'test-harness',
-      scriptsPath,
-      controlFolder: String.raw`C:\Projects\PCF\Control\Control`
-    },
-    {
-      action: 'update-version',
-      scriptsPath,
-      projectRoot: String.raw`C:\Projects\PCF\Control`
-    },
-    {
-      action: 'build-and-deploy',
-      scriptsPath,
-      projectRoot: String.raw`C:\Projects\PCF\Control`,
-      incrementVersion: true,
-      buildConfiguration: 'Release',
-      deploy: true,
-      environmentUrl: 'https://contoso.crm4.dynamics.com',
-      deployManaged: true
-    },
-    {
-      action: 'quick-deploy',
-      scriptsPath,
-      controlFolder: String.raw`C:\Projects\PCF\Control\Control`,
-      publisherPrefix: 'cts',
-      environmentUrl: 'https://contoso.crm4.dynamics.com'
-    },
-    {
-      action: 'deploy-solution',
-      scriptsPath,
-      solutionZipPath: String.raw`C:\Build\Control_managed.zip`,
-      environmentUrl: 'https://contoso.crm4.dynamics.com',
-      publishChanges: false,
-      force: true
-    },
-    {
-      action: 'solution-check',
-      scriptsPath,
-      solutionZipPath: String.raw`C:\Build\Control.zip`,
-      outputDirectory: String.raw`C:\Build\checker`,
-      geo: 'Europe',
-      failOnLevel: 'Medium',
-      failOnThreshold: '2'
-    }
+    { action: 'initialise-project', controlName: 'InspectionControl', publisherName: 'Contoso', publisherPrefix: 'cts', projectPath: String.raw`C:\Projects\PCF`, solutionUniqueName: 'Inspection_Control' },
+    { action: 'environment-report' },
+    { action: 'test-harness', controlFolder: String.raw`C:\Projects\PCF\Control\Control` },
+    { action: 'update-version', projectRoot: String.raw`C:\Projects\PCF\Control` },
+    { action: 'build-and-deploy', projectRoot: String.raw`C:\Projects\PCF\Control`, incrementVersion: true, deploy: true, environmentUrl: 'https://contoso.crm4.dynamics.com', deployManaged: true },
+    { action: 'quick-deploy', controlFolder: String.raw`C:\Projects\PCF\Control`, publisherPrefix: 'cts', environmentUrl: 'https://contoso.crm4.dynamics.com' },
+    { action: 'deploy-solution', solutionZipPath: String.raw`C:\Build\Control_managed.zip`, environmentUrl: 'https://contoso.crm4.dynamics.com', publishChanges: false, force: true },
+    { action: 'solution-check', solutionZipPath: String.raw`C:\Build\Control.zip`, outputDirectory: String.raw`C:\Build\checker`, geo: 'Europe', failOnSarifLevel: 'warning' }
   ];
 
-  const results = fixtures.map(buildPcfScriptCommand);
+  const results = fixtures.map(fixture => buildPcfScriptCommand({ scriptsPath, ...fixture }));
 
-  assert.equal(results.length, 7);
-  assert.equal(new Set(results.map(result => result.scriptName)).size, 7);
-  assert.match(results[1].command, /^Push-Location 'C:\\Projects\\PCF\\Control\\Control'; try \{/);
-  assert.match(results[3].command, /-IncrementVersion/);
-  assert.match(results[3].command, /-DeployManaged/);
-  assert.match(results[4].command, /-PublisherPrefix 'cts'/);
-  assert.doesNotMatch(results[4].command, /ClientSecret|ApplicationId|TenantId/);
-  assert.match(results[5].command, /-PublishChanges:\$false/);
-  assert.match(results[5].command, /-Force/);
-  assert.match(results[6].command, /-FailOnLevel 'Medium' -FailOnThreshold 2/);
+  assert.equal(PCF_SCRIPT_ACTIONS.length, 8);
+  assert.equal(results.length, 8);
+  assert.equal(new Set(results.map(result => result.scriptName)).size, 8);
+  assert.match(results[2].command, /^Push-Location 'C:\\Projects\\PCF\\Control\\Control'; try \{/);
+  assert.match(results[3].command, /-IncrementPart 'Build'/);
+  assert.match(results[4].command, /-IncrementVersion/);
+  assert.match(results[4].command, /-DeployManaged/);
+  assert.match(results[5].command, /-ProjectRoot 'C:\\Projects\\PCF\\Control'/);
+  assert.doesNotMatch(results[5].command, /ClientSecret|ApplicationId|TenantId/);
+  assert.match(results[6].command, /-PublishChanges:\$false/);
+  assert.match(results[6].command, /-Force/);
+  assert.match(results[7].command, /-FailOnSarifLevel 'warning'/);
+  assert.doesNotMatch(results[7].command, /FailOnLevel|FailOnThreshold/);
 });
 
-test('validates required fields, identifiers, URLs and quality thresholds', () => {
+test('validates required fields, identifiers, URLs and source-supported choices', () => {
   assert.throws(
     () => buildPcfScriptCommand({ action: 'environment-report' }),
     /Enter ps scripts folder/
@@ -129,14 +92,14 @@ test('validates required fields, identifiers, URLs and quality thresholds', () =
       projectRoot: String.raw`C:\Projects\PCF\Control`,
       deploy: true
     }),
-    /Enter an environment URL when deployment is enabled/
+    /Enter environment url/
   );
 
   assert.throws(
     () => buildPcfScriptCommand({
       action: 'quick-deploy',
       scriptsPath,
-      controlFolder: String.raw`C:\Projects\PCF\Control\Control`,
+      controlFolder: String.raw`C:\Projects\PCF\Control`,
       publisherPrefix: 'cts',
       environmentUrl: 'http://contoso.crm4.dynamics.com'
     }),
@@ -149,14 +112,13 @@ test('validates required fields, identifiers, URLs and quality thresholds', () =
       scriptsPath,
       solutionZipPath: String.raw`C:\Build\Control.zip`,
       outputDirectory: String.raw`C:\Build\checker`,
-      failOnThreshold: '-1'
+      failOnSarifLevel: 'medium'
     }),
-    /whole number of zero or more/
+    /Choose a supported fail on sarif level/
   );
 });
 
-test('keeps phase actions focused and warns about attached script boundaries', () => {
-  assert.equal(PCF_SCRIPT_ACTIONS.length, 8);
+test('keeps phase grouping and exposes material safety warnings', () => {
   assert.deepEqual(
     getPcfActionsForPhase('deploy').map(action => action.value),
     ['quick-deploy', 'deploy-solution']
@@ -170,18 +132,21 @@ test('keeps phase actions focused and warns about attached script boundaries', (
   const quickDeploy = buildPcfScriptCommand({
     action: 'quick-deploy',
     scriptsPath,
-    controlFolder: String.raw`C:\Projects\PCF\Control\Control`,
+    controlFolder: String.raw`C:\Projects\PCF\Control`,
     publisherPrefix: 'cts',
     environmentUrl: 'https://contoso.crm4.dynamics.com'
   });
 
-  assert.match(environmentReport.warnings[0], /does not expose it as a script-level parameter/);
-  assert.match(quickDeploy.warnings[0], /Service principal secrets are deliberately not added/);
+  assert.deepEqual(environmentReport.warnings, []);
+  assert.ok(quickDeploy.warnings.some(warning => /can change a remote Power Platform environment/.test(warning)));
+  assert.ok(quickDeploy.warnings.some(warning => /service-principal parameter set is deliberately omitted/.test(warning)));
 });
 
-test('quotes PowerShell values without allowing single-quoted expression breaks', () => {
-  assert.equal(
-    quotePowerShellArgument("O'Brien $([System.IO.File]::Delete('x'))"),
-    "'O''Brien $([System.IO.File]::Delete(''x''))'"
-  );
+test('quotes PowerShell values without allowing expression or newline breaks', () => {
+  const value = "O'Brien $([System.IO.File]::Delete('x')) `n next";
+  const quoted = quotePowerShellArgument(value);
+
+  assert.equal(quoted, "'O''Brien $([System.IO.File]::Delete(''x'')) `n next'");
+  assert.equal(quoted.startsWith("'"), true);
+  assert.equal(quoted.endsWith("'"), true);
 });
