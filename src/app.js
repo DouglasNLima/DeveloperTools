@@ -79,6 +79,7 @@ import { renderTextDiff } from './tools/text-diff.ui.js';
 import { renderUrlCodec } from './tools/url-codec.ui.js';
 import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
 import { renderWebApiWorkbench } from './tools/web-api-workbench.ui.js';
+import { renderWordImageExtractor } from './tools/word-image-extractor.ui.js';
 
 const renderers = {
   'base64-file-converter': renderBase64FileConverter,
@@ -141,6 +142,7 @@ const renderers = {
   'uuid-generator': renderUuidGenerator,
   'web-api-workbench': renderWebApiWorkbench,
   'web-resource-dependency-mapper': renderWebResourceDependencyMapper,
+  'word-image-extractor': renderWordImageExtractor,
   'xrm-webapi-snippet-builder': renderXrmWebApiSnippetBuilder
 };
 

@@ -2726,6 +2726,236 @@ button.danger {
   gap: 0.7rem;
 }
 
+.word-image-extractor-tool {
+  gap: 0.75rem;
+}
+
+.word-image-section {
+  background: var(--surface-strong);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.word-image-section-header {
+  align-items: end;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+
+.word-image-section-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: 0;
+  margin: 0.2rem 0;
+}
+
+.word-image-section-header .hint {
+  margin: 0;
+  max-width: 78ch;
+}
+
+.word-image-filter-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.65rem;
+}
+
+.word-image-filter-grid,
+.word-image-output-grid {
+  gap: 0.6rem;
+}
+
+.word-image-filter-count {
+  color: var(--text-soft);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.word-image-filter-count strong {
+  color: var(--text);
+}
+
+.word-image-selection-actions,
+.word-image-output-actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.word-image-inventory {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.word-image-warnings {
+  background: var(--amber-soft);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  padding: 0.65rem 0.75rem;
+}
+
+.word-image-warnings h3 {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  margin: 0 0 0.3rem;
+}
+
+.word-image-warnings ul {
+  color: var(--amber);
+  line-height: 1.45;
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.word-image-asset-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.7rem;
+}
+
+.word-image-asset-card.external,
+.word-image-asset-card.missing {
+  border-left-color: var(--amber);
+}
+
+.word-image-asset-header {
+  align-items: start;
+  display: flex;
+  gap: 0.6rem;
+  justify-content: space-between;
+}
+
+.word-image-asset-title {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  min-width: 0;
+}
+
+.word-image-asset-title strong {
+  overflow-wrap: anywhere;
+}
+
+.word-image-checkbox-label {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.word-image-asset-badge {
+  background: var(--success-soft);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-pill);
+  color: var(--success);
+  flex: 0 0 auto;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.22rem 0.48rem;
+  text-align: center;
+}
+
+.word-image-asset-badge.duplicate,
+.word-image-asset-badge.external {
+  background: var(--amber-soft);
+  border-color: rgba(217, 119, 6, 0.28);
+  color: var(--amber);
+}
+
+.word-image-asset-body {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr);
+}
+
+.word-image-asset-preview {
+  align-items: center;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-small);
+  display: flex;
+  justify-content: center;
+  min-height: 130px;
+  overflow: hidden;
+  padding: 0.35rem;
+}
+
+.word-image-asset-preview img {
+  display: block;
+  max-height: 180px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.word-image-asset-preview span {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.word-image-asset-details {
+  display: grid;
+  gap: 0.3rem 0.7rem;
+  grid-template-columns: minmax(90px, max-content) minmax(0, 1fr);
+  margin: 0;
+}
+
+.word-image-asset-details dt {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.word-image-asset-details dd {
+  font-size: 0.8rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.word-image-asset-actions {
+  grid-column: 1 / -1;
+}
+
+.word-image-asset-actions button {
+  font-size: 0.78rem;
+}
+
+.word-image-output-grid .checkbox-line {
+  margin-top: 0.35rem;
+}
+
+#wordImageDirectoryCapability[data-supported="true"] {
+  color: var(--success);
+}
+
+#wordImageDirectoryCapability[data-supported="false"] {
+  color: var(--amber);
+}
+
+@media (max-width: 780px) {
+  .word-image-section-header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .word-image-asset-body {
+    grid-template-columns: 1fr;
+  }
+}
+
 .pdf-template-toolbar {
   align-items: end;
   background: var(--surface-strong);

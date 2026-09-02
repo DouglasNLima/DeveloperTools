@@ -347,6 +347,98 @@ export function calculateCrc32(input) {
   return (crc ^ 0xffffffff) >>> 0;
 }
 
+/**
+ * Build a small, deterministic ZIP archive from already-materialised bytes.
+ *
+ * This deliberately uses the ZIP "stored" method.  It is shared by local
+ * package tools that need to export bytes without changing their contents.
+ */
+export function createStoredZipArchive(entries = []) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    throw new Error('Add at least one file before creating a ZIP archive.');
+  }
+
+  if (entries.length > ZIP64_COUNT_SENTINEL - 1) {
+    throw new Error('The ZIP archive contains too many files for this browser-only writer.');
+  }
+
+  const encoder = new TextEncoder();
+  const localParts = [];
+  const centralParts = [];
+  let localOffset = 0;
+
+  entries.forEach((entry, index) => {
+    const name = normaliseStoredZipEntryName(entry?.name ?? entry?.path);
+    const bytes = normaliseByteArray(entry?.bytes ?? entry?.content);
+    const nameBytes = encoder.encode(name);
+
+    if (nameBytes.byteLength > 0xffff) {
+      throw new Error(`ZIP entry ${index + 1} has a file name that is too long.`);
+    }
+
+    if (bytes.byteLength >= ZIP64_SIZE_SENTINEL || localOffset >= ZIP64_SIZE_SENTINEL) {
+      throw new Error('The ZIP archive would require ZIP64 support.');
+    }
+
+    const crc32 = calculateCrc32(bytes);
+    const localHeader = new Uint8Array(30);
+    const localView = new DataView(localHeader.buffer);
+    localView.setUint32(0, LOCAL_FILE_SIGNATURE, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, ZIP_UTF8_FLAG, true);
+    localView.setUint16(8, ZIP_STORED, true);
+    localView.setUint32(10, 0, true);
+    localView.setUint32(14, crc32, true);
+    localView.setUint32(18, bytes.byteLength, true);
+    localView.setUint32(22, bytes.byteLength, true);
+    localView.setUint16(26, nameBytes.byteLength, true);
+    localView.setUint16(28, 0, true);
+    localParts.push(localHeader, nameBytes, bytes);
+
+    const centralHeader = new Uint8Array(46);
+    const centralView = new DataView(centralHeader.buffer);
+    centralView.setUint32(0, CENTRAL_DIRECTORY_SIGNATURE, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, ZIP_UTF8_FLAG, true);
+    centralView.setUint16(10, ZIP_STORED, true);
+    centralView.setUint32(12, 0, true);
+    centralView.setUint32(16, crc32, true);
+    centralView.setUint32(20, bytes.byteLength, true);
+    centralView.setUint32(24, bytes.byteLength, true);
+    centralView.setUint16(28, nameBytes.byteLength, true);
+    centralView.setUint16(30, 0, true);
+    centralView.setUint16(32, 0, true);
+    centralView.setUint16(34, 0, true);
+    centralView.setUint16(36, 0, true);
+    centralView.setUint32(38, 0, true);
+    centralView.setUint32(42, localOffset, true);
+    centralParts.push(centralHeader, nameBytes);
+
+    localOffset += localHeader.byteLength + nameBytes.byteLength + bytes.byteLength;
+  });
+
+  const localData = concatenateBytes(localParts);
+  const centralDirectory = concatenateBytes(centralParts);
+
+  if (localData.byteLength >= ZIP64_SIZE_SENTINEL || centralDirectory.byteLength >= ZIP64_SIZE_SENTINEL) {
+    throw new Error('The ZIP archive would require ZIP64 support.');
+  }
+
+  const eocd = new Uint8Array(22);
+  const eocdView = new DataView(eocd.buffer);
+  eocdView.setUint32(0, EOCD_SIGNATURE, true);
+  eocdView.setUint16(4, 0, true);
+  eocdView.setUint16(6, 0, true);
+  eocdView.setUint16(8, entries.length, true);
+  eocdView.setUint16(10, entries.length, true);
+  eocdView.setUint32(12, centralDirectory.byteLength, true);
+  eocdView.setUint32(16, localData.byteLength, true);
+  eocdView.setUint16(20, 0, true);
+
+  return concatenateBytes([localData, centralDirectory, eocd]);
+}
+
 export function parseSolutionMetadata(solutionXml = '') {
   const uniqueName = readXmlText(solutionXml, 'UniqueName') || readXmlText(solutionXml, 'uniquename');
   const rawDisplayName = readFirstXmlAttribute(solutionXml, 'LocalizedName', 'description') || uniqueName || 'Power Platform solution';
@@ -1111,6 +1203,39 @@ function concatenateBytes(chunks) {
   });
 
   return output;
+}
+
+function normaliseStoredZipEntryName(value) {
+  const name = String(value ?? '')
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '');
+  const segments = name.split('/');
+
+  if (!name || segments.some(segment => !segment || segment === '.' || segment === '..' || segment.includes(':'))) {
+    throw new Error('ZIP entry names must be relative, non-empty file paths.');
+  }
+
+  return segments.join('/');
+}
+
+function normaliseByteArray(value) {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    return new Uint8Array(value.buffer, value.byteOffset, value.byteLength);
+  }
+
+  if (value === undefined || value === null) {
+    return new Uint8Array();
+  }
+
+  return new TextEncoder().encode(String(value));
 }
 
 function normaliseManagedValue(value) {

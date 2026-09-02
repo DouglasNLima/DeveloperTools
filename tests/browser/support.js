@@ -7,6 +7,16 @@ export { APP_TITLE };
 export const SAMPLE_SVG = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="10" viewBox="0 0 16 10"><rect width="16" height="10" fill="#ff883e"/></svg>');
 export const SAMPLE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAFgwJ/l73XtQAAAABJRU5ErkJggg==', 'base64');
 
+export function createWordImageDocx() {
+  return createStoredZip([
+    ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+    ['word/document.xml', '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp"><w:body><w:drawing><wp:inline><wp:docPr descr="Screenshot alt text" title="Screenshot title"/><a:blip r:embed="rId1"/></wp:inline></w:drawing><w:drawing><a:blip r:embed="rId2"/></w:drawing><w:drawing><a:blip r:link="rId3"/></w:drawing></w:body></w:document>'],
+    ['word/_rels/document.xml.rels', '<Relationships><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/first.png"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/second.png"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="https://example.test/remote.png" TargetMode="External"/></Relationships>'],
+    ['word/media/first.png', SAMPLE_PNG],
+    ['word/media/second.png', SAMPLE_PNG]
+  ]);
+}
+
 export async function primeOfflineApp(page) {
   await page.goto('/');
   await page.evaluate(async () => {
@@ -524,7 +534,7 @@ export function createStoredZip(files) {
 
   files.forEach(([name, content]) => {
     const nameBytes = Buffer.from(name, 'utf8');
-    const data = Buffer.from(content, 'utf8');
+    const data = typeof content === 'string' ? Buffer.from(content, 'utf8') : Buffer.from(content);
     const localHeader = Buffer.alloc(30);
     localHeader.writeUInt32LE(0x04034b50, 0);
     localHeader.writeUInt16LE(20, 4);

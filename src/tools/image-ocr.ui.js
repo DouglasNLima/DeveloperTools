@@ -2,6 +2,7 @@ import { writeTextToClipboard } from './clipboard-feedback.js';
 import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import { bindFileImportFeedback } from './file-import-feedback.js';
+import { consumeImageHandover } from './image-handover.js';
 import {
   IMAGE_OCR_FILE_ACCEPT,
   IMAGE_OCR_LANGUAGE,
@@ -372,6 +373,11 @@ export function renderImageOcr(container) {
     fileFeedback.clear();
     setStatus('Ready.', null);
   });
+
+  const imageHandover = consumeImageHandover('image-ocr');
+  if (imageHandover?.file) {
+    setSelectedFile(imageHandover.file);
+  }
 
   return () => {
     state.runId += 1;

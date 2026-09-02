@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v48';
+const CACHE_NAME = 'developer-tools-static-v49';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -40,6 +40,7 @@ const PRECACHE_URLS = [
   './src/tools/file-preview-modal.js',
   './src/tools/html-cleaner.js',
   './src/tools/html-cleaner.ui.js',
+  './src/tools/image-handover.js',
   './src/tools/image-converter.js',
   './src/tools/image-converter.ui.js',
   './src/tools/image-workbench.ui.js',
@@ -130,6 +131,8 @@ const PRECACHE_URLS = [
   './src/tools/uuid-generator.js',
   './src/tools/uuid-generator.ui.js',
   './src/tools/web-api-workbench.ui.js',
+  './src/tools/word-image-extractor.js',
+  './src/tools/word-image-extractor.ui.js',
   './src/tools/workbench.js',
   './assets/power-platform-script-hub/manifests/power-platform-library-manifest.json',
   './assets/power-platform-script-hub/manifests/dataverse-forensics-manifest.json',

@@ -4,7 +4,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Current Catalogue Snapshot
 
-- The app menu currently exposes 23 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
+- The app menu currently exposes 24 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
 - There are currently no visible planned tools; planned roadmap previews remain supported for future entries.
 - The catalogue preserves 38 hidden legacy alias entries so older hash links continue to resolve to the current workbench and mode.
 - Renderer mappings, catalogue aliases and handover contracts are covered by unit tests, and user-visible navigation and handover flows are covered by Playwright tests.
@@ -52,7 +52,8 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 - PDF Template Field Explorer for local fillable PDF form inspection.
 - PDF field review notes, required/optional tagging, mapping export and template handover workflows.
-- Status: PDF Template Field Explorer implemented with vendored PDF.js assets, field mapping handovers and Markdown handover exports.
+- Word Image Extractor for local DOCX image inventory, relationship-aware metadata, duplicate review, filtering and original-byte extraction.
+- Status: PDF Template Field Explorer and Word Image Extractor are implemented with local package inspection, safe ZIP/download exports and document metadata review.
 
 ## Phase 6: Web/API
 

@@ -760,6 +760,21 @@ export const TOOL_CATALOGUE = [
     renderer: 'pdf-template-field-explorer'
   },
   {
+    id: 'word-image-extractor',
+    title: 'Word Image Extractor',
+    category: 'Documents',
+    status: 'available',
+    summary: 'Inspect local .docx image assets, review metadata and extract original bytes.',
+    renderer: 'word-image-extractor',
+    searchTerms: [
+      'DOCX image extraction',
+      'Word document images',
+      'embedded images',
+      'Open XML image assets',
+      'headers and footers'
+    ]
+  },
+  {
     id: 'csv-tsv-helper',
     title: 'CSV/TSV helper',
     category: 'JSON & data',

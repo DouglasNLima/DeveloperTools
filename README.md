@@ -24,6 +24,7 @@ The catalogue currently exposes these available tools in the app menu:
 - Hashes/checksums
 - JSON & Data Workbench
 - PDF Template Field Explorer
+- Word Image Extractor
 - CSV/TSV helper
 - Web/API Workbench
 - Text Utilities Workbench
@@ -76,12 +77,13 @@ Tools that produce compatible JSON, XML, Mermaid, Markdown, text, CSV or Base64 
 - Flow editor JSON and classic workflow XAML into JSON & Data Workbench, plus rendered workflow diagrams into Mermaid Studio.
 - Sanitised text, cleaned HTML, converted case output and generated API or Power Platform snippets into compatible text tools.
 - Base64 output into the Base64 & File Converter file creator mode.
+- Selected compatible Word image bytes into Image Converter & Optimiser or Image OCR.
 
 Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
 The canonical Script Hub route is `#power-platform-script-hub`, with `development`, `investigation` and `power-pages` modes. Existing `#pcf-development-hub` links, including the `/create`, `/develop`, `/build`, `/deploy` and `/quality` paths, remain compatibility routes and resolve to the modernised Hub.
 
-The catalogue currently has 23 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
+The catalogue currently has 24 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -129,6 +131,7 @@ src/
     csv-tsv-helper.js
     csv-tsv-helper.ui.js
     file-preview-modal.js
+    image-handover.js
     hash-checksums.js
     hash-checksums.ui.js
     image-converter.js
@@ -174,6 +177,8 @@ src/
     markdown-table.ui.js
     pdf-template-fields.js
     pdf-template-fields.ui.js
+    word-image-extractor.js
+    word-image-extractor.ui.js
     dataverse-odata.js
     dataverse-odata.ui.js
     power-automate-email-template.js

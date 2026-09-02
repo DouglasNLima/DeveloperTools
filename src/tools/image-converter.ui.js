@@ -1,6 +1,7 @@
 import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import { bindFileImportFeedback } from './file-import-feedback.js';
+import { consumeImageHandover } from './image-handover.js';
 import { openFilePreviewModal } from './file-preview-modal.js';
 import {
   IMAGE_FILE_ACCEPT,
@@ -458,6 +459,11 @@ export function renderImageConverter(container) {
   });
 
   updateSettingSummary();
+
+  const imageHandover = consumeImageHandover('image-converter-optimiser');
+  if (imageHandover?.file) {
+    setSelectedFiles([imageHandover.file]);
+  }
 
   return () => {
     state.runId += 1;
