@@ -247,7 +247,8 @@ export async function readWordImageDocument(input, options = {}) {
           relationshipId: reference.relationshipId,
           target,
           metadata,
-          displaySize: reference.displaySize
+          displaySize: reference.displaySize,
+          crop: reference.crop
         });
         return;
       }
@@ -265,7 +266,8 @@ export async function readWordImageDocument(input, options = {}) {
         relationshipId: reference.relationshipId,
         target: resolvedPath,
         metadata,
-        displaySize: reference.displaySize
+        displaySize: reference.displaySize,
+        crop: reference.crop
       });
     });
   }
@@ -1236,7 +1238,8 @@ function collectImageReferences(tree, onReference) {
       relationshipId,
       isImageElement,
       metadata: findImageMetadata(node),
-      displaySize: extractDrawingExtent(node)
+      displaySize: extractDrawingExtent(node),
+      crop: extractDrawingCrop(node)
     });
   });
 }
@@ -1320,6 +1323,54 @@ export function extractDrawingExtent(node) {
   return extent;
 }
 
+/**
+ * Read the source crop applied to a DrawingML picture. Word stores crop
+ * amounts as thousandths of a percent on a:srcRect within pic:blipFill.
+ * Missing values mean zero. Invalid values are treated conservatively as
+ * requiring preservation rather than being guessed.
+ */
+export function extractDrawingCrop(node) {
+  let current = node;
+
+  for (let depth = 0; current && depth < 24; depth += 1, current = current.parent) {
+    if (current.localName === 'blipfill') {
+      let sourceRect = null;
+      walkXml(current, candidate => {
+        if (!sourceRect && candidate.localName === 'srcrect') {
+          sourceRect = candidate;
+        }
+      });
+
+      if (!sourceRect) return null;
+
+      const values = ['l', 'r', 't', 'b'].map(name => {
+        const raw = getXmlAttribute(sourceRect, name);
+        if (raw === '') return 0;
+        const parsed = Number(raw);
+        return Number.isFinite(parsed) ? parsed : null;
+      });
+      const reliable = values.every(value => Number.isFinite(value) && value >= 0 && value <= 100000);
+      const hasNonZeroCrop = values.some(value => Number.isFinite(value) && value > 0);
+
+      return {
+        left: values[0],
+        right: values[1],
+        top: values[2],
+        bottom: values[3],
+        hasNonZeroCrop,
+        reliable,
+        requiresPreservation: !reliable || hasNonZeroCrop
+      };
+    }
+
+    if (['inline', 'anchor', 'drawing'].includes(current.localName)) {
+      break;
+    }
+  }
+
+  return null;
+}
+
 function findImageMetadata(node) {
   let current = node;
   let fallback = { altText: '', title: '' };
@@ -1371,7 +1422,8 @@ function addAssetReference(asset, reference) {
     source: reference.sourceCategory,
     sourcePart: reference.sourcePart,
     relationshipId: reference.relationshipId,
-    displaySize: reference.displaySize || null
+    displaySize: reference.displaySize || null,
+    crop: reference.crop || null
   });
   asset.sourceCategories.add(reference.sourceCategory);
 
@@ -1402,6 +1454,10 @@ async function finaliseAsset(asset, index) {
       heightEmu: Math.round(maxDisplayedHeight * EMU_PER_INCH)
     }
     : null;
+  const cropUsages = asset.references
+    .map(reference => reference.crop)
+    .filter(Boolean);
+  const croppedUsages = cropUsages.filter(crop => crop.requiresPreservation);
 
   return {
     ...asset,
@@ -1416,6 +1472,11 @@ async function finaliseAsset(asset, index) {
     displayUsageCount: displayUsages.length,
     maxDisplayedWidthInches: maxDisplayedWidth,
     maxDisplayedHeightInches: maxDisplayedHeight,
+    cropUsages,
+    cropUsageCount: cropUsages.length,
+    croppedUsageCount: croppedUsages.length,
+    hasNonZeroCrop: cropUsages.some(crop => crop.hasNonZeroCrop),
+    requiresCropPreservation: croppedUsages.length > 0,
     orientation: getOrientation(asset.dimensions),
     sourceCategories,
     source: sourceCategories.length === 1 ? sourceCategories[0] : sourceCategories.length > 1 ? 'multiple' : 'other',

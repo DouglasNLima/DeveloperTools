@@ -192,16 +192,18 @@ export function buildWordOptimisationPlan(document, options = {}) {
     .filter(asset => asset?.isEmbedded)
     .slice()
     .sort(compareAssets);
+  const archiveEntries = buildArchiveEntryMap(document?.zipArchive?.entries);
 
-  return assets.map(asset => buildAssetPlan(asset, preset, keepOriginalIds));
+  return assets.map(asset => buildAssetPlan(asset, preset, keepOriginalIds, archiveEntries));
 }
 
 export const buildWordOptimizerPlan = buildWordOptimisationPlan;
 
-function buildAssetPlan(asset, preset, keepOriginalIds) {
+function buildAssetPlan(asset, preset, keepOriginalIds, archiveEntries = new Map()) {
   const originalWidth = normalisePositiveDimension(asset.width ?? asset.dimensions?.width);
   const originalHeight = normalisePositiveDimension(asset.height ?? asset.dimensions?.height);
   const originalBytes = Math.max(0, Number(asset.fileSize ?? asset.size ?? asset.bytes?.byteLength) || 0);
+  const originalArchiveBytes = getArchiveEntryBytes(archiveEntries, asset.packagePath, originalBytes);
   const displaySize = normaliseDisplaySize(asset.displaySize, asset);
   const ppi = calculateDisplayedPpi(
     { width: originalWidth, height: originalHeight },
@@ -223,6 +225,9 @@ function buildAssetPlan(asset, preset, keepOriginalIds) {
 
   if (isKeepOriginal) {
     reason = 'Keep original was selected for this asset.';
+  } else if (asset.requiresCropPreservation || asset.references?.some(reference => reference.crop?.requiresPreservation)) {
+    status = WORD_OPTIMISER_STATUS.PRESERVE;
+    reason = 'This image uses Word cropping, so it is preserved unchanged to protect visible detail.';
   } else if (VECTOR_FORMATS.has(format)) {
     status = WORD_OPTIMISER_STATUS.UNSUPPORTED;
     reason = 'Vector artwork is preserved unchanged by default.';
@@ -249,6 +254,9 @@ function buildAssetPlan(asset, preset, keepOriginalIds) {
   const estimatedBytes = status === WORD_OPTIMISER_STATUS.OPTIMISE && targetDimensions
     ? estimateOptimisedBytes(originalBytes, originalWidth, originalHeight, targetDimensions, format)
     : originalBytes;
+  const estimatedArchiveBytes = status === WORD_OPTIMISER_STATUS.OPTIMISE
+    ? estimatedBytes
+    : originalArchiveBytes;
 
   return {
     id: asset.id,
@@ -260,6 +268,9 @@ function buildAssetPlan(asset, preset, keepOriginalIds) {
     source: asset.source || 'other',
     referenceCount: Array.isArray(asset.references) ? asset.references.length : 0,
     displayUsageCount: asset.displayUsageCount || asset.displayUsages?.length || 0,
+    cropUsageCount: asset.cropUsageCount || asset.cropUsages?.length || 0,
+    croppedUsageCount: asset.croppedUsageCount || 0,
+    hasNonZeroCrop: Boolean(asset.hasNonZeroCrop),
     originalDimensions: originalWidth && originalHeight ? { width: originalWidth, height: originalHeight } : null,
     displayedDimensions: displaySize,
     effectivePpi: ppi.effectivePpi,
@@ -269,8 +280,11 @@ function buildAssetPlan(asset, preset, keepOriginalIds) {
     targetDimensions,
     proposedDimensions: targetDimensions ? { width: targetDimensions.width, height: targetDimensions.height } : null,
     originalBytes,
+    originalArchiveBytes,
     estimatedBytes,
+    estimatedArchiveBytes,
     estimatedSavingBytes: Math.max(0, originalBytes - estimatedBytes),
+    estimatedArchiveSavingBytes: Math.max(0, originalArchiveBytes - estimatedArchiveBytes),
     status,
     statusLabel: getWordOptimiserStatusLabel(status),
     recommended: status === WORD_OPTIMISER_STATUS.OPTIMISE,
@@ -304,22 +318,40 @@ export async function analyseWordDocument(input, options = {}) {
 
 export const analyseWordDocumentLocally = analyseWordDocument;
 
-export function buildWordOptimisationSummary({ document, plan = [], preset = DEFAULT_WORD_OPTIMISATION_PRESET, outputBytes = null, replacements = new Map(), actual = false } = {}) {
+export function buildWordOptimisationSummary({
+  document,
+  plan = [],
+  preset = DEFAULT_WORD_OPTIMISATION_PRESET,
+  outputBytes = null,
+  outputArchive = null,
+  replacements = new Map(),
+  actual = false,
+  noBeneficialOptimisation = false,
+  attemptedReplacementCount = null
+} = {}) {
   const selectedPreset = normaliseWordOptimisationPreset(preset);
   const originalDocumentBytes = document?.zipArchive?.bytes?.byteLength
     ?? document?.package?.archiveBytes
     ?? document?.package?.fileBytes
     ?? 0;
-  const originalImageBytes = plan.reduce((total, item) => total + item.originalBytes, 0);
-  const estimatedImageBytes = plan.reduce((total, item) => total + item.estimatedBytes, 0);
-  const imageBytes = actual
-    ? plan.reduce((total, item) => total + getActualAssetBytes(item, replacements), 0)
-    : estimatedImageBytes;
+  const originalRawImageBytes = plan.reduce((total, item) => total + (item.originalBytes || 0), 0);
+  const originalImageBytes = plan.reduce((total, item) => total + getPlanArchiveBytes(item, 'originalArchiveBytes', 'originalBytes'), 0);
+  const estimatedRawImageBytes = plan.reduce((total, item) => total + (item.estimatedBytes || 0), 0);
+  const estimatedImageBytes = plan.reduce((total, item) => total + getPlanArchiveBytes(item, 'estimatedArchiveBytes', 'estimatedBytes'), 0);
   const nonImagePackageBytes = Math.max(0, originalDocumentBytes - originalImageBytes);
   const estimatedDocumentBytes = Math.max(0, nonImagePackageBytes + estimatedImageBytes);
   const finalDocumentBytes = outputBytes?.byteLength ?? null;
   const optimisedDocumentBytes = actual ? finalDocumentBytes : estimatedDocumentBytes;
   const savingBytes = Math.max(0, originalDocumentBytes - optimisedDocumentBytes);
+  const imageBytes = actual
+    ? sumOutputArchiveImageBytes(outputArchive, plan, replacements)
+    : estimatedImageBytes;
+  const optimisedRawImageBytes = actual
+    ? plan.reduce((total, item) => total + getActualAssetBytes(item, replacements), 0)
+    : null;
+  const optimisedNonImagePackageBytes = actual && Number.isFinite(finalDocumentBytes)
+    ? Math.max(0, finalDocumentBytes - imageBytes)
+    : null;
   const optimised = plan.filter(item => item.status === WORD_OPTIMISER_STATUS.OPTIMISE);
   const alreadyEfficient = plan.filter(item => item.status === WORD_OPTIMISER_STATUS.ALREADY_EFFICIENT);
   const unsupported = plan.filter(item => item.status === WORD_OPTIMISER_STATUS.UNSUPPORTED);
@@ -332,28 +364,42 @@ export function buildWordOptimisationSummary({ document, plan = [], preset = DEF
   const changedCount = actual
     ? plan.filter(item => replacements.has(item.packagePath.toLocaleLowerCase('en-GB'))).length
     : 0;
+  const attemptedCount = Number.isFinite(Number(attemptedReplacementCount))
+    ? Math.max(0, Number(attemptedReplacementCount))
+    : replacements.size;
 
   return {
     preset: selectedPreset.id,
     presetLabel: selectedPreset.label,
     originalBytes: originalDocumentBytes,
     originalImageBytes,
+    originalRawImageBytes,
     embeddedImageCount: plan.length,
     embeddedRasterCount: plan.filter(item => RASTER_FORMATS.has(item.format)).length,
-    imageSharePercent: originalDocumentBytes ? Math.round((originalImageBytes / originalDocumentBytes) * 100) : 0,
+    imageSharePercent: calculatePercent(originalDocumentBytes, originalImageBytes),
     oversizedCount: optimised.length,
     alreadyEfficientCount: alreadyEfficient.length,
     unsupportedCount: unsupported.length,
     unknownDisplayCount: unknownDisplay.length,
     preservedCount: preserved.length,
     estimatedImageBytes,
+    estimatedRawImageBytes,
     estimatedOptimisedBytes: estimatedDocumentBytes,
     estimatedSavingBytes: Math.max(0, originalDocumentBytes - estimatedDocumentBytes),
     estimatedSavingPercent: calculatePercent(originalDocumentBytes, Math.max(0, originalDocumentBytes - estimatedDocumentBytes)),
     optimisedImageBytes: actual ? imageBytes : null,
+    optimisedRawImageBytes,
+    optimisedNonImagePackageBytes,
     optimisedBytes: actual ? optimisedDocumentBytes : null,
     savingBytes: actual ? savingBytes : null,
     savingPercent: actual ? calculatePercent(originalDocumentBytes, savingBytes) : null,
+    attemptedReplacementCount: attemptedCount,
+    finalPackageWasSmaller: actual && Number.isFinite(finalDocumentBytes)
+      ? finalDocumentBytes < originalDocumentBytes
+      : null,
+    noBeneficialOptimisation: Boolean(noBeneficialOptimisation),
+    noBeneficialOptimization: Boolean(noBeneficialOptimisation),
+    outputIsOriginal: actual && Boolean(noBeneficialOptimisation),
     changedCount,
     nonImagePackageBytes,
     outputAvailable: actual && Number.isFinite(finalDocumentBytes),
@@ -570,32 +616,64 @@ export async function optimiseWordDocument(analysis, options = {}) {
     }
   }
 
-  const outputBytes = buildOptimisedWordPackage(document.zipArchive, replacements);
+  const rebuiltBytes = buildOptimisedWordPackage(document.zipArchive, replacements);
 
-  if (outputBytes.byteLength > limits.maxRebuiltPackageBytes) {
+  if (rebuiltBytes.byteLength > limits.maxRebuiltPackageBytes) {
     throw new WordImageExtractorError('The rebuilt DOCX exceeds the safe browser output limit.', 'rebuilt-package-limit');
   }
 
-  const validation = await validateOptimisedWordPackage(outputBytes, {
+  const rebuiltValidation = await validateOptimisedWordPackage(rebuiltBytes, {
     fileName: `${document.documentName || 'document'}-optimised.docx`,
     sourceDocument: document,
-    replacements
+    replacements,
+    inflateRaw: options.inflateRaw
   });
+  const originalBytes = new Uint8Array(document.zipArchive.bytes);
+  const noBeneficialOptimisation = rebuiltBytes.byteLength >= originalBytes.byteLength;
+  let outputBytes = rebuiltBytes;
+  let outputValidation = rebuiltValidation;
+  let outputReplacements = replacements;
+  let outputProcessed = processed;
+
+  if (noBeneficialOptimisation) {
+    outputBytes = originalBytes;
+    outputReplacements = new Map();
+    outputProcessed = processed.map(item => item.actualStatus === WORD_OPTIMISER_STATUS.OPTIMISE
+      ? {
+        ...item,
+        actualStatus: WORD_OPTIMISER_STATUS.PRESERVE,
+        outputBytes: item.originalBytes,
+        actualSavingBytes: 0,
+        reason: 'The validated rebuilt DOCX was not smaller than the original, so the original package was retained.'
+      }
+      : item);
+    outputValidation = await validateOptimisedWordPackage(outputBytes, {
+      fileName: `${document.documentName || 'document'}-optimised.docx`,
+      sourceDocument: document,
+      replacements: outputReplacements,
+      inflateRaw: options.inflateRaw
+    });
+  }
   const summary = buildWordOptimisationSummary({
     document,
-    plan: processed,
+    plan: outputProcessed,
     preset: analysis?.preset || options.preset,
     outputBytes,
-    replacements,
-    actual: true
+    outputArchive: outputValidation.zipArchive,
+    replacements: outputReplacements,
+    actual: true,
+    noBeneficialOptimisation,
+    attemptedReplacementCount: replacements.size
   });
 
   return {
     bytes: outputBytes,
-    replacements,
-    processed,
+    rebuiltBytes,
+    replacements: outputReplacements,
+    attemptedReplacements: replacements,
+    processed: outputProcessed,
     summary,
-    validation
+    validation: outputValidation
   };
 }
 
@@ -617,6 +695,38 @@ function normaliseDisplaySize(displaySize, asset) {
   };
 }
 
+function buildArchiveEntryMap(entries = []) {
+  return new Map(
+    entries
+      .filter(entry => entry && !entry.isDirectory)
+      .map(entry => [packageKey(entry.name), entry])
+  );
+}
+
+function getArchiveEntryBytes(archiveEntries, path, fallback = 0) {
+  const compressedSize = Number(archiveEntries.get(packageKey(path))?.compressedSize);
+  return Number.isFinite(compressedSize) && compressedSize >= 0
+    ? compressedSize
+    : Math.max(0, Number(fallback) || 0);
+}
+
+function getPlanArchiveBytes(item, preferredKey, fallbackKey) {
+  const preferred = Number(item?.[preferredKey]);
+  if (Number.isFinite(preferred) && preferred >= 0) return preferred;
+  return Math.max(0, Number(item?.[fallbackKey]) || 0);
+}
+
+function sumOutputArchiveImageBytes(outputArchive, plan, replacements) {
+  const outputEntries = buildArchiveEntryMap(outputArchive?.entries);
+
+  return plan.reduce((total, item) => {
+    const fallback = getActualArchiveAssetBytes(item, replacements);
+    return total + (outputEntries.size
+      ? getArchiveEntryBytes(outputEntries, item.packagePath, fallback)
+      : fallback);
+  }, 0);
+}
+
 function estimateOptimisedBytes(originalBytes, sourceWidth, sourceHeight, targetDimensions, format) {
   if (!originalBytes || !targetDimensions || !sourceWidth || !sourceHeight) {
     return originalBytes;
@@ -632,6 +742,13 @@ function getActualAssetBytes(item, replacements) {
   const replacement = replacements.get(item.packagePath.toLocaleLowerCase('en-GB'))
     || replacements.get(item.packagePath);
   return replacement?.bytes?.byteLength ?? item.originalBytes;
+}
+
+function getActualArchiveAssetBytes(item, replacements) {
+  const replacement = replacements.get(item.packagePath.toLocaleLowerCase('en-GB'))
+    || replacements.get(item.packagePath);
+  return replacement?.bytes?.byteLength
+    ?? getPlanArchiveBytes(item, 'originalArchiveBytes', 'originalBytes');
 }
 
 function compareAssets(left, right) {
@@ -663,7 +780,7 @@ function formatBytes(bytes) {
 }
 
 function calculatePercent(total, amount) {
-  return total > 0 ? Math.round((amount / total) * 100) : 0;
+  return total > 0 ? Math.max(0, Math.min(100, Math.round((amount / total) * 100))) : 0;
 }
 
 function normalisePositiveDimension(value) {

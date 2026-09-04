@@ -53,7 +53,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 - PDF Template Field Explorer for local fillable PDF form inspection.
 - PDF field review notes, required/optional tagging, mapping export and template handover workflows.
 - Word Image Extractor for local DOCX image inventory, relationship-aware metadata, duplicate review, filtering and original-byte extraction.
-- Word Document Optimiser for local DOCX display-size analysis, conservative screenshot-oriented raster resizing, keep-original review and validated package rebuilding.
+- Word Document Optimiser for local DOCX display-size analysis, conservative screenshot-oriented raster resizing, crop protection, keep-original review and validated package rebuilding.
 - Status: PDF Template Field Explorer, Word Image Extractor and Word Document Optimiser are implemented with local package inspection, safe ZIP/download exports and document integrity review.
 
 ## Phase 6: Web/API

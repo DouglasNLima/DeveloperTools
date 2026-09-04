@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { deflateRawSync, inflateRawSync } from 'node:zlib';
 
 import {
+  calculateCrc32,
   createStoredZipArchive,
   readZipArchive
 } from '../../src/tools/power-platform-solution.js';
@@ -96,6 +98,56 @@ test('converts DrawingML EMU extents and chooses the largest usage of a shared i
   assert.equal(plan.find(item => item.originalName === 'efficient.png').status, WORD_OPTIMISER_STATUS.ALREADY_EFFICIENT);
   assert.equal(plan.find(item => item.originalName === 'unknown.png').status, WORD_OPTIMISER_STATUS.UNKNOWN_DISPLAY);
   assert.equal(plan.find(item => item.originalName === 'diagram.svg').status, WORD_OPTIMISER_STATUS.UNSUPPORTED);
+});
+
+test('detects DrawingML cropping and preserves any shared asset with a cropped usage', async () => {
+  const cropCases = [
+    ['left', 'l="10000"', { left: 10000, right: 0, top: 0, bottom: 0 }],
+    ['right', 'r="12500"', { left: 0, right: 12500, top: 0, bottom: 0 }],
+    ['top', 't="7500"', { left: 0, right: 0, top: 7500, bottom: 0 }],
+    ['bottom', 'b="20000"', { left: 0, right: 0, top: 0, bottom: 20000 }],
+    ['multiple', 'l="10000" r="12500" t="7500" b="20000"', { left: 10000, right: 12500, top: 7500, bottom: 20000 }]
+  ];
+
+  for (const [name, attributes, expected] of cropCases) {
+    const result = await readWordImageDocument(createDocxArchive({
+      media: [[`${name}.png`, createPng(2400, 1350, 20)]],
+      documentXml: `<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp" xmlns:pic="pic"><w:body><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><pic:pic><pic:blipFill><a:srcRect ${attributes}/><a:blip r:embed="rId1"/></pic:blipFill></pic:pic></wp:inline></w:drawing></w:body></w:document>`,
+      relationships: [['rId1', `media/${name}.png`]]
+    }), { fileName: `${name}.docx` });
+    const asset = result.embeddedAssets[0];
+
+    assert.deepEqual(asset.references[0].crop, {
+      ...expected,
+      hasNonZeroCrop: true,
+      reliable: true,
+      requiresPreservation: true
+    });
+    assert.equal(asset.croppedUsageCount, 1);
+
+    const plan = buildWordOptimisationPlan(result, { preset: 'documentation' });
+    assert.equal(plan[0].status, WORD_OPTIMISER_STATUS.PRESERVE);
+    assert.match(plan[0].reason, /Word cropping.*preserved unchanged/i);
+  }
+
+  const zeroCrop = await readWordImageDocument(createDocxArchive({
+    media: [['zero.png', createPng(2400, 1350, 21)]],
+    documentXml: '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp" xmlns:pic="pic"><w:body><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><pic:pic><pic:blipFill><a:srcRect l="0" r="0" t="0" b="0"/><a:blip r:embed="rId1"/></pic:blipFill></pic:pic></wp:inline></w:drawing></w:body></w:document>',
+    relationships: [['rId1', 'media/zero.png']]
+  }), { fileName: 'zero.docx' });
+  assert.equal(zeroCrop.embeddedAssets[0].hasNonZeroCrop, false);
+  assert.equal(zeroCrop.embeddedAssets[0].croppedUsageCount, 0);
+  assert.equal(buildWordOptimisationPlan(zeroCrop, { preset: 'documentation' })[0].status, WORD_OPTIMISER_STATUS.OPTIMISE);
+
+  const sharedCrop = await readWordImageDocument(createDocxArchive({
+    media: [['shared-crop.png', createPng(2400, 1350, 22)]],
+    documentXml: '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp" xmlns:pic="pic"><w:body><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><pic:pic><pic:blipFill><a:blip r:embed="rId1"/></pic:blipFill></pic:pic></wp:inline></w:drawing><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><pic:pic><pic:blipFill><a:srcRect l="10000"/><a:blip r:embed="rId1"/></pic:blipFill></pic:pic></wp:inline></w:drawing></w:body></w:document>',
+    relationships: [['rId1', 'media/shared-crop.png']]
+  }), { fileName: 'shared-crop.docx' });
+  const sharedAsset = sharedCrop.embeddedAssets[0];
+  assert.equal(sharedAsset.references.length, 2);
+  assert.equal(sharedAsset.croppedUsageCount, 1);
+  assert.equal(buildWordOptimisationPlan(sharedCrop, { preset: 'documentation' })[0].status, WORD_OPTIMISER_STATUS.PRESERVE);
 });
 
 test('normalises presets, preserves aspect ratio and never upscales', () => {
@@ -193,6 +245,39 @@ test('replacement happens only when encoded bytes are smaller and source bytes a
   assert.deepEqual(notSmaller.bytes, source);
 });
 
+test('retains the original when a smaller media replacement makes the rebuilt DOCX larger', async () => {
+  const source = createDeflatedDocxArchive({
+    media: [['screen.png', createPng(2400, 1350, 30, 4000)]],
+    documentXml: '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp"><w:body><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><a:blip r:embed="rId1"/></wp:inline></w:drawing></w:body></w:document>',
+    relationships: [['rId1', 'media/screen.png']]
+  });
+  const inflateRaw = bytes => new Uint8Array(inflateRawSync(bytes));
+  const analysis = await analyseWordDocument(source, {
+    fileName: 'deflated-source.docx',
+    preset: 'documentation',
+    inflateRaw
+  });
+  const replacement = createPng(1080, 608, 31, 100);
+  const result = await optimiseWordDocument(analysis, {
+    inflateRaw,
+    encodeRasterAsset: async () => ({
+      bytes: replacement,
+      width: 1080,
+      height: 608
+    })
+  });
+
+  assert.equal(result.attemptedReplacements.size, 1);
+  assert.equal(result.rebuiltBytes.byteLength > source.byteLength, true);
+  assert.equal(result.replacements.size, 0);
+  assert.equal(result.summary.noBeneficialOptimisation, true);
+  assert.equal(result.summary.finalPackageWasSmaller, false);
+  assert.equal(result.summary.savingBytes, 0);
+  assert.equal(result.summary.savingPercent, 0);
+  assert.deepEqual(result.bytes, source);
+  assert.equal(result.validation.valid, true);
+});
+
 test('validates package relationships, required parts and safety limits before success', async () => {
   const archive = createDocxArchive({
     media: [['screen.png', createPng(100, 50, 8)]],
@@ -247,6 +332,34 @@ test('summary clearly distinguishes estimates from actual output', async () => {
   assert.equal(estimated.estimatedSavingPercent, 40);
 });
 
+test('uses compressed ZIP media bytes for archive contribution metrics and labels raw bytes separately', () => {
+  const document = {
+    zipArchive: {
+      bytes: new Uint8Array(1000),
+      entries: [{ name: 'word/media/image.png', compressedSize: 1200, isDirectory: false }]
+    },
+    embeddedAssets: []
+  };
+  const plan = [{
+    id: 'image-1',
+    packagePath: 'word/media/image.png',
+    originalBytes: 800,
+    originalArchiveBytes: 1200,
+    estimatedBytes: 400,
+    estimatedArchiveBytes: 500,
+    status: WORD_OPTIMISER_STATUS.OPTIMISE,
+    format: 'png'
+  }];
+  const summary = buildWordOptimisationSummary({ document, plan, preset: 'documentation' });
+
+  assert.equal(summary.originalImageBytes, 1200);
+  assert.equal(summary.originalRawImageBytes, 800);
+  assert.equal(summary.imageSharePercent, 100);
+  assert.equal(summary.estimatedImageBytes, 500);
+  assert.equal(summary.estimatedRawImageBytes, 400);
+  assert.equal(summary.estimatedOptimisedBytes, 500);
+});
+
 function createDocxArchive({ documentXml, relationships = [], media = [], extra = [] } = {}) {
   const files = [
     {
@@ -272,6 +385,94 @@ function createDocxArchive({ documentXml, relationships = [], media = [], extra 
   media.forEach(([name, bytes]) => files.push({ name: `word/media/${name}`, bytes }));
   extra.forEach(([name, bytes]) => files.push({ name, bytes }));
   return createStoredZipArchive(files);
+}
+
+function createDeflatedDocxArchive({ documentXml, relationships = [], media = [], extra = [] } = {}) {
+  const files = [
+    {
+      name: '[Content_Types].xml',
+      bytes: encoder.encode('<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>')
+    },
+    {
+      name: 'word/document.xml',
+      bytes: encoder.encode(documentXml || '<w:document xmlns:w="w"><w:body/></w:document>')
+    }
+  ];
+
+  if (relationships.length) {
+    const relationshipXml = relationships.map(([id, target, targetMode]) => (
+      `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${target}"${targetMode ? ` TargetMode="${targetMode}"` : ''}/>`
+    )).join('');
+    files.push({
+      name: 'word/_rels/document.xml.rels',
+      bytes: encoder.encode(`<Relationships>${relationshipXml}</Relationships>`)
+    });
+  }
+
+  media.forEach(([name, bytes]) => files.push({ name: `word/media/${name}`, bytes }));
+  extra.forEach(([name, bytes]) => files.push({ name, bytes }));
+
+  const localRecords = [];
+  const centralRecords = [];
+  let offset = 0;
+
+  files.forEach(file => {
+    const nameBytes = encoder.encode(file.name);
+    const sourceBytes = file.bytes instanceof Uint8Array ? file.bytes : new Uint8Array(file.bytes);
+    const compressedBytes = new Uint8Array(deflateRawSync(sourceBytes));
+    const local = new Uint8Array(30 + nameBytes.byteLength + compressedBytes.byteLength);
+    const localView = new DataView(local.buffer);
+    localView.setUint32(0, 0x04034b50, true);
+    localView.setUint16(4, 20, true);
+    localView.setUint16(6, 0x0800, true);
+    localView.setUint16(8, 8, true);
+    localView.setUint32(14, calculateCrc32(sourceBytes), true);
+    localView.setUint32(18, compressedBytes.byteLength, true);
+    localView.setUint32(22, sourceBytes.byteLength, true);
+    localView.setUint16(26, nameBytes.byteLength, true);
+    local.set(nameBytes, 30);
+    local.set(compressedBytes, 30 + nameBytes.byteLength);
+    localRecords.push(local);
+
+    const central = new Uint8Array(46 + nameBytes.byteLength);
+    const centralView = new DataView(central.buffer);
+    centralView.setUint32(0, 0x02014b50, true);
+    centralView.setUint16(4, 20, true);
+    centralView.setUint16(6, 20, true);
+    centralView.setUint16(8, 0x0800, true);
+    centralView.setUint16(10, 8, true);
+    centralView.setUint32(16, calculateCrc32(sourceBytes), true);
+    centralView.setUint32(20, compressedBytes.byteLength, true);
+    centralView.setUint32(24, sourceBytes.byteLength, true);
+    centralView.setUint16(28, nameBytes.byteLength, true);
+    centralView.setUint32(42, offset, true);
+    central.set(nameBytes, 46);
+    centralRecords.push(central);
+    offset += local.byteLength;
+  });
+
+  const localData = concatenateTestBytes(localRecords);
+  const centralData = concatenateTestBytes(centralRecords);
+  const end = new Uint8Array(22);
+  const endView = new DataView(end.buffer);
+  endView.setUint32(0, 0x06054b50, true);
+  endView.setUint16(8, files.length, true);
+  endView.setUint16(10, files.length, true);
+  endView.setUint32(12, centralData.byteLength, true);
+  endView.setUint32(16, localData.byteLength, true);
+
+  return concatenateTestBytes([localData, centralData, end]);
+}
+
+function concatenateTestBytes(chunks) {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.byteLength, 0);
+  const output = new Uint8Array(total);
+  let offset = 0;
+  chunks.forEach(chunk => {
+    output.set(chunk, offset);
+    offset += chunk.byteLength;
+  });
+  return output;
 }
 
 function createPng(width, height, marker = 1, extraBytes = 0) {

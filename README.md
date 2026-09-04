@@ -54,7 +54,7 @@ The home page includes a transparency section that explains the local-first phil
 
 Image OCR loads its vendored Tesseract.js worker, WASM core and English language data only when OCR runs. Those assets are served from the same static origin and are cached by the service worker after first use, so OCR can run offline after it has been opened once online from GitHub Pages, localhost or another HTTPS origin.
 
-Word Document Optimiser accepts unencrypted `.docx` files and keeps all processing in the browser. Its Documentation preset (approximately 180 PPI) uses the largest reliable DrawingML display size for each embedded asset, never upscales, keeps PNG screenshots as PNG, preserves vectors and unsupported formats, and validates the rebuilt package before offering a download. The Lossless clean-up preset does not resize or re-encode pixels. Page rendering, `.doc` files, cropped-pixel removal, embedded-font removal and batch processing remain outside the initial scope.
+Word Document Optimiser accepts unencrypted `.docx` files and keeps all processing in the browser. Its Documentation preset (approximately 180 PPI) uses the largest reliable DrawingML display size for each embedded asset, never upscales, keeps PNG screenshots as PNG, preserves vectors and unsupported formats, protects any image using Word source cropping, and validates the rebuilt package before offering a download. Document contribution figures use ZIP-compressed archive bytes, with raw image bytes retained separately where useful. The Lossless clean-up preset does not resize or re-encode pixels. Page rendering, `.doc` files, cropped-pixel removal, embedded-font removal and batch processing remain outside the initial scope.
 
 For the test runner and local development tooling:
 

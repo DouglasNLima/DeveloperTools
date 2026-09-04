@@ -1,5 +1,5 @@
 import { PDFDocument, StandardFonts } from 'pdf-lib';
-import { deflateSync } from 'node:zlib';
+import { deflateRawSync, deflateSync } from 'node:zlib';
 
 import { APP_TITLE } from '../../src/app-metadata.js';
 
@@ -53,6 +53,8 @@ export function createWordImageFormatsDocx() {
 }
 
 let cachedWordOptimiserDocx = null;
+let cachedCroppedWordOptimiserDocx = null;
+let cachedNonShrinkingWordOptimiserDocx = null;
 
 export function createWordOptimiserDocx() {
   if (cachedWordOptimiserDocx) return cachedWordOptimiserDocx;
@@ -93,6 +95,40 @@ export function createWordOptimiserDocx() {
     ['word/media/orphan.png', createScreenshotPng(500, 280)]
   ]);
   return cachedWordOptimiserDocx;
+}
+
+export function createCroppedWordOptimiserDocx() {
+  if (cachedCroppedWordOptimiserDocx) return cachedCroppedWordOptimiserDocx;
+
+  const screenshot = createScreenshotPng(1800, 1000);
+  const documentXml = [
+    '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp" xmlns:pic="pic">',
+    '<w:body>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="5486400" cy="3048000"/><pic:pic><pic:blipFill><a:srcRect l="10000" r="7500" t="5000" b="12500"/><a:blip r:embed="rIdScreenshot"/></pic:blipFill></pic:pic></wp:inline></w:drawing></w:r></w:p>',
+    '</w:body></w:document>'
+  ].join('');
+
+  cachedCroppedWordOptimiserDocx = createStoredZip([
+    ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+    ['word/document.xml', documentXml],
+    ['word/_rels/document.xml.rels', '<Relationships><Relationship Id="rIdScreenshot" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/cropped-screenshot.png"/></Relationships>'],
+    ['word/media/cropped-screenshot.png', screenshot]
+  ]);
+  return cachedCroppedWordOptimiserDocx;
+}
+
+export function createNonShrinkingWordOptimiserDocx() {
+  if (cachedNonShrinkingWordOptimiserDocx) return cachedNonShrinkingWordOptimiserDocx;
+
+  const screenshot = Buffer.concat([createScreenshotPng(1800, 1000), Buffer.alloc(2_000_000)]);
+  const documentXml = '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp"><w:body><w:p><w:r><w:drawing><wp:inline><wp:extent cx="5486400" cy="3048000"/><a:blip r:embed="rIdScreenshot"/></wp:inline></w:drawing></w:r></w:p></w:body></w:document>';
+  cachedNonShrinkingWordOptimiserDocx = createDeflatedZip([
+    ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+    ['word/document.xml', documentXml],
+    ['word/_rels/document.xml.rels', '<Relationships><Relationship Id="rIdScreenshot" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/non-shrinking-screenshot.png"/></Relationships>'],
+    ['word/media/non-shrinking-screenshot.png', screenshot]
+  ]);
+  return cachedNonShrinkingWordOptimiserDocx;
 }
 
 function createScreenshotPng(width, height) {
@@ -737,6 +773,54 @@ export function createStoredZip(files) {
   eocd.writeUInt32LE(centralDirectory.length, 12);
   eocd.writeUInt32LE(localData.length, 16);
   eocd.writeUInt16LE(0, 20);
+
+  return Buffer.concat([localData, centralDirectory, eocd]);
+}
+
+function createDeflatedZip(files) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+
+  files.forEach(([name, content]) => {
+    const nameBytes = Buffer.from(name, 'utf8');
+    const data = typeof content === 'string' ? Buffer.from(content, 'utf8') : Buffer.from(content);
+    const compressed = Buffer.from(deflateRawSync(data));
+    const localHeader = Buffer.alloc(30);
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0x0800, 6);
+    localHeader.writeUInt16LE(8, 8);
+    localHeader.writeUInt32LE(crc32(data), 14);
+    localHeader.writeUInt32LE(compressed.length, 18);
+    localHeader.writeUInt32LE(data.length, 22);
+    localHeader.writeUInt16LE(nameBytes.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    localParts.push(localHeader, nameBytes, compressed);
+
+    const centralHeader = Buffer.alloc(46);
+    centralHeader.writeUInt32LE(0x02014b50, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(0x0800, 8);
+    centralHeader.writeUInt16LE(8, 10);
+    centralHeader.writeUInt32LE(crc32(data), 16);
+    centralHeader.writeUInt32LE(compressed.length, 20);
+    centralHeader.writeUInt32LE(data.length, 24);
+    centralHeader.writeUInt16LE(nameBytes.length, 28);
+    centralHeader.writeUInt32LE(offset, 42);
+    centralParts.push(centralHeader, nameBytes);
+    offset += localHeader.length + nameBytes.length + compressed.length;
+  });
+
+  const centralDirectory = Buffer.concat(centralParts);
+  const localData = Buffer.concat(localParts);
+  const eocd = Buffer.alloc(22);
+  eocd.writeUInt32LE(0x06054b50, 0);
+  eocd.writeUInt16LE(files.length, 8);
+  eocd.writeUInt16LE(files.length, 10);
+  eocd.writeUInt32LE(centralDirectory.length, 12);
+  eocd.writeUInt32LE(localData.length, 16);
 
   return Buffer.concat([localData, centralDirectory, eocd]);
 }

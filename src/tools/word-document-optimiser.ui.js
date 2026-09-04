@@ -39,7 +39,7 @@ export function renderWordDocumentOptimiser(container) {
 
         <div id="wordOptimiserSummary" class="detail-grid" aria-live="polite">
           <div class="detail-card"><span>Original document</span><strong id="wordOptimiserOriginalSize">0 B</strong></div>
-          <div class="detail-card"><span>Embedded images</span><strong id="wordOptimiserImageBytes">0 B</strong></div>
+          <div class="detail-card"><span>Embedded image archive bytes</span><strong id="wordOptimiserImageBytes">0 B</strong><small>ZIP compressed media contribution</small></div>
           <div class="detail-card"><span>Image share</span><strong id="wordOptimiserImageShare">0%</strong></div>
           <div class="detail-card"><span>Embedded raster images</span><strong id="wordOptimiserRasterCount">0</strong></div>
           <div class="detail-card"><span>Oversized images</span><strong id="wordOptimiserOversizedCount">0</strong></div>
@@ -109,9 +109,10 @@ export function renderWordDocumentOptimiser(container) {
           <div class="detail-card"><span>Saved</span><strong id="wordOptimiserResultSaved">0 B</strong></div>
           <div class="detail-card"><span>Reduction</span><strong id="wordOptimiserResultReduction">0%</strong></div>
           <div class="detail-card"><span>Images changed</span><strong id="wordOptimiserResultChanged">0</strong></div>
-          <div class="detail-card"><span>Original image bytes</span><strong id="wordOptimiserResultOriginalImageBytes">0 B</strong></div>
-          <div class="detail-card"><span>Optimised image bytes</span><strong id="wordOptimiserResultImageBytes">0 B</strong></div>
-          <div class="detail-card"><span>Non-image package bytes</span><strong id="wordOptimiserResultNonImageBytes">0 B</strong></div>
+          <div class="detail-card"><span>Original image archive bytes</span><strong id="wordOptimiserResultOriginalImageBytes">0 B</strong></div>
+          <div class="detail-card"><span>Optimised image archive bytes</span><strong id="wordOptimiserResultImageBytes">0 B</strong></div>
+          <div class="detail-card"><span>Original non-image archive bytes</span><strong id="wordOptimiserResultNonImageBytes">0 B</strong></div>
+          <div class="detail-card"><span>Optimised non-image archive bytes</span><strong id="wordOptimiserResultOptimisedNonImageBytes">0 B</strong></div>
           <div class="detail-card"><span>Already efficient</span><strong id="wordOptimiserResultAlreadyEfficient">0</strong></div>
           <div class="detail-card"><span>Preserved unchanged</span><strong id="wordOptimiserResultPreserved">0</strong></div>
         </div>
@@ -289,11 +290,12 @@ export function renderWordDocumentOptimiser(container) {
     addDetail(details, 'Original dimensions', formatDimensions(item.originalDimensions));
     addDetail(details, 'Displayed size', item.displayedDimensions ? `${formatInches(item.displayedDimensions.widthInches)} × ${formatInches(item.displayedDimensions.heightInches)} in` : 'Unable to determine safely');
     addDetail(details, 'Effective PPI', item.effectivePpi ? `${Math.round(item.effectivePpi).toLocaleString('en-GB')} PPI` : 'Not available');
-    addDetail(details, 'Original size', formatBytes(item.originalBytes));
+    addDetail(details, 'Original image bytes (raw)', formatBytes(item.originalBytes));
+    addDetail(details, 'Archive contribution (ZIP)', formatBytes(item.originalArchiveBytes));
     addDetail(details, 'Proposed dimensions', item.proposedDimensions ? formatDimensions(item.proposedDimensions) : 'Preserved unchanged');
     addDetail(details, 'Target PPI', item.targetPpi ? `Approximately ${item.targetPpi.toLocaleString('en-GB')} PPI` : 'Lossless clean-up');
     addDetail(details, 'References', `${formatNumber(item.referenceCount)} usage${item.referenceCount === 1 ? '' : 's'} · largest usage selected`);
-    addDetail(details, 'Expected saving', item.recommended ? `${formatBytes(item.estimatedSavingBytes)} (estimate)` : 'None before encoding');
+    addDetail(details, 'Expected saving (raw estimate)', item.recommended ? `${formatBytes(item.estimatedSavingBytes)} (estimate)` : 'None before encoding');
     addDetail(details, 'Reason', item.reason);
     body.append(details);
 
@@ -444,16 +446,28 @@ export function renderWordDocumentOptimiser(container) {
       const download = container.querySelector('#wordOptimiserDownload');
       download.href = state.downloadUrl;
       download.download = outputName;
-      download.textContent = `Download ${outputName}`;
+      download.textContent = state.result.summary.noBeneficialOptimisation
+        ? `Download unchanged validated copy ${outputName}`
+        : `Download ${outputName}`;
       download.hidden = false;
       container.querySelector('#wordOptimiserReopenButton').hidden = false;
       renderResultSummary(state.result.summary);
       resultSection.hidden = false;
       renderInventory();
-      setResultStatus('The optimised DOCX was reopened and validated locally. Untouched package content and relationships were checked.', 'success');
+      const finalGuardTriggered = state.result.summary.noBeneficialOptimisation
+        && state.result.summary.attemptedReplacementCount > 0;
+      setResultStatus(finalGuardTriggered
+        ? 'The validated rebuilt DOCX was not smaller than the original, so the original package was retained.'
+        : state.result.summary.noBeneficialOptimisation
+          ? 'No beneficial optimisation was produced. The validated original package was retained because the rebuilt DOCX was not smaller.'
+        : 'The optimised DOCX was reopened and validated locally. Untouched package content and relationships were checked.', 'success');
       setStatus(state.result.summary.changedCount
         ? `Optimisation completed and validated. ${formatNumber(state.result.summary.changedCount)} image${state.result.summary.changedCount === 1 ? '' : 's'} changed.`
-        : 'No replacement was smaller than its original; the validated document preserves the source image bytes.', 'success');
+        : finalGuardTriggered
+          ? 'The validated rebuilt DOCX was not smaller than the original; the validated original package was retained. Saving: 0 B / 0%.'
+        : state.result.summary.noBeneficialOptimisation
+          ? 'No replacement was smaller and no beneficial optimisation was produced; the validated original package was retained. Saving: 0 B / 0%.'
+          : 'No replacement was smaller than its original; the validated document preserves the source image bytes.', 'success');
     } catch (error) {
       state.result = null;
       const message = error.message || 'The DOCX could not be optimised safely.';
@@ -475,6 +489,7 @@ export function renderWordDocumentOptimiser(container) {
     container.querySelector('#wordOptimiserResultOriginalImageBytes').textContent = formatBytes(summary.originalImageBytes);
     container.querySelector('#wordOptimiserResultImageBytes').textContent = formatBytes(summary.optimisedImageBytes);
     container.querySelector('#wordOptimiserResultNonImageBytes').textContent = formatBytes(summary.nonImagePackageBytes);
+    container.querySelector('#wordOptimiserResultOptimisedNonImageBytes').textContent = formatBytes(summary.optimisedNonImagePackageBytes);
     container.querySelector('#wordOptimiserResultAlreadyEfficient').textContent = formatNumber(summary.alreadyEfficientCount);
     container.querySelector('#wordOptimiserResultPreserved').textContent = formatNumber(summary.preservedCount);
   }

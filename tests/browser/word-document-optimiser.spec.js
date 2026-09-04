@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
 import {
+  createCroppedWordOptimiserDocx,
+  createNonShrinkingWordOptimiserDocx,
   createWordOptimiserDocx,
   dropFile
 } from './support.js';
@@ -137,6 +139,81 @@ test('lossless clean-up preserves the source image bytes and still produces a va
   await page.getByRole('button', { name: 'Optimise document', exact: true }).click();
   await expect(page.locator('#wordOptimiserStatus')).toContainText('No replacement was smaller', { timeout: 30_000 });
   await expect(page.locator('#wordOptimiserResultChanged')).toHaveText('0');
+});
+
+test('protects a cropped screenshot and leaves it unchanged in the validated DOCX', async ({ page }) => {
+  const buffer = createCroppedWordOptimiserDocx();
+  await page.goto('/#word-document-optimiser');
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'Cropped Screenshot.docx',
+    mimeType: DOCX_MIME,
+    buffer
+  });
+
+  const screenshot = page.locator('.word-optimiser-card').filter({ hasText: 'cropped-screenshot.png' });
+  await expect(screenshot).toHaveClass(/status-preserve/);
+  await expect(screenshot).toContainText('This image uses Word cropping');
+  await expect(page.locator('#wordOptimiserOversizedCount')).toHaveText('0');
+
+  await page.getByRole('button', { name: 'Optimise document', exact: true }).click();
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('beneficial optimisation was produced', { timeout: 30_000 });
+  await expect(page.locator('#wordOptimiserResultChanged')).toHaveText('0');
+  await expect(page.locator('#wordOptimiserResultSaved')).toHaveText('0 B');
+  await expect(page.locator('#wordOptimiserResultReduction')).toHaveText('0%');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#wordOptimiserDownload').click();
+  const download = await downloadPromise;
+  const outputBuffer = await readFile(await download.path());
+  expect(outputBuffer.equals(buffer)).toBe(true);
+
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'Cropped Screenshot-optimised.docx',
+    mimeType: DOCX_MIME,
+    buffer: outputBuffer
+  });
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('Analysis ready');
+  await expect(page.locator('.word-optimiser-card').filter({ hasText: 'cropped-screenshot.png' })).toHaveClass(/status-preserve/);
+});
+
+test('retains the original when attempted replacements do not make the final DOCX smaller', async ({ page }) => {
+  const buffer = createNonShrinkingWordOptimiserDocx();
+  await page.goto('/#word-document-optimiser');
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'No Smaller Output.docx',
+    mimeType: DOCX_MIME,
+    buffer
+  });
+  await page.evaluate(() => {
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    HTMLCanvasElement.prototype.toBlob = function patchedToBlob(callback, type, quality) {
+      originalToBlob.call(this, blob => {
+        blob.arrayBuffer().then(bytes => callback(new Blob([bytes, new Uint8Array(400_000)], { type })));
+      }, type, quality);
+    };
+  });
+
+  await expect(page.locator('#wordOptimiserButton')).toBeEnabled();
+  await page.getByRole('button', { name: 'Optimise document', exact: true }).click();
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('not smaller than the original', { timeout: 30_000 });
+  await expect(page.locator('#wordOptimiserResultChanged')).toHaveText('0');
+  await expect(page.locator('#wordOptimiserResultSaved')).toHaveText('0 B');
+  await expect(page.locator('#wordOptimiserResultReduction')).toHaveText('0%');
+  await expect(page.locator('#wordOptimiserResultStatus')).toContainText('original package was retained');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#wordOptimiserDownload').click();
+  const download = await downloadPromise;
+  const outputBuffer = await readFile(await download.path());
+  expect(outputBuffer.equals(buffer)).toBe(true);
+
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'No Smaller Output-optimised.docx',
+    mimeType: DOCX_MIME,
+    buffer: outputBuffer
+  });
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('Analysis ready');
+  await expect(page.locator('#wordOptimiserAnalysisSection')).toBeVisible();
 });
 
 test('rejects legacy .doc input with the existing save-as guidance', async ({ page }) => {
