@@ -115,6 +115,7 @@ export function renderWordDocumentOptimiser(container) {
           <div class="detail-card"><span>Optimised non-image archive bytes</span><strong id="wordOptimiserResultOptimisedNonImageBytes">0 B</strong></div>
           <div class="detail-card"><span>Already efficient</span><strong id="wordOptimiserResultAlreadyEfficient">0</strong></div>
           <div class="detail-card"><span>Preserved unchanged</span><strong id="wordOptimiserResultPreserved">0</strong></div>
+          <div class="detail-card"><span>Processing failures preserved</span><strong id="wordOptimiserResultProcessingFailures">0</strong></div>
         </div>
         <div class="button-row word-optimiser-output-actions">
           <a id="wordOptimiserDownload" class="button secondary" href="#" download="document-optimised.docx" hidden>Download optimised DOCX</a>
@@ -193,6 +194,22 @@ export function renderWordDocumentOptimiser(container) {
     return state.analysis?.plan || [];
   }
 
+  function getDisplayedPlan() {
+    const processedById = new Map((state.result?.processed || []).map(item => [item.id, item]));
+
+    return getPlan().map(item => {
+      const actual = processedById.get(item.id);
+      if (!actual) return item;
+
+      return {
+        ...item,
+        ...actual,
+        status: actual.actualStatus || item.status,
+        statusLabel: actual.statusLabel || item.statusLabel
+      };
+    });
+  }
+
   function updatePlan() {
     if (!state.analysis?.document) return;
 
@@ -236,7 +253,7 @@ export function renderWordDocumentOptimiser(container) {
 
   function visiblePlan() {
     const filter = container.querySelector('#wordOptimiserReviewFilter').value;
-    return getPlan().filter(item => filter === 'all' || item.status === filter || (filter === 'preserve' && [
+    return getDisplayedPlan().filter(item => filter === 'all' || item.status === filter || (filter === 'preserve' && [
       WORD_OPTIMISER_STATUS.PRESERVE,
       WORD_OPTIMISER_STATUS.UNSUPPORTED
     ].includes(item.status)));
@@ -341,7 +358,7 @@ export function renderWordDocumentOptimiser(container) {
 
     if (replacement) {
       panel.append(createPreviewFigure(replacement.bytes, replacement.mimeType || asset.mimeType, `Optimised · ${item.originalName}`, `Optimised preview of ${item.originalName}`));
-    } else if (item.recommended) {
+    } else if (item.recommended && item.actualStatus !== WORD_OPTIMISER_STATUS.PRESERVE) {
       const waiting = documentRef.createElement('div');
       waiting.className = 'word-optimiser-preview-pending';
       waiting.textContent = 'Optimised preview appears after encoding.';
@@ -472,9 +489,10 @@ export function renderWordDocumentOptimiser(container) {
       state.result = null;
       const message = error.message || 'The DOCX could not be optimised safely.';
       setStatus(message, 'error');
-      setResultStatus(message, 'error');
-      resultSection.hidden = false;
+      setResultStatus('', null);
+      resultSection.hidden = true;
       container.querySelector('#wordOptimiserReopenButton').hidden = true;
+      container.querySelector('#wordOptimiserDownload').hidden = true;
     } finally {
       updateActionState();
     }
@@ -492,6 +510,7 @@ export function renderWordDocumentOptimiser(container) {
     container.querySelector('#wordOptimiserResultOptimisedNonImageBytes').textContent = formatBytes(summary.optimisedNonImagePackageBytes);
     container.querySelector('#wordOptimiserResultAlreadyEfficient').textContent = formatNumber(summary.alreadyEfficientCount);
     container.querySelector('#wordOptimiserResultPreserved').textContent = formatNumber(summary.preservedCount);
+    container.querySelector('#wordOptimiserResultProcessingFailures').textContent = formatNumber(summary.processingFailureCount);
   }
 
   function reopenOutput() {

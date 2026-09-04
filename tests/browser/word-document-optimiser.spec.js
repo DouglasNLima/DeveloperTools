@@ -4,6 +4,8 @@ import { readFile } from 'node:fs/promises';
 import {
   createCroppedWordOptimiserDocx,
   createNonShrinkingWordOptimiserDocx,
+  createProcessingFailureWordOptimiserDocx,
+  createTallRasterWordOptimiserDocx,
   createWordOptimiserDocx,
   dropFile
 } from './support.js';
@@ -126,6 +128,94 @@ test('optimises a controlled screenshot, validates the rebuilt DOCX and download
   await expect(page.locator('.word-optimiser-card').filter({ hasText: 'screenshot.png' })).toContainText('Already efficient');
 });
 
+test('optimises a browser-decodable tall raster above the former axis boundary', async ({ page }) => {
+  const buffer = createTallRasterWordOptimiserDocx();
+  await page.goto('/#word-document-optimiser');
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'Tall Diagram.docx',
+    mimeType: DOCX_MIME,
+    buffer
+  });
+
+  const diagram = page.locator('.word-optimiser-card').filter({ hasText: 'tall-diagram.png' });
+  await expect(diagram).toContainText('1,238 × 12,921 px');
+  await expect(diagram).toContainText('Approximately 180 PPI');
+  await expect(diagram).toHaveClass(/status-already-efficient/);
+
+  await page.locator('#wordOptimiserPreset').selectOption('smaller-file');
+  await expect(diagram).toContainText('Approximately 150 PPI');
+  await expect(diagram).toContainText('1,000 × 10,434 px');
+  await expect(diagram).toHaveClass(/status-optimise/);
+
+  await page.getByRole('button', { name: 'Optimise document', exact: true }).click();
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('completed and validated', { timeout: 60_000 });
+  await expect(page.locator('#wordOptimiserResultSection')).toBeVisible();
+  await expect(page.locator('#wordOptimiserResultChanged')).toHaveText('1');
+  await expect(page.locator('#wordOptimiserResultSaved')).not.toHaveText('0 B');
+  await expect(diagram).toHaveClass(/status-optimise/);
+  await expect(diagram.locator('.word-optimiser-preview-figure')).toHaveCount(2);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#wordOptimiserDownload').click();
+  const download = await downloadPromise;
+  const outputBuffer = await readFile(await download.path());
+  expect(outputBuffer.length).toBeLessThan(buffer.length);
+
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'Tall Diagram-optimised.docx',
+    mimeType: DOCX_MIME,
+    buffer: outputBuffer
+  });
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('Analysis ready');
+  await expect(page.locator('.word-optimiser-card').filter({ hasText: 'tall-diagram.png' })).toContainText('1,000 × 10,434 px');
+  await expect(page.locator('.word-optimiser-card').filter({ hasText: 'tall-diagram.png' })).toHaveClass(/status-already-efficient/);
+});
+
+test('preserves one image processing failure and continues with other images', async ({ page }) => {
+  await page.goto('/#word-document-optimiser');
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'Per-image failures.docx',
+    mimeType: DOCX_MIME,
+    buffer: createProcessingFailureWordOptimiserDocx()
+  });
+
+  await page.evaluate(() => {
+    const originalToBlob = HTMLCanvasElement.prototype.toBlob;
+    let callCount = 0;
+    HTMLCanvasElement.prototype.toBlob = function patchedToBlob(callback, type, quality) {
+      callCount += 1;
+      if (callCount === 1) {
+        callback(null);
+        return;
+      }
+      originalToBlob.call(this, callback, type, quality);
+    };
+  });
+
+  await page.getByRole('button', { name: 'Optimise document', exact: true }).click();
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('completed and validated', { timeout: 60_000 });
+  await expect(page.locator('#wordOptimiserResultSection')).toBeVisible();
+  await expect(page.locator('#wordOptimiserResultChanged')).toHaveText('1');
+  await expect(page.locator('#wordOptimiserResultProcessingFailures')).toHaveText('1');
+  await expect(page.locator('.word-optimiser-card').filter({ hasText: 'first.png' })).toHaveClass(/status-preserve/);
+  await expect(page.locator('.word-optimiser-card').filter({ hasText: 'first.png' })).toContainText('could not be resized safely');
+  await expect(page.locator('.word-optimiser-card').filter({ hasText: 'second.png' })).toHaveClass(/status-optimise/);
+  await expect(page.locator('.word-optimiser-card').filter({ hasText: 'second.png' }).locator('.word-optimiser-preview-figure')).toHaveCount(2);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#wordOptimiserDownload').click();
+  const download = await downloadPromise;
+  const outputBuffer = await readFile(await download.path());
+  expect(outputBuffer.length).toBeLessThan(createProcessingFailureWordOptimiserDocx().length);
+
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'Per-image failures-optimised.docx',
+    mimeType: DOCX_MIME,
+    buffer: outputBuffer
+  });
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('Analysis ready');
+});
+
 test('lossless clean-up preserves the source image bytes and still produces a validated copy', async ({ page }) => {
   await page.goto('/#word-document-optimiser');
   await page.setInputFiles('#wordOptimiserFileInput', {
@@ -214,6 +304,35 @@ test('retains the original when attempted replacements do not make the final DOC
   });
   await expect(page.locator('#wordOptimiserStatus')).toContainText('Analysis ready');
   await expect(page.locator('#wordOptimiserAnalysisSection')).toBeVisible();
+});
+
+test('keeps the validated output section hidden and shows one error when output presentation fails', async ({ page }) => {
+  await page.goto('/#word-document-optimiser');
+  await page.setInputFiles('#wordOptimiserFileInput', {
+    name: 'Output failure.docx',
+    mimeType: DOCX_MIME,
+    buffer: createWordOptimiserDocx()
+  });
+  await page.evaluate(docxMime => {
+    const originalCreateObjectURL = URL.createObjectURL.bind(URL);
+    URL.createObjectURL = blob => {
+      if (blob?.type === docxMime) throw new Error('Forced output presentation failure');
+      return originalCreateObjectURL(blob);
+    };
+  }, DOCX_MIME);
+
+  await page.getByRole('button', { name: 'Optimise document', exact: true }).click();
+  await expect(page.locator('#wordOptimiserStatus')).toContainText('Forced output presentation failure', { timeout: 30_000 });
+  await expect(page.locator('#wordOptimiserResultSection')).toBeHidden();
+  await expect(page.locator('#wordOptimiserResultStatus')).toHaveText('');
+  await expect(page.locator('#wordOptimiserDownload')).toBeHidden();
+  await expect(page.locator('#wordOptimiserValidation')).toBeHidden();
+
+  const visibleErrors = await page.locator('.status-message.error').evaluateAll(elements => elements
+    .filter(element => !element.hidden)
+    .map(element => element.textContent.trim())
+    .filter(Boolean));
+  expect(visibleErrors).toEqual(['Forced output presentation failure']);
 });
 
 test('rejects legacy .doc input with the existing save-as guidance', async ({ page }) => {

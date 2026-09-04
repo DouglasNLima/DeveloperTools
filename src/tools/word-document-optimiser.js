@@ -43,10 +43,23 @@ export const DEFAULT_WORD_OPTIMISATION_PRESET = 'documentation';
 export const DEFAULT_WORD_OPTIMISER_PRESET = DEFAULT_WORD_OPTIMISATION_PRESET;
 
 export const WORD_OPTIMISER_LIMITS = Object.freeze({
-  maxDecodedRasterWidth: 12000,
-  maxDecodedRasterHeight: 12000,
+  // Chromium's practical single-canvas axis ceiling is lower than this on
+  // some platforms; the browser canvas check below remains authoritative.
+  // This bound protects pathological one-dimensional rasters without
+  // rejecting ordinary tall or wide diagrams near 13,000 pixels.
+  maxDecodedRasterWidth: 32767,
+  maxDecodedRasterHeight: 32767,
   maxDecodedRasterPixels: 100_000_000,
+  maxTargetCanvasWidth: 32767,
+  maxTargetCanvasHeight: 32767,
+  maxTargetCanvasPixels: 100_000_000,
   maxRebuiltPackageBytes: 128 * 1024 * 1024
+});
+
+export const WORD_OPTIMISER_TOLERANCE = Object.freeze({
+  // A resize must remove at least five percent on its limiting axis before
+  // it is worth decoding and re-encoding a screenshot-like asset.
+  minimumLinearReduction: 0.05
 });
 
 export const WORD_OPTIMISER_STATUS = Object.freeze({
@@ -243,9 +256,17 @@ function buildAssetPlan(asset, preset, keepOriginalIds, archiveEntries = new Map
   } else if (!preset.targetPpi) {
     status = WORD_OPTIMISER_STATUS.PRESERVE;
     reason = 'Lossless clean-up has no proven pixel-safe operation available for this asset.';
-  } else if (!targetDimensions || targetDimensions.scale >= 1 || (ppi.effectivePpi ?? 0) <= preset.targetPpi) {
+  } else if (
+    !targetDimensions
+    || targetDimensions.scale >= 1
+    || targetDimensions.scale > 1 - WORD_OPTIMISER_TOLERANCE.minimumLinearReduction
+    || (ppi.effectivePpi ?? 0) <= preset.targetPpi
+  ) {
     status = WORD_OPTIMISER_STATUS.ALREADY_EFFICIENT;
-    reason = `The largest displayed usage is already at or below approximately ${preset.targetPpi} PPI.`;
+    reason = targetDimensions?.scale > 1 - WORD_OPTIMISER_TOLERANCE.minimumLinearReduction
+      && (ppi.effectivePpi ?? 0) > preset.targetPpi
+      ? `The largest displayed usage is only marginally above ${preset.targetPpi} PPI, so the image is kept unchanged to avoid negligible re-encoding.`
+      : `The largest displayed usage is already at or below approximately ${preset.targetPpi} PPI.`;
   } else {
     status = WORD_OPTIMISER_STATUS.OPTIMISE;
     reason = `The largest displayed usage is approximately ${formatPpi(ppi.effectivePpi)} PPI; resize to approximately ${preset.targetPpi} PPI without upscaling.`;
@@ -356,11 +377,17 @@ export function buildWordOptimisationSummary({
   const alreadyEfficient = plan.filter(item => item.status === WORD_OPTIMISER_STATUS.ALREADY_EFFICIENT);
   const unsupported = plan.filter(item => item.status === WORD_OPTIMISER_STATUS.UNSUPPORTED);
   const unknownDisplay = plan.filter(item => item.status === WORD_OPTIMISER_STATUS.UNKNOWN_DISPLAY);
-  const preserved = plan.filter(item => [
-    WORD_OPTIMISER_STATUS.PRESERVE,
-    WORD_OPTIMISER_STATUS.UNSUPPORTED,
-    WORD_OPTIMISER_STATUS.UNKNOWN_DISPLAY
-  ].includes(item.status));
+  const preserved = plan.filter(item => {
+    const status = actual ? item.actualStatus || item.status : item.status;
+    return [
+      WORD_OPTIMISER_STATUS.PRESERVE,
+      WORD_OPTIMISER_STATUS.UNSUPPORTED,
+      WORD_OPTIMISER_STATUS.UNKNOWN_DISPLAY
+    ].includes(status);
+  });
+  const processingFailureCount = actual
+    ? plan.filter(item => item.processingFailure).length
+    : 0;
   const changedCount = actual
     ? plan.filter(item => replacements.has(item.packagePath.toLocaleLowerCase('en-GB'))).length
     : 0;
@@ -382,6 +409,7 @@ export function buildWordOptimisationSummary({
     unsupportedCount: unsupported.length,
     unknownDisplayCount: unknownDisplay.length,
     preservedCount: preserved.length,
+    processingFailureCount,
     estimatedImageBytes,
     estimatedRawImageBytes,
     estimatedOptimisedBytes: estimatedDocumentBytes,
@@ -501,8 +529,12 @@ export async function encodeWordRasterAsset(asset, plan, options = {}) {
   const targetHeight = Number(plan.targetDimensions.height);
   const limits = { ...WORD_OPTIMISER_LIMITS, ...(options.limits || {}) };
 
-  if (!validRasterDimensions(sourceWidth, sourceHeight, limits) || !validRasterDimensions(targetWidth, targetHeight, limits)) {
+  if (!isSafeWordRasterDimensions(sourceWidth, sourceHeight, limits, 'decoded')) {
     throw new WordImageExtractorError('This image is too large to decode safely in the browser.', 'decoded-image-limit');
+  }
+
+  if (!isSafeWordRasterDimensions(targetWidth, targetHeight, limits, 'target')) {
+    throw new WordImageExtractorError('The proposed image dimensions exceed the safe browser canvas limit.', 'target-canvas-limit');
   }
 
   const format = String(asset.format || '').toLocaleLowerCase('en-GB');
@@ -523,9 +555,21 @@ export async function encodeWordRasterAsset(asset, plan, options = {}) {
     const decodedResource = await decodeRasterBlob(sourceBlob);
     decoded = decodedResource.image;
     objectUrl = decodedResource.objectUrl;
+
+    const decodedWidth = Number(decoded?.naturalWidth || decoded?.width);
+    const decodedHeight = Number(decoded?.naturalHeight || decoded?.height);
+    if (decodedWidth !== sourceWidth || decodedHeight !== sourceHeight) {
+      throw new WordImageExtractorError('The browser decoded this image with unexpected dimensions.', 'invalid-decoded-image');
+    }
+
     canvas = documentRef.createElement('canvas');
     canvas.width = targetWidth;
     canvas.height = targetHeight;
+
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      throw new WordImageExtractorError('The browser could not create a canvas at the proposed dimensions.', 'target-canvas-limit');
+    }
+
     const context = canvas.getContext('2d', { alpha: format !== 'jpeg' });
 
     if (!context) {
@@ -544,7 +588,7 @@ export async function encodeWordRasterAsset(asset, plan, options = {}) {
     const bytes = new Uint8Array(await outputBlob.arrayBuffer());
     const detected = detectImageFormat(bytes, asset.packagePath);
 
-    if (!detected.dimensions || detected.dimensions.width !== targetWidth || detected.dimensions.height !== targetHeight) {
+    if (!detected.isImage || !detected.dimensions || detected.dimensions.width !== targetWidth || detected.dimensions.height !== targetHeight) {
       throw new WordImageExtractorError('The browser returned an image with unexpected dimensions.', 'invalid-encoded-image');
     }
 
@@ -591,9 +635,21 @@ export async function optimiseWordDocument(analysis, options = {}) {
       continue;
     }
 
-    const encoded = await encode(asset, item, options);
+    let encoded;
 
-    if (encoded?.bytes instanceof Uint8Array && encoded.bytes.byteLength < item.originalBytes) {
+    try {
+      encoded = await encode(asset, item, options);
+    } catch (error) {
+      processed.push(createProcessingFailure(item, error));
+      continue;
+    }
+
+    if (!isValidEncodedReplacement(encoded, item, limits)) {
+      processed.push(createProcessingFailure(item));
+      continue;
+    }
+
+    if (encoded.bytes.byteLength < item.originalBytes) {
       replacements.set(item.packagePath, {
         path: item.packagePath,
         bytes: encoded.bytes
@@ -609,6 +665,7 @@ export async function optimiseWordDocument(analysis, options = {}) {
       processed.push({
         ...item,
         actualStatus: WORD_OPTIMISER_STATUS.PRESERVE,
+        statusLabel: getWordOptimiserStatusLabel(WORD_OPTIMISER_STATUS.PRESERVE),
         outputBytes: item.originalBytes,
         actualSavingBytes: 0,
         reason: 'The generated replacement was not smaller, so the original bytes were preserved.'
@@ -642,6 +699,7 @@ export async function optimiseWordDocument(analysis, options = {}) {
       ? {
         ...item,
         actualStatus: WORD_OPTIMISER_STATUS.PRESERVE,
+        statusLabel: getWordOptimiserStatusLabel(WORD_OPTIMISER_STATUS.PRESERVE),
         outputBytes: item.originalBytes,
         actualSavingBytes: 0,
         reason: 'The validated rebuilt DOCX was not smaller than the original, so the original package was retained.'
@@ -820,14 +878,73 @@ function normaliseReplacementMap(replacements) {
   return map;
 }
 
-function validRasterDimensions(width, height, limits) {
+export function isSafeWordRasterDimensions(width, height, limits = WORD_OPTIMISER_LIMITS, kind = 'decoded') {
+  const maxWidth = kind === 'target'
+    ? limits.maxTargetCanvasWidth ?? limits.maxDecodedRasterWidth
+    : limits.maxDecodedRasterWidth;
+  const maxHeight = kind === 'target'
+    ? limits.maxTargetCanvasHeight ?? limits.maxDecodedRasterHeight
+    : limits.maxDecodedRasterHeight;
+  const maxPixels = kind === 'target'
+    ? limits.maxTargetCanvasPixels ?? limits.maxDecodedRasterPixels
+    : limits.maxDecodedRasterPixels;
+
   return Number.isInteger(width)
     && Number.isInteger(height)
     && width > 0
     && height > 0
-    && width <= limits.maxDecodedRasterWidth
-    && height <= limits.maxDecodedRasterHeight
-    && width * height <= limits.maxDecodedRasterPixels;
+    && width <= maxWidth
+    && height <= maxHeight
+    && width * height <= maxPixels;
+}
+
+function isValidEncodedReplacement(encoded, item, limits) {
+  if (!(encoded?.bytes instanceof Uint8Array) || encoded.bytes.byteLength === 0) {
+    return false;
+  }
+
+  const width = normalisePositiveDimension(encoded.width ?? encoded.dimensions?.width);
+  const height = normalisePositiveDimension(encoded.height ?? encoded.dimensions?.height);
+  const targetWidth = normalisePositiveDimension(item.targetDimensions?.width);
+  const targetHeight = normalisePositiveDimension(item.targetDimensions?.height);
+
+  if (
+    !width
+    || !height
+    || !targetWidth
+    || !targetHeight
+    || width !== targetWidth
+    || height !== targetHeight
+    || !isSafeWordRasterDimensions(width, height, limits, 'target')
+  ) {
+    return false;
+  }
+
+  try {
+    const detected = detectImageFormat(encoded.bytes, item.packagePath);
+    return Boolean(detected.isImage)
+      && detected.dimensions?.width === targetWidth
+      && detected.dimensions?.height === targetHeight;
+  } catch {
+    return false;
+  }
+}
+
+function createProcessingFailure(item, error = null) {
+  const dimensions = item.originalDimensions
+    ? ` ${item.originalName} (${item.originalDimensions.width.toLocaleString('en-GB')} × ${item.originalDimensions.height.toLocaleString('en-GB')} px).`
+    : ` ${item.originalName}.`;
+
+  return {
+    ...item,
+    actualStatus: WORD_OPTIMISER_STATUS.PRESERVE,
+    statusLabel: getWordOptimiserStatusLabel(WORD_OPTIMISER_STATUS.PRESERVE),
+    outputBytes: item.originalBytes,
+    actualSavingBytes: 0,
+    processingFailure: true,
+    processingFailureCode: error?.code || '',
+    reason: `This image could not be resized safely in this browser, so its original bytes were preserved.${dimensions}`
+  };
 }
 
 async function decodeRasterBlob(blob) {

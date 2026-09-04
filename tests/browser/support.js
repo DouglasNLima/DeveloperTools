@@ -55,6 +55,8 @@ export function createWordImageFormatsDocx() {
 let cachedWordOptimiserDocx = null;
 let cachedCroppedWordOptimiserDocx = null;
 let cachedNonShrinkingWordOptimiserDocx = null;
+let cachedTallRasterWordOptimiserDocx = null;
+let cachedProcessingFailureWordOptimiserDocx = null;
 
 export function createWordOptimiserDocx() {
   if (cachedWordOptimiserDocx) return cachedWordOptimiserDocx;
@@ -131,6 +133,42 @@ export function createNonShrinkingWordOptimiserDocx() {
   return cachedNonShrinkingWordOptimiserDocx;
 }
 
+export function createTallRasterWordOptimiserDocx() {
+  if (cachedTallRasterWordOptimiserDocx) return cachedTallRasterWordOptimiserDocx;
+
+  const tallImage = createSolidPng(1238, 12921, 1_500_000);
+  const documentXml = '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp"><w:body><w:p><w:r><w:drawing><wp:inline><wp:extent cx="6096000" cy="63607950"/><a:blip r:embed="rIdTall"/></wp:inline></w:drawing></w:r></w:p></w:body></w:document>';
+  cachedTallRasterWordOptimiserDocx = createStoredZip([
+    ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+    ['word/document.xml', documentXml],
+    ['word/_rels/document.xml.rels', '<Relationships><Relationship Id="rIdTall" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/tall-diagram.png"/></Relationships>'],
+    ['word/media/tall-diagram.png', tallImage]
+  ]);
+  return cachedTallRasterWordOptimiserDocx;
+}
+
+export function createProcessingFailureWordOptimiserDocx() {
+  if (cachedProcessingFailureWordOptimiserDocx) return cachedProcessingFailureWordOptimiserDocx;
+
+  const first = createScreenshotPng(1800, 1000);
+  const second = createScreenshotPng(1800, 1000);
+  const documentXml = [
+    '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp">',
+    '<w:body>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="5486400" cy="3048000"/><a:blip r:embed="rIdFirst"/></wp:inline></w:drawing></w:r></w:p>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="4572000" cy="2514600"/><a:blip r:embed="rIdSecond"/></wp:inline></w:drawing></w:r></w:p>',
+    '</w:body></w:document>'
+  ].join('');
+  cachedProcessingFailureWordOptimiserDocx = createStoredZip([
+    ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+    ['word/document.xml', documentXml],
+    ['word/_rels/document.xml.rels', '<Relationships><Relationship Id="rIdFirst" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/first.png"/><Relationship Id="rIdSecond" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/second.png"/></Relationships>'],
+    ['word/media/first.png', first],
+    ['word/media/second.png', second]
+  ]);
+  return cachedProcessingFailureWordOptimiserDocx;
+}
+
 function createScreenshotPng(width, height) {
   const rowLength = width * 4 + 1;
   const raw = Buffer.allocUnsafe(rowLength * height);
@@ -179,6 +217,30 @@ function createScreenshotPng(width, height) {
     pngChunk('IDAT', deflateSync(raw, { level: 6 })),
     pngChunk('IEND', Buffer.alloc(0))
   ]);
+}
+
+function createSolidPng(width, height, paddingBytes = 0) {
+  const rowLength = width * 4 + 1;
+  const raw = Buffer.alloc(rowLength * height, 255);
+
+  for (let y = 0; y < height; y += 1) {
+    raw[y * rowLength] = 0;
+  }
+
+  const chunks = [
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk('IHDR', Buffer.concat([pngUInt32(width, height), Buffer.from([8, 6, 0, 0, 0])]))
+  ];
+
+  if (paddingBytes > 0) {
+    chunks.push(pngChunk('tEXt', Buffer.concat([Buffer.from('Padding\0', 'ascii'), Buffer.alloc(paddingBytes, 65)])));
+  }
+
+  chunks.push(
+    pngChunk('IDAT', deflateSync(raw, { level: 6 })),
+    pngChunk('IEND', Buffer.alloc(0))
+  );
+  return Buffer.concat(chunks);
 }
 
 function pngUInt32(...values) {

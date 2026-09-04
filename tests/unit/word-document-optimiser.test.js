@@ -26,6 +26,8 @@ import {
   calculateDisplayedPpi,
   calculateEffectivePpi,
   calculateTargetDimensions,
+  encodeWordRasterAsset,
+  isSafeWordRasterDimensions,
   normaliseWordOptimisationPreset,
   optimiseWordDocument,
   validateOptimisedWordPackage
@@ -184,6 +186,77 @@ test('normalises presets, preserves aspect ratio and never upscales', () => {
   }).width, 2);
 });
 
+test('keeps moderate-area tall and wide rasters within bounded decode and canvas limits', () => {
+  assert.equal(isSafeWordRasterDimensions(1238, 12921), true);
+  assert.equal(isSafeWordRasterDimensions(12921, 1238), true);
+  assert.equal(isSafeWordRasterDimensions(10001, 10001), false);
+  assert.equal(isSafeWordRasterDimensions(1, 32767), true);
+  assert.equal(isSafeWordRasterDimensions(1, 32768), false);
+  assert.equal(isSafeWordRasterDimensions(12000, 8000, undefined, 'target'), true);
+  assert.equal(isSafeWordRasterDimensions(32768, 100, undefined, 'target'), false);
+  assert.equal(isSafeWordRasterDimensions(10001, 10001, undefined, 'target'), false);
+});
+
+test('rejects excessive source area and unsafe target canvases before browser decode', async () => {
+  await assert.rejects(
+    () => encodeWordRasterAsset({
+      bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      width: 10001,
+      height: 10001,
+      format: 'png'
+    }, { targetDimensions: { width: 100, height: 100 } }),
+    error => error instanceof WordImageExtractorError && error.code === 'decoded-image-limit'
+  );
+
+  await assert.rejects(
+    () => encodeWordRasterAsset({
+      bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+      width: 100,
+      height: 100,
+      format: 'png'
+    }, { targetDimensions: { width: 32768, height: 1 } }),
+    error => error instanceof WordImageExtractorError && error.code === 'target-canvas-limit'
+  );
+});
+
+test('applies a five-percent minimum linear resize tolerance near the selected target', () => {
+  const marginal = {
+    embeddedAssets: [{
+      id: 'tall-diagram',
+      packagePath: 'word/media/diagram-4.png',
+      originalName: 'diagram-4.png',
+      format: 'png',
+      fileSize: 1000,
+      width: 1238,
+      height: 12921,
+      isEmbedded: true,
+      references: [],
+      displaySize: { widthInches: 6.67, heightInches: 69.56 }
+    }],
+    zipArchive: {
+      entries: [{ name: 'word/media/diagram-4.png', compressedSize: 1000, isDirectory: false }]
+    }
+  };
+  const marginalPlan = buildWordOptimisationPlan(marginal, { preset: 'documentation' });
+
+  assert.equal(marginalPlan[0].status, WORD_OPTIMISER_STATUS.ALREADY_EFFICIENT);
+  assert.match(marginalPlan[0].reason, /marginally above.*negligible re-encoding/i);
+
+  const oversized = {
+    ...marginal,
+    embeddedAssets: [{
+      ...marginal.embeddedAssets[0],
+      id: 'large-screenshot',
+      packagePath: 'word/media/large.png',
+      originalName: 'large.png',
+      width: 2400,
+      height: 1350,
+      displaySize: { widthInches: 6, heightInches: 3.375 }
+    }]
+  };
+  assert.equal(buildWordOptimisationPlan(oversized, { preset: 'documentation' })[0].status, WORD_OPTIMISER_STATUS.OPTIMISE);
+});
+
 test('lossless, unknown display sizes, vectors and unsupported formats remain unchanged', async () => {
   const result = await readWordImageDocument(createDocxArchive({
     media: [
@@ -243,6 +316,59 @@ test('replacement happens only when encoded bytes are smaller and source bytes a
   });
   assert.equal(notSmaller.replacements.size, 0);
   assert.deepEqual(notSmaller.bytes, source);
+});
+
+test('preserves per-image decode and encode failures while continuing other assets', async () => {
+  const source = createDocxArchive({
+    media: [
+      ['decode-failure.png', createPng(2400, 1350, 40, 2000)],
+      ['encode-failure.png', createPng(2400, 1350, 41, 2000)],
+      ['good.png', createPng(2400, 1350, 42, 2000)]
+    ],
+    documentXml: '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp"><w:body><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><a:blip r:embed="rIdDecode"/></wp:inline></w:drawing><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><a:blip r:embed="rIdEncode"/></wp:inline></w:drawing><w:drawing><wp:inline><wp:extent cx="5486400" cy="3086100"/><a:blip r:embed="rIdGood"/></wp:inline></w:drawing></w:body></w:document>',
+    relationships: [
+      ['rIdDecode', 'media/decode-failure.png'],
+      ['rIdEncode', 'media/encode-failure.png'],
+      ['rIdGood', 'media/good.png']
+    ]
+  });
+  const analysis = await analyseWordDocument(source, { fileName: 'asset-failures.docx', preset: 'documentation' });
+  const replacement = createPng(1080, 608, 43);
+  const result = await optimiseWordDocument(analysis, {
+    encodeRasterAsset: async asset => {
+      if (asset.originalName === 'decode-failure.png') {
+        throw new Error('The browser decoder rejected this image.');
+      }
+      if (asset.originalName === 'encode-failure.png') {
+        return { bytes: replacement, width: 999, height: 1 };
+      }
+      return { bytes: replacement, width: 1080, height: 608 };
+    }
+  });
+
+  assert.equal(result.replacements.size, 1);
+  assert.equal(result.summary.changedCount, 1);
+  assert.equal(result.summary.processingFailureCount, 2);
+  assert.equal(result.summary.preservedCount >= 2, true);
+  assert.equal(result.processed.find(item => item.originalName === 'decode-failure.png').processingFailure, true);
+  assert.equal(result.processed.find(item => item.originalName === 'encode-failure.png').processingFailure, true);
+  assert.match(result.processed.find(item => item.originalName === 'decode-failure.png').reason, /original bytes were preserved/i);
+  assert.equal(result.validation.valid, true);
+});
+
+test('does not swallow package-level validation failures during optimisation', async () => {
+  const source = createDocxArchive({
+    media: [['screen.png', createPng(2400, 1350, 44, 1000)]],
+    documentXml: '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r"><w:body><a:blip r:embed="rId1"/></w:body></w:document>',
+    relationships: [['rId1', 'media/screen.png']]
+  });
+  const analysis = await analyseWordDocument(source, { fileName: 'valid-before-corruption.docx', preset: 'documentation' });
+  analysis.document.zipArchive.bytes[0] = 0;
+
+  await assert.rejects(
+    () => optimiseWordDocument(analysis),
+    error => error instanceof WordImageExtractorError && ['invalid-docx', 'invalid-optimised-docx'].includes(error.code)
+  );
 });
 
 test('retains the original when a smaller media replacement makes the rebuilt DOCX larger', async () => {
