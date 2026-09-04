@@ -24,9 +24,9 @@ test('renders the home overview and opens tools from catalogue cards', async ({ 
   await expect(page.locator('.statusbar')).toContainText('Static local workspace');
   await expect(page.getByRole('status')).toHaveCount(0);
   await expect(page.locator('#activeToolTitle')).toHaveText('Developer Tools');
-  await expect(page.locator('#activeToolStatus')).toHaveText('24 tools');
+  await expect(page.locator('#activeToolStatus')).toHaveText('25 tools');
   await expect(page.locator('[data-view-id="home"]')).toHaveAttribute('aria-current', 'page');
-  await expect(page.locator('[data-home-tool-id]')).toHaveCount(24);
+  await expect(page.locator('[data-home-tool-id]')).toHaveCount(25);
   await expect(page.locator('[data-home-tool-id="json-data-workbench"]')).toBeVisible();
   await expect(page.locator('[data-home-tool-id="json-formatter"]')).toHaveCount(0);
   await expect(page.locator('[data-home-tool-id="web-api-workbench"]')).toBeVisible();

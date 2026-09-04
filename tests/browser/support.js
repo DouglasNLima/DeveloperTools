@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts } from 'pdf-lib';
+import { deflateSync } from 'node:zlib';
 
 import { APP_TITLE } from '../../src/app-metadata.js';
 
@@ -49,6 +50,128 @@ export function createWordImageFormatsDocx() {
     ['word/media/image.emf', emf],
     ['word/media/image.tiff', tiff]
   ]);
+}
+
+let cachedWordOptimiserDocx = null;
+
+export function createWordOptimiserDocx() {
+  if (cachedWordOptimiserDocx) return cachedWordOptimiserDocx;
+
+  const screenshot = createScreenshotPng(1800, 1000);
+  const efficient = createScreenshotPng(300, 200);
+  const unknownDisplay = createScreenshotPng(900, 500);
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="#1976d2"/><path d="M20 320h600" stroke="#fff"/></svg>';
+  const tiff = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00]);
+  const relationships = [
+    ['rIdScreenshot', 'media/screenshot.png'],
+    ['rIdEfficient', 'media/efficient.png'],
+    ['rIdUnknown', 'media/unknown-display.png'],
+    ['rIdVector', 'media/diagram.svg'],
+    ['rIdTiff', 'media/unsupported.tiff']
+  ].map(([id, target]) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${target}"/>`).join('');
+  const documentXml = [
+    '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r" xmlns:wp="wp">',
+    '<w:body>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="5486400" cy="3048000"/><wp:docPr descr="Large application screenshot" title="Screenshot"/><a:blip r:embed="rIdScreenshot"/></wp:inline></w:drawing></w:r></w:p>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="1828800" cy="1016000"/><a:blip r:embed="rIdScreenshot"/></wp:inline></w:drawing></w:r></w:p>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="1828800" cy="1219200"/><a:blip r:embed="rIdEfficient"/></wp:inline></w:drawing></w:r></w:p>',
+    '<w:p><w:r><w:drawing><a:blip r:embed="rIdUnknown"/></w:drawing></w:r></w:p>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="3657600" cy="2057400"/><a:blip r:embed="rIdVector"/></wp:inline></w:drawing></w:r></w:p>',
+    '<w:p><w:r><w:drawing><wp:inline><wp:extent cx="2743200" cy="1524000"/><a:blip r:embed="rIdTiff"/></wp:inline></w:drawing></w:r></w:p>',
+    '</w:body></w:document>'
+  ].join('');
+
+  cachedWordOptimiserDocx = createStoredZip([
+    ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+    ['word/document.xml', documentXml],
+    ['word/_rels/document.xml.rels', `<Relationships>${relationships}</Relationships>`],
+    ['word/media/screenshot.png', screenshot],
+    ['word/media/efficient.png', efficient],
+    ['word/media/unknown-display.png', unknownDisplay],
+    ['word/media/diagram.svg', svg],
+    ['word/media/unsupported.tiff', tiff],
+    ['word/media/orphan.png', createScreenshotPng(500, 280)]
+  ]);
+  return cachedWordOptimiserDocx;
+}
+
+function createScreenshotPng(width, height) {
+  const rowLength = width * 4 + 1;
+  const raw = Buffer.allocUnsafe(rowLength * height);
+
+  for (let y = 0; y < height; y += 1) {
+    const rowOffset = y * rowLength;
+    raw[rowOffset] = 0;
+    let seed = (0x9e3779b9 ^ (y * 2654435761)) >>> 0;
+
+    for (let x = 0; x < width; x += 1) {
+      seed = Math.imul(seed ^ (seed >>> 13), 0x5bd1e995) >>> 0;
+      const noise = (seed >>> 28) & 15;
+      let red = 246;
+      let green = 248;
+      let blue = 251;
+
+      if (y < 72) {
+        red = 28 + noise;
+        green = 62 + noise;
+        blue = 102 + noise;
+      } else if (x < 270) {
+        red = 230 + (noise >> 2);
+        green = 235 + (noise >> 2);
+        blue = 244 + (noise >> 2);
+      } else if ((y > 130 && y < 158) || (y > 208 && y < 230) || (y > 310 && y < 330) || (y > 420 && y < 442)) {
+        red = 45 + noise;
+        green = 76 + noise;
+        blue = 125 + noise;
+      } else if (x > 360 && x < 1480 && y > 250 && y < 860 && ((x + y) % 97 < 12)) {
+        red = 205 + (noise >> 1);
+        green = 215 + (noise >> 1);
+        blue = 230 + (noise >> 1);
+      }
+
+      const pixelOffset = rowOffset + 1 + x * 4;
+      raw[pixelOffset] = red;
+      raw[pixelOffset + 1] = green;
+      raw[pixelOffset + 2] = blue;
+      raw[pixelOffset + 3] = 255;
+    }
+  }
+
+  return Buffer.concat([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    pngChunk('IHDR', Buffer.concat([pngUInt32(width, height), Buffer.from([8, 6, 0, 0, 0])])),
+    pngChunk('IDAT', deflateSync(raw, { level: 6 })),
+    pngChunk('IEND', Buffer.alloc(0))
+  ]);
+}
+
+function pngUInt32(...values) {
+  const bytes = Buffer.alloc(values.length * 4);
+  values.forEach((value, index) => bytes.writeUInt32BE(value >>> 0, index * 4));
+  return bytes;
+}
+
+function pngChunk(type, data) {
+  const name = Buffer.from(type, 'ascii');
+  const content = Buffer.from(data);
+  const header = Buffer.alloc(4);
+  header.writeUInt32BE(content.length, 0);
+  const crc = Buffer.alloc(4);
+  crc.writeUInt32BE(crc32(Buffer.concat([name, content])), 0);
+  return Buffer.concat([header, name, content, crc]);
+}
+
+function crc32(data) {
+  let crc = 0xffffffff;
+
+  for (const byte of data) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1));
+    }
+  }
+
+  return (crc ^ 0xffffffff) >>> 0;
 }
 
 export async function primeOfflineApp(page) {

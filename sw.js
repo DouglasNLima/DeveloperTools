@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v50';
+const CACHE_NAME = 'developer-tools-static-v51';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -133,6 +133,8 @@ const PRECACHE_URLS = [
   './src/tools/web-api-workbench.ui.js',
   './src/tools/word-image-extractor.js',
   './src/tools/word-image-extractor.ui.js',
+  './src/tools/word-document-optimiser.js',
+  './src/tools/word-document-optimiser.ui.js',
   './src/tools/workbench.js',
   './assets/power-platform-script-hub/manifests/power-platform-library-manifest.json',
   './assets/power-platform-script-hub/manifests/dataverse-forensics-manifest.json',

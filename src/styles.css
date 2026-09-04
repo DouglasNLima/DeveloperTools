@@ -2730,6 +2730,165 @@ button.danger {
   gap: 0.75rem;
 }
 
+.word-document-optimiser-tool {
+  gap: 0.75rem;
+}
+
+.word-optimiser-controls {
+  align-items: end;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(220px, 360px) minmax(0, 1fr);
+}
+
+.word-optimiser-control-note {
+  background: var(--success-soft);
+  border: 1px solid var(--success-border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem 0.75rem;
+}
+
+.word-optimiser-control-note strong {
+  color: var(--success);
+  font-size: 0.82rem;
+}
+
+.word-optimiser-control-note span,
+.word-optimiser-analysis-status,
+.word-optimiser-actions .hint {
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.word-optimiser-review-header {
+  margin-top: 0.35rem;
+}
+
+.word-optimiser-filter-panel {
+  grid-template-columns: minmax(210px, 320px);
+}
+
+.word-optimiser-inventory {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.word-optimiser-card {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-left: 4px solid var(--success);
+  border-radius: var(--radius-control);
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.7rem;
+}
+
+.word-optimiser-card.status-already-efficient {
+  border-left-color: var(--text-soft);
+}
+
+.word-optimiser-card.status-preserve,
+.word-optimiser-card.status-unsupported,
+.word-optimiser-card.status-unable-to-determine-display-size {
+  border-left-color: var(--amber);
+}
+
+.word-optimiser-card-body {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: minmax(220px, 330px) minmax(0, 1fr);
+}
+
+.word-optimiser-preview-panel {
+  align-items: start;
+  background: var(--surface-muted);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-small);
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 150px;
+  padding: 0.4rem;
+}
+
+.word-optimiser-preview-panel:has(.word-optimiser-preview-pending),
+.word-optimiser-preview-panel:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.word-optimiser-preview-panel > :only-child {
+  align-self: center;
+}
+
+.word-optimiser-preview-figure {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  min-width: 0;
+}
+
+.word-optimiser-preview-figure img {
+  background: #fff;
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  display: block;
+  height: 150px;
+  max-width: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.word-optimiser-preview-figure figcaption,
+.word-optimiser-preview-pending,
+.word-optimiser-preview-panel {
+  color: var(--text-soft);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.word-optimiser-preview-pending {
+  align-self: center;
+  padding: 0.5rem;
+}
+
+.word-optimiser-details {
+  align-content: start;
+}
+
+.word-optimiser-override {
+  color: var(--text);
+  font-size: 0.8rem;
+  grid-column: 1 / -1;
+}
+
+.word-optimiser-actions,
+.word-optimiser-output-actions {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.word-optimiser-result {
+  border-color: var(--success-border);
+}
+
+.word-optimiser-result .detail-card strong {
+  color: var(--success);
+}
+
+@media (max-width: 780px) {
+  .word-optimiser-controls,
+  .word-optimiser-card-body {
+    grid-template-columns: 1fr;
+  }
+
+  .word-optimiser-preview-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .word-image-section {
   background: var(--surface-strong);
   border: 1px solid var(--border-soft);

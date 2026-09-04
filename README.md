@@ -25,6 +25,7 @@ The catalogue currently exposes these available tools in the app menu:
 - JSON & Data Workbench
 - PDF Template Field Explorer
 - Word Image Extractor
+- Word Document Optimiser
 - CSV/TSV helper
 - Web/API Workbench
 - Text Utilities Workbench
@@ -53,6 +54,8 @@ The home page includes a transparency section that explains the local-first phil
 
 Image OCR loads its vendored Tesseract.js worker, WASM core and English language data only when OCR runs. Those assets are served from the same static origin and are cached by the service worker after first use, so OCR can run offline after it has been opened once online from GitHub Pages, localhost or another HTTPS origin.
 
+Word Document Optimiser accepts unencrypted `.docx` files and keeps all processing in the browser. Its Documentation preset (approximately 180 PPI) uses the largest reliable DrawingML display size for each embedded asset, never upscales, keeps PNG screenshots as PNG, preserves vectors and unsupported formats, and validates the rebuilt package before offering a download. The Lossless clean-up preset does not resize or re-encode pixels. Page rendering, `.doc` files, cropped-pixel removal, embedded-font removal and batch processing remain outside the initial scope.
+
 For the test runner and local development tooling:
 
 ```sh
@@ -78,12 +81,13 @@ Tools that produce compatible JSON, XML, Mermaid, Markdown, text, CSV or Base64 
 - Sanitised text, cleaned HTML, converted case output and generated API or Power Platform snippets into compatible text tools.
 - Base64 output into the Base64 & File Converter file creator mode.
 - Selected compatible Word image bytes into Image Converter & Optimiser or Image OCR.
+- Word Document Optimiser analyses local DOCX display sizes, proposes legibility-first image reductions and validates rebuilt packages before download.
 
 Handover history is kept in `sessionStorage`, so breadcrumbs can return to earlier tools with their filled fields restored without adding payloads to the URL.
 
 The canonical Script Hub route is `#power-platform-script-hub`, with `development`, `investigation` and `power-pages` modes. Existing `#pcf-development-hub` links, including the `/create`, `/develop`, `/build`, `/deploy` and `/quality` paths, remain compatibility routes and resolve to the modernised Hub.
 
-The catalogue currently has 24 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
+The catalogue currently has 25 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -179,6 +183,8 @@ src/
     pdf-template-fields.ui.js
     word-image-extractor.js
     word-image-extractor.ui.js
+    word-document-optimiser.js
+    word-document-optimiser.ui.js
     dataverse-odata.js
     dataverse-odata.ui.js
     power-automate-email-template.js

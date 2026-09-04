@@ -775,6 +775,21 @@ export const TOOL_CATALOGUE = [
     ]
   },
   {
+    id: 'word-document-optimiser',
+    title: 'Word Document Optimiser',
+    category: 'Documents',
+    status: 'available',
+    summary: 'Reduce oversized embedded screenshots in local .docx files while preserving layout and unsupported assets.',
+    renderer: 'word-document-optimiser',
+    searchTerms: [
+      'DOCX optimisation',
+      'Word document optimiser',
+      'screenshot compression',
+      'embedded image resizing',
+      'Open XML package optimisation'
+    ]
+  },
+  {
     id: 'csv-tsv-helper',
     title: 'CSV/TSV helper',
     category: 'JSON & data',

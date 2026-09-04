@@ -56,6 +56,8 @@ const IMAGE_EXTENSIONS = Object.freeze({
   wmf: 'wmf'
 });
 
+export const EMU_PER_INCH = 914400;
+
 export class WordImageExtractorError extends Error {
   constructor(message, code = 'word-image-error') {
     super(message);
@@ -244,7 +246,8 @@ export async function readWordImageDocument(input, options = {}) {
           sourcePart: partPath,
           relationshipId: reference.relationshipId,
           target,
-          metadata
+          metadata,
+          displaySize: reference.displaySize
         });
         return;
       }
@@ -261,7 +264,8 @@ export async function readWordImageDocument(input, options = {}) {
         sourcePart: partPath,
         relationshipId: reference.relationshipId,
         target: resolvedPath,
-        metadata
+        metadata,
+        displaySize: reference.displaySize
       });
     });
   }
@@ -437,6 +441,118 @@ export async function readWordImageDocument(input, options = {}) {
 
 export const extractWordImages = readWordImageDocument;
 export const parseWordImageDocument = readWordImageDocument;
+
+/**
+ * Validate a Word package without changing it. This is shared by the image
+ * extractor and document optimiser so rebuilt packages use the same safety
+ * and relationship rules as source packages.
+ */
+export async function validateWordPackage(input, options = {}) {
+  const document = input?.zipArchive && input?.type === 'docx'
+    ? input
+    : await readWordImageDocument(input, options);
+  const zip = document.zipArchive;
+  const entriesByPath = new Map();
+  const errors = [];
+
+  zip.entries.forEach(entry => {
+    if (!entry.isDirectory) {
+      const packagePath = normalisePackagePath(entry.name);
+      const key = packagePath.toLocaleLowerCase('en-GB');
+
+      if (!isSafePackagePath(entry.name)) {
+        errors.push(`The DOCX package contains an unsafe ZIP path: ${entry.name}.`);
+      }
+
+      if (entriesByPath.has(key)) {
+        errors.push(`The DOCX package contains duplicate ZIP entries for ${packagePath}.`);
+      } else {
+        entriesByPath.set(key, entry);
+      }
+    }
+
+    if (entry.encrypted) {
+      errors.push(`${entry.name} is encrypted and cannot be validated as an editable DOCX package.`);
+    }
+  });
+
+  if (!entriesByPath.has('[content_types].xml')) {
+    errors.push('The DOCX package is missing [Content_Types].xml.');
+  }
+
+  if (!entriesByPath.has('word/document.xml')) {
+    errors.push('The DOCX package is missing word/document.xml.');
+  }
+
+  if (document.missingAssets?.length) {
+    errors.push(`${document.missingAssets.length.toLocaleString('en-GB')} referenced embedded media target${document.missingAssets.length === 1 ? '' : 's'} could not be resolved.`);
+  }
+
+  (document.warnings || [])
+    .filter(warning => /missing image relationship|unsafe or invalid image relationship target/i.test(warning))
+    .forEach(warning => errors.push(warning));
+
+  const relationshipEntries = zip.entries
+    .filter(entry => !entry.isDirectory && (
+      /(?:^|\/)\_rels\/[^/]+\.rels$/i.test(normalisePackagePath(entry.name))
+      || /^\_rels\/\.rels$/i.test(normalisePackagePath(entry.name))
+    ))
+    .sort((left, right) => normalisePackagePath(left.name).localeCompare(normalisePackagePath(right.name), 'en-GB'));
+
+  for (const relationshipEntry of relationshipEntries) {
+    if (relationshipEntry.encrypted) {
+      continue;
+    }
+
+    const relationshipPath = normalisePackagePath(relationshipEntry.name);
+    const sourcePart = getRelationshipsSourcePart(relationshipPath);
+    let relationships;
+
+    try {
+      const xml = await readPackageText(zip, entriesByPath, relationshipPath, normaliseLimits(options), relationshipPath);
+      relationships = parseRelationships(xml, normaliseLimits(options));
+    } catch (error) {
+      errors.push(`${relationshipPath} is malformed. ${normaliseErrorMessage(error, 'The XML could not be parsed.')}`);
+      continue;
+    }
+
+    relationships.forEach(relationship => {
+      if (relationship.external) {
+        return;
+      }
+
+      const targetPath = resolveRelationshipTarget(sourcePart, relationship.target);
+
+      if (!targetPath || !entriesByPath.has(targetPath.toLocaleLowerCase('en-GB'))) {
+        errors.push(`${relationshipPath} refers to missing target ${relationship.target || '(empty)'}.`);
+      }
+    });
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors: uniqueStrings(errors),
+    document
+  };
+}
+
+export const validateWordDocumentPackage = validateWordPackage;
+
+function getRelationshipsSourcePart(relationshipPath) {
+  const normalised = normalisePackagePath(relationshipPath);
+
+  if (normalised.toLocaleLowerCase('en-GB') === '_rels/.rels') {
+    return '';
+  }
+
+  const match = /^(.*)\/_rels\/([^/]+)\.rels$/i.exec(normalised);
+
+  if (!match) {
+    return '';
+  }
+
+  return `${match[1]}/${match[2]}`;
+}
 
 export function detectWordInputType(input, fileName = '') {
   const bytes = toUint8Array(input);
@@ -1119,9 +1235,89 @@ function collectImageReferences(tree, onReference) {
     onReference({
       relationshipId,
       isImageElement,
-      metadata: findImageMetadata(node)
+      metadata: findImageMetadata(node),
+      displaySize: extractDrawingExtent(node)
     });
   });
+}
+
+export const parseWordXmlDocument = parseXmlDocument;
+
+/**
+ * Convert an Open XML English Metric Unit value into physical inches.
+ * Word stores DrawingML extents in EMUs; keeping this conversion in the
+ * package reader means every consumer uses the same physical-size model.
+ */
+export function emuToInches(value) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+
+  return parsed / EMU_PER_INCH;
+}
+
+/**
+ * Read the common DrawingML inline/anchor extent for an image reference.
+ * The Word package can contain several size-like elements, so prefer the
+ * wp:extent that controls the drawing frame and fall back to a:ext when a
+ * frame extent is not present. Unsupported VML and missing extents return
+ * null instead of guessing a rendered size.
+ */
+export function extractDrawingExtent(node) {
+  let current = node;
+  let drawingScope = null;
+
+  for (let depth = 0; current && depth < 24; depth += 1, current = current.parent) {
+    if (['inline', 'anchor'].includes(current.localName)) {
+      drawingScope = current;
+      break;
+    }
+
+    if (current.localName === 'drawing') {
+      drawingScope = current;
+      break;
+    }
+  }
+
+  if (!drawingScope) {
+    return null;
+  }
+
+  const candidates = [];
+  walkXml(drawingScope, candidate => {
+    const localName = candidate.localName;
+    const isExtent = localName === 'extent' || localName === 'ext';
+
+    if (!isExtent) {
+      return;
+    }
+
+    const widthEmu = Number(getXmlAttribute(candidate, 'cx'));
+    const heightEmu = Number(getXmlAttribute(candidate, 'cy'));
+    const widthInches = emuToInches(widthEmu);
+    const heightInches = emuToInches(heightEmu);
+
+    if (widthInches && heightInches) {
+      candidates.push({
+        widthEmu,
+        heightEmu,
+        widthInches,
+        heightInches,
+        isWordExtent: /^wp:/i.test(candidate.name)
+      });
+    }
+  });
+
+  const selected = candidates.find(candidate => candidate.isWordExtent) || candidates[0];
+
+  if (!selected) {
+    return null;
+  }
+
+  const { isWordExtent, ...extent } = selected;
+  return extent;
 }
 
 function findImageMetadata(node) {
@@ -1174,7 +1370,8 @@ function addAssetReference(asset, reference) {
   asset.references.push({
     source: reference.sourceCategory,
     sourcePart: reference.sourcePart,
-    relationshipId: reference.relationshipId
+    relationshipId: reference.relationshipId,
+    displaySize: reference.displaySize || null
   });
   asset.sourceCategories.add(reference.sourceCategory);
 
@@ -1188,6 +1385,23 @@ async function finaliseAsset(asset, index) {
   const titles = [...asset.titles];
   const bytes = asset.bytes instanceof Uint8Array ? asset.bytes : null;
   const hash = bytes ? await calculateDeterministicImageHashAsync(bytes) : null;
+  const displayUsages = asset.references
+    .map(reference => reference.displaySize)
+    .filter(Boolean);
+  const maxDisplayedWidth = displayUsages.length
+    ? Math.max(...displayUsages.map(usage => usage.widthInches))
+    : null;
+  const maxDisplayedHeight = displayUsages.length
+    ? Math.max(...displayUsages.map(usage => usage.heightInches))
+    : null;
+  const displaySize = maxDisplayedWidth && maxDisplayedHeight
+    ? {
+      widthInches: maxDisplayedWidth,
+      heightInches: maxDisplayedHeight,
+      widthEmu: Math.round(maxDisplayedWidth * EMU_PER_INCH),
+      heightEmu: Math.round(maxDisplayedHeight * EMU_PER_INCH)
+    }
+    : null;
 
   return {
     ...asset,
@@ -1197,6 +1411,11 @@ async function finaliseAsset(asset, index) {
     height: asset.dimensions?.height ?? null,
     fileSize: bytes?.byteLength ?? 0,
     size: bytes?.byteLength ?? 0,
+    displaySize,
+    displayUsages,
+    displayUsageCount: displayUsages.length,
+    maxDisplayedWidthInches: maxDisplayedWidth,
+    maxDisplayedHeightInches: maxDisplayedHeight,
     orientation: getOrientation(asset.dimensions),
     sourceCategories,
     source: sourceCategories.length === 1 ? sourceCategories[0] : sourceCategories.length > 1 ? 'multiple' : 'other',
