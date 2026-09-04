@@ -17,6 +17,40 @@ export function createWordImageDocx() {
   ]);
 }
 
+export function createWordImageFormatsDocx() {
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xd9]);
+  const webp = Buffer.from([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]);
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="red"/></svg>');
+  const emf = Buffer.alloc(44);
+  emf.writeInt32LE(100, 8);
+  emf.writeInt32LE(80, 12);
+  emf.writeUInt32LE(0x464d4520, 40);
+  const tiff = Buffer.from([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00, 0x00, 0x00]);
+  const relationships = [
+    ['rIdPng', 'media/image.png'],
+    ['rIdJpeg', 'media/image.jpg'],
+    ['rIdWebp', 'media/image.webp'],
+    ['rIdSvg', 'media/image.svg'],
+    ['rIdEmf', 'media/image.emf'],
+    ['rIdTiff', 'media/image.tiff']
+  ].map(([id, target]) => `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="${target}"/>`).join('');
+  const references = ['Png', 'Jpeg', 'Webp', 'Svg', 'Emf', 'Tiff']
+    .map(id => `<a:blip r:embed="rId${id}"/>`)
+    .join('');
+
+  return createStoredZip([
+    ['[Content_Types].xml', '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'],
+    ['word/document.xml', `<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r"><w:body>${references}</w:body></w:document>`],
+    ['word/_rels/document.xml.rels', `<Relationships>${relationships}</Relationships>`],
+    ['word/media/image.png', SAMPLE_PNG],
+    ['word/media/image.jpg', jpeg],
+    ['word/media/image.webp', webp],
+    ['word/media/image.svg', svg],
+    ['word/media/image.emf', emf],
+    ['word/media/image.tiff', tiff]
+  ]);
+}
+
 export async function primeOfflineApp(page) {
   await page.goto('/');
   await page.evaluate(async () => {

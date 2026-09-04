@@ -15,10 +15,13 @@ import {
   buildWordImageManifestJson,
   buildWordImageZip,
   calculateDeterministicImageHash,
+  calculateDeterministicImageHashAsync,
   detectImageFormat,
   detectWordInputType,
   filterWordImageAssets,
+  markDuplicateAssets,
   readWordImageDocument,
+  resolveWordImageFileNameCollisions,
   sanitiseExtractionFileName,
   selectWordImageAssets
 } from '../../src/tools/word-image-extractor.js';
@@ -146,6 +149,17 @@ test('builds deterministic names, sanitises paths and resolves case-insensitive 
   ]);
 });
 
+test('resolves directory names around existing files and generated manifest collisions', () => {
+  assert.deepEqual(resolveWordImageFileNameCollisions(
+    ['image.png', 'image.png', 'manifest.json'],
+    ['image.png', 'image (2).png', 'manifest.json', 'manifest (2).json']
+  ), [
+    'image (3).png',
+    'image (4).png',
+    'manifest (3).json'
+  ]);
+});
+
 test('creates a stored ZIP with unchanged image bytes and optional CSV/JSON manifests', async () => {
   const first = createPng(10, 10, 7);
   const second = createPng(12, 8, 8);
@@ -191,6 +205,59 @@ test('detects linked, unsupported-preview and common invalid Office inputs', asy
     () => readWordImageDocument(new Uint8Array([1, 2, 3]), { fileName: 'broken.docx' }),
     error => error instanceof WordImageExtractorError && error.code === 'invalid-docx'
   );
+});
+
+test('bounds repeated local, external and malformed image references during collection', async () => {
+  const repeatedLocalReferences = '<a:blip r:embed="rId1"/>'.repeat(4);
+  const localArchive = createDocxArchive({
+    documentXml: `<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r"><w:body>${repeatedLocalReferences}</w:body></w:document>`,
+    documentRelationships: [['rId1', 'media/image.png']],
+    media: [['image.png', createPng(10, 10, 1)]]
+  });
+  const repeatedExternalReferences = '<a:blip r:link="rIdExternal"/>'.repeat(4);
+  const externalArchive = createDocxArchive({
+    documentXml: `<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r"><w:body>${repeatedExternalReferences}</w:body></w:document>`,
+    documentRelationships: [['rIdExternal', 'https://example.test/remote.png', 'External']]
+  });
+
+  for (const archive of [localArchive, externalArchive]) {
+    await assert.rejects(
+      () => readWordImageDocument(archive, { fileName: 'references.docx', maxImageReferences: 3 }),
+      error => error instanceof WordImageExtractorError
+        && error.code === 'image-reference-limit'
+        && /more than 3 image references/.test(error.message)
+    );
+  }
+
+  const warningArchive = createDocxArchive({
+    documentXml: '<w:document xmlns:w="w" xmlns:a="a" xmlns:r="r"><w:body><a:blip r:embed="missing1"/><a:blip r:embed="missing2"/><a:blip r:embed="missing3"/></w:body></w:document>'
+  });
+  const warningResult = await readWordImageDocument(warningArchive, {
+    fileName: 'warnings.docx',
+    maxImageReferences: 10,
+    maxWarnings: 2
+  });
+
+  assert.equal(warningResult.warnings.length, 2);
+  assert.match(warningResult.warnings[1], /Additional validation warnings were omitted/);
+});
+
+test('uses native asynchronous hashing for inspection and never treats hash collisions as exact duplicates', async () => {
+  const bytes = createPng(10, 10, 4);
+  const hash = await calculateDeterministicImageHashAsync(bytes);
+  assert.match(hash, /^(sha256|fnv1a-dual):/);
+  assert.equal(hash, await calculateDeterministicImageHashAsync(new Uint8Array(bytes)));
+
+  const marked = markDuplicateAssets([
+    { id: 'same-a', isEmbedded: true, bytes: Uint8Array.from([1, 2]), hash: 'forced-collision' },
+    { id: 'different', isEmbedded: true, bytes: Uint8Array.from([1, 3]), hash: 'forced-collision' },
+    { id: 'same-b', isEmbedded: true, bytes: Uint8Array.from([1, 2]), hash: 'forced-collision' }
+  ]);
+
+  assert.equal(marked.find(asset => asset.id === 'different').isDuplicate, false);
+  assert.equal(marked.find(asset => asset.id === 'same-a').isDuplicate, true);
+  assert.equal(marked.find(asset => asset.id === 'same-b').duplicateOf, 'same-a');
+  assert.notEqual(marked.find(asset => asset.id === 'same-a').duplicateGroup, marked.find(asset => asset.id === 'different').duplicateGroup);
 });
 
 test('reports DOCX packages with no image parts and refuses unsafe package expansion', async () => {

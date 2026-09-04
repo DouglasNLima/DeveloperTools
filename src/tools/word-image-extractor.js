@@ -15,9 +15,11 @@ export const WORD_IMAGE_LIMITS = Object.freeze({
   maxTotalUncompressedBytes: 128 * 1024 * 1024,
   maxXmlPartBytes: 8 * 1024 * 1024,
   maxImageCount: 2000,
+  maxImageReferences: 10000,
   maxImageBytes: 96 * 1024 * 1024,
   maxXmlNodes: 200000,
-  maxXmlDepth: 128
+  maxXmlDepth: 128,
+  maxWarnings: 2000
 });
 
 const OLE_COMPOUND_FILE_SIGNATURE = new Uint8Array([
@@ -137,7 +139,24 @@ export async function readWordImageDocument(input, options = {}) {
     );
   }
 
-  const warnings = [...zip.warnings];
+  const warnings = [];
+  let warningOverflow = false;
+  const addWarning = message => {
+    const value = String(message || '').trim();
+
+    if (!value) return;
+
+    if (warnings.length < limits.maxWarnings) {
+      warnings.push(value);
+      return;
+    }
+
+    if (!warningOverflow) {
+      warningOverflow = true;
+      warnings[warnings.length - 1] = `Additional validation warnings were omitted after reaching the safety limit of ${limits.maxWarnings.toLocaleString('en-GB')} warnings.`;
+    }
+  };
+  (zip.warnings || []).forEach(addWarning);
   const contentTypes = await readPackageText(zip, entryByPath, '[Content_Types].xml', limits, 'content types');
 
   if (contentTypes) {
@@ -163,6 +182,7 @@ export async function readWordImageDocument(input, options = {}) {
     .sort((left, right) => normalisePackagePath(left.name).localeCompare(normalisePackagePath(right.name), 'en-GB'));
   const localReferences = [];
   const externalReferences = [];
+  let imageReferenceCount = 0;
 
   for (const xmlEntry of xmlEntries) {
     const partPath = normalisePackagePath(xmlEntry.name);
@@ -194,11 +214,20 @@ export async function readWordImageDocument(input, options = {}) {
     }
     const sourceCategory = classifySourcePart(partPath);
 
-    collectImageReferences(tree).forEach(reference => {
+    collectImageReferences(tree, reference => {
+      imageReferenceCount += 1;
+
+      if (imageReferenceCount > limits.maxImageReferences) {
+        throw new WordImageExtractorError(
+          `This document contains more than ${limits.maxImageReferences.toLocaleString('en-GB')} image references, including repeated or broken relationships, so it was refused for safety. Reduce repeated or malformed image references and try again.`,
+          'image-reference-limit'
+        );
+      }
+
       const relationship = relationships.get(reference.relationshipId);
 
       if (!relationship) {
-        warnings.push(`${partPath} refers to missing image relationship ${reference.relationshipId}.`);
+        addWarning(`${partPath} refers to missing image relationship ${reference.relationshipId}.`);
         return;
       }
 
@@ -223,7 +252,7 @@ export async function readWordImageDocument(input, options = {}) {
       const resolvedPath = resolveRelationshipTarget(partPath, target);
 
       if (!resolvedPath) {
-        warnings.push(`${partPath} contains an unsafe or invalid image relationship target.`);
+        addWarning(`${partPath} contains an unsafe or invalid image relationship target.`);
         return;
       }
 
@@ -262,7 +291,7 @@ export async function readWordImageDocument(input, options = {}) {
     }
 
     if (entry.encrypted) {
-      warnings.push(`${path} is encrypted and was not extracted.`);
+      addWarning(`${path} is encrypted and was not extracted.`);
       continue;
     }
 
@@ -373,16 +402,16 @@ export async function readWordImageDocument(input, options = {}) {
 
   unreferencedAssets.forEach(asset => asset.sourceCategories.add('unreferenced'));
 
-  const assets = mediaAssets
+  const assets = await Promise.all(mediaAssets
     .sort(compareAssets)
-    .map((asset, index) => finaliseAsset(asset, index));
+    .map((asset, index) => finaliseAsset(asset, index)));
   const markedAssets = markDuplicateAssets(assets);
   const embeddedAssets = markedAssets.filter(asset => asset.isEmbedded);
   const linkedAssets = markedAssets.filter(asset => asset.isExternal);
   const missingImageAssets = markedAssets.filter(asset => asset.missing);
 
   if (embeddedAssets.length === 0 && linkedAssets.length === 0 && missingImageAssets.length === 0) {
-    warnings.push('No embedded or externally linked image assets were found in the document.');
+    addWarning('No embedded or externally linked image assets were found in the document.');
   }
 
   return {
@@ -394,11 +423,12 @@ export async function readWordImageDocument(input, options = {}) {
     externalAssets: linkedAssets,
     missingAssets: missingImageAssets,
     warnings: uniqueStrings(warnings),
-    summary: buildWordImageSummary(markedAssets, warnings),
+    summary: buildWordImageSummary(markedAssets, warnings, imageReferenceCount),
     package: {
       entryCount: zip.entries.length,
       uncompressedBytes: zip.entries.reduce((total, entry) => total + (Number(entry.uncompressedSize) || 0), 0),
       imageBytes: imageBytesTotal,
+      imageReferenceCount,
       warnings: zip.warnings
     },
     zipArchive: zip
@@ -492,19 +522,8 @@ export function detectImageFormat(input, hintPath = '') {
 
 export function calculateDeterministicImageHash(input) {
   const bytes = toUint8Array(input);
-
-  if (typeof BigInt === 'function') {
-    let hash = BigInt('14695981039346656037');
-    const prime = BigInt('1099511628211');
-    const mask = BigInt('18446744073709551615');
-
-    for (const byte of bytes) {
-      hash = (hash ^ BigInt(byte)) * prime & mask;
-    }
-
-    return `fnv1a-64:${hash.toString(16).padStart(16, '0')}`;
-  }
-
+  // Keep the synchronous fallback cheap. Parsed documents use the async
+  // Web Crypto path below, while duplicate groups always verify full bytes.
   let first = 2166136261;
   let second = 2654435769;
 
@@ -516,7 +535,24 @@ export function calculateDeterministicImageHash(input) {
   return `fnv1a-dual:${(first >>> 0).toString(16).padStart(8, '0')}${(second >>> 0).toString(16).padStart(8, '0')}`;
 }
 
+export async function calculateDeterministicImageHashAsync(input) {
+  const bytes = toUint8Array(input);
+  const subtle = globalThis.crypto?.subtle;
+
+  if (subtle?.digest) {
+    try {
+      const digest = new Uint8Array(await subtle.digest('SHA-256', bytes));
+      return `sha256:${[...digest].map(byte => byte.toString(16).padStart(2, '0')).join('')}`;
+    } catch {
+      // Fall back to the synchronous local hash if Web Crypto is unavailable.
+    }
+  }
+
+  return calculateDeterministicImageHash(bytes);
+}
+
 export const hashImageBytes = calculateDeterministicImageHash;
+export const hashImageBytesAsync = calculateDeterministicImageHashAsync;
 
 export function markDuplicateAssets(assets = []) {
   const groups = new Map();
@@ -565,6 +601,7 @@ export function markDuplicateAssets(assets = []) {
     const hash = asset.hash || calculateDeterministicImageHash(asset.bytes);
     const group = [...duplicateGroups.values()].find(items => items.includes(asset));
     const first = group?.[0];
+    const duplicateGroup = group ? `${hash}:${first.id}` : null;
 
     return {
       ...asset,
@@ -572,7 +609,7 @@ export function markDuplicateAssets(assets = []) {
       duplicateStatus: duplicateIds.has(asset.id) ? 'duplicate' : 'unique',
       isDuplicate: Boolean(group),
       duplicateOf: first && first.id !== asset.id ? first.id : null,
-      duplicateGroup: group ? hash : null
+      duplicateGroup
     };
   });
 }
@@ -705,6 +742,17 @@ export function buildWordImageFileNames(assets = [], options = {}) {
   });
 }
 
+export function resolveWordImageFileNameCollisions(candidates = [], existingNames = []) {
+  const used = new Set(existingNames.map(normaliseDirectoryNameKey).filter(Boolean));
+
+  return candidates.map(candidate => {
+    const safeCandidate = sanitiseExtractionFileName(candidate, 'image');
+    const name = makeCollisionFreeName(safeCandidate, used);
+    used.add(normaliseDirectoryNameKey(name));
+    return name;
+  });
+}
+
 export const buildExtractionFileNames = buildWordImageFileNames;
 
 export function nameWordImageAssets(assets = [], options = {}) {
@@ -828,6 +876,8 @@ function normaliseLimits(options) {
     maxPackageBytes: 'maxTotalUncompressedBytes',
     maxXmlBytes: 'maxXmlPartBytes',
     maxImages: 'maxImageCount',
+    maxReferences: 'maxImageReferences',
+    maxImageReferenceCount: 'maxImageReferences',
     maxEmbeddedImageBytes: 'maxImageBytes'
   };
 
@@ -1051,9 +1101,7 @@ function parseXmlDocument(xml, limits = WORD_IMAGE_LIMITS) {
   return roots[0];
 }
 
-function collectImageReferences(tree) {
-  const references = [];
-
+function collectImageReferences(tree, onReference) {
   walkXml(tree, node => {
     let relationshipId = '';
     let isImageElement = false;
@@ -1068,14 +1116,12 @@ function collectImageReferences(tree) {
 
     if (!relationshipId) return;
 
-    references.push({
+    onReference({
       relationshipId,
       isImageElement,
       metadata: findImageMetadata(node)
     });
   });
-
-  return references;
 }
 
 function findImageMetadata(node) {
@@ -1136,11 +1182,12 @@ function addAssetReference(asset, reference) {
   if (reference.metadata?.title) asset.titles.add(reference.metadata.title);
 }
 
-function finaliseAsset(asset, index) {
+async function finaliseAsset(asset, index) {
   const sourceCategories = [...asset.sourceCategories].sort((left, right) => sourceOrder(left) - sourceOrder(right));
   const altTexts = [...asset.altTexts];
   const titles = [...asset.titles];
   const bytes = asset.bytes instanceof Uint8Array ? asset.bytes : null;
+  const hash = bytes ? await calculateDeterministicImageHashAsync(bytes) : null;
 
   return {
     ...asset,
@@ -1160,7 +1207,7 @@ function finaliseAsset(asset, index) {
     titles,
     previewSupported: Boolean(asset.previewSupported),
     canPreview: Boolean(asset.previewSupported),
-    hash: bytes ? calculateDeterministicImageHash(bytes) : null,
+    hash,
     duplicateStatus: asset.isEmbedded ? 'unique' : asset.isExternal ? 'external' : asset.missing ? 'missing' : 'not-embedded',
     isDuplicate: false,
     duplicateOf: null,
@@ -1174,7 +1221,7 @@ function compareAssets(left, right) {
   return leftKey.localeCompare(rightKey, 'en-GB');
 }
 
-function buildWordImageSummary(assets, warnings) {
+function buildWordImageSummary(assets, warnings, imageReferenceCount = 0) {
   const embedded = assets.filter(asset => asset.isEmbedded);
   const external = assets.filter(asset => asset.isExternal);
   const duplicateGroups = new Set(embedded.filter(asset => asset.isDuplicate).map(asset => asset.duplicateGroup));
@@ -1186,6 +1233,7 @@ function buildWordImageSummary(assets, warnings) {
     missingCount: assets.filter(asset => asset.missing).length,
     duplicateAssetCount: embedded.filter(asset => asset.isDuplicate).length,
     duplicateGroupCount: duplicateGroups.size,
+    imageReferenceCount,
     selectedCount: 0,
     warningCount: uniqueStrings(warnings).length
   };
@@ -1431,6 +1479,10 @@ function makeCollisionFreeName(candidate, used) {
   }
 
   return name;
+}
+
+function normaliseDirectoryNameKey(value) {
+  return String(value || '').trim().toLocaleLowerCase('en-GB');
 }
 
 function normaliseNamingStrategy(value) {

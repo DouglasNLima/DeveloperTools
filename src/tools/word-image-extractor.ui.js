@@ -2,6 +2,7 @@ import { formatBytes } from './base64.js';
 import { bindFileDropZone } from './file-drop-zone.js';
 import { bindFileImportFeedback } from './file-import-feedback.js';
 import { storeImageHandover } from './image-handover.js';
+import { detectImageFileType } from './image-converter.js';
 import {
   LEGACY_DOC_MESSAGE,
   WORD_IMAGE_FILE_ACCEPT,
@@ -12,6 +13,7 @@ import {
   filterWordImageAssets,
   nameWordImageAssets,
   readWordImageDocument,
+  resolveWordImageFileNameCollisions,
   selectWordImageAssets,
   sanitiseExtractionFileName
 } from './word-image-extractor.js';
@@ -355,17 +357,19 @@ export function renderWordImageExtractor(container) {
     if (asset.externalTarget) addDetail(details, 'External target', asset.externalTarget);
     body.append(preview, details);
 
-    if (asset.isEmbedded) {
+    if (asset.isEmbedded && (canOpenInImageConverter(asset) || canOpenInOcr(asset))) {
       const actions = documentRef.createElement('div');
       actions.className = 'button-row word-image-asset-actions';
-      const converterButton = documentRef.createElement('button');
-      converterButton.className = 'secondary';
-      converterButton.type = 'button';
-      converterButton.textContent = 'Open in Image Converter & Optimiser';
-      converterButton.addEventListener('click', () => openImageHandover(asset, 'image-converter-optimiser'));
-      actions.append(converterButton);
+      if (canOpenInImageConverter(asset)) {
+        const converterButton = documentRef.createElement('button');
+        converterButton.className = 'secondary';
+        converterButton.type = 'button';
+        converterButton.textContent = 'Open in Image Converter & Optimiser';
+        converterButton.addEventListener('click', () => openImageHandover(asset, 'image-converter-optimiser'));
+        actions.append(converterButton);
+      }
 
-      if (['png', 'jpeg', 'jpg', 'webp', 'bmp', 'gif'].includes(asset.format)) {
+      if (canOpenInOcr(asset)) {
         const ocrButton = documentRef.createElement('button');
         ocrButton.className = 'secondary';
         ocrButton.type = 'button';
@@ -468,8 +472,9 @@ export function renderWordImageExtractor(container) {
 
     try {
       if (outputMode === 'directory' && isDirectoryPickerSupported()) {
-        await writeToSelectedDirectory(namedAssets, { includeManifest, manifestFormat });
-        setExtractionStatus(`${namedAssets.length.toLocaleString('en-GB')} image${namedAssets.length === 1 ? '' : 's'} written to the selected folder.`, 'success');
+        const directoryPlan = await writeToSelectedDirectory(namedAssets, { includeManifest, manifestFormat });
+        const manifestNote = directoryPlan.manifestName ? ` Manifest saved as ${directoryPlan.manifestName}.` : '';
+        setExtractionStatus(`${namedAssets.length.toLocaleString('en-GB')} image${namedAssets.length === 1 ? '' : 's'} written to the selected folder.${manifestNote}`, 'success');
         setStatus('Folder extraction completed successfully.', 'success');
       } else {
         const zipBytes = buildWordImageZip(selectedAssets, {
@@ -508,23 +513,89 @@ export function renderWordImageExtractor(container) {
 
   async function writeToSelectedDirectory(namedAssets, options) {
     const directory = await documentRef.defaultView.showDirectoryPicker({ mode: 'readwrite' });
-    const files = namedAssets.map(asset => ({ name: asset.outputName, bytes: asset.bytes }));
+    const plan = await buildDirectoryOutputPlan(directory, namedAssets, options);
 
-    if (options.includeManifest) {
-      files.push({
-        name: `manifest.${options.manifestFormat}`,
-        bytes: new TextEncoder().encode(options.manifestFormat === 'csv'
-          ? buildWordImageManifestCsv(namedAssets, { namedAssets })
-          : buildWordImageManifestJson(namedAssets, { namedAssets }))
-      });
-    }
-
-    for (const file of files) {
+    for (const file of plan.files) {
       const handle = await directory.getFileHandle(file.name, { create: true });
       const writable = await handle.createWritable();
       await writable.write(file.bytes);
       await writable.close();
     }
+
+    return plan;
+  }
+
+  async function buildDirectoryOutputPlan(directory, namedAssets, options) {
+    const candidates = namedAssets.map(asset => asset.outputName);
+    if (options.includeManifest) candidates.push(`manifest.${options.manifestFormat}`);
+
+    const existingNames = await listDirectoryEntryNames(directory);
+    const outputNames = existingNames
+      ? resolveWordImageFileNameCollisions(candidates, existingNames)
+      : await resolveDirectoryNamesByProbe(directory, candidates);
+    const imageNames = outputNames.slice(0, namedAssets.length);
+    const plannedAssets = namedAssets.map((asset, index) => ({
+      ...asset,
+      outputName: imageNames[index]
+    }));
+    const files = plannedAssets.map(asset => ({ name: asset.outputName, bytes: asset.bytes }));
+    const manifestName = options.includeManifest ? outputNames[namedAssets.length] : '';
+
+    if (manifestName) {
+      files.push({
+        name: manifestName,
+        bytes: new TextEncoder().encode(options.manifestFormat === 'csv'
+          ? buildWordImageManifestCsv(plannedAssets, { namedAssets: plannedAssets })
+          : buildWordImageManifestJson(plannedAssets, { namedAssets: plannedAssets }))
+      });
+    }
+
+    return { files, namedAssets: plannedAssets, manifestName };
+  }
+
+  async function listDirectoryEntryNames(directory) {
+    if (typeof directory.entries !== 'function') return null;
+
+    const names = [];
+    for await (const entry of directory.entries()) {
+      const name = Array.isArray(entry) ? entry[0] : entry?.name;
+      if (name) names.push(String(name));
+    }
+    return names;
+  }
+
+  async function resolveDirectoryNamesByProbe(directory, candidates) {
+    const used = new Set();
+    const names = [];
+
+    for (const candidate of candidates) {
+      let [name] = resolveWordImageFileNameCollisions([candidate], [...used]);
+
+      while (await directoryNameExists(directory, name)) {
+        used.add(directoryNameKey(name));
+        [name] = resolveWordImageFileNameCollisions([candidate], [...used]);
+      }
+
+      used.add(directoryNameKey(name));
+      names.push(name);
+    }
+
+    return names;
+  }
+
+  async function directoryNameExists(directory, name) {
+    try {
+      await directory.getFileHandle(name, { create: false });
+      return true;
+    } catch (error) {
+      if (error?.name === 'NotFoundError' || error?.code === 8) return false;
+      if (error?.name === 'TypeMismatchError') return true;
+      throw error;
+    }
+  }
+
+  function directoryNameKey(name) {
+    return String(name || '').trim().toLocaleLowerCase('en-GB');
   }
 
   function setManifestDownload(namedAssets, format) {
@@ -653,4 +724,15 @@ export function renderWordImageExtractor(container) {
 function formatDimensions(asset) {
   if (!asset.width || !asset.height) return 'Unknown';
   return `${asset.width.toLocaleString('en-GB')} × ${asset.height.toLocaleString('en-GB')} px (${asset.orientation})`;
+}
+
+function canOpenInImageConverter(asset) {
+  return Boolean(asset?.isEmbedded && detectImageFileType({
+    name: asset.originalName,
+    type: asset.mimeType
+  }));
+}
+
+function canOpenInOcr(asset) {
+  return Boolean(asset?.isEmbedded && ['png', 'jpeg', 'jpg', 'webp', 'bmp', 'gif'].includes(asset.format));
 }
