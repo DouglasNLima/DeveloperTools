@@ -4,6 +4,13 @@ This roadmap covers Power Platform tools beyond the first Power Pages mini-roadm
 
 Status: the former PCF Development Hub is now the visible Power Platform Script Hub. Its Development mode retains the PCF workflows, its Investigation mode prepares the supplied Power Platform and Dynamics / Dataverse diagnostics, and its Power Pages mode prepares site inventory, backup, synchronisation and comparison workflows. The solution ZIP inspection, cloud flow editing, classic workflow XAML editing and preflight phases remain consolidated in the visible Solution Package Inspector; model-driven JavaScript phases remain consolidated in the visible Model-driven JavaScript Workbench and Model-driven Solution Inspector. Legacy route aliases are preserved as compatibility hash routes, not separate menu entries.
 
+## Icon Library
+
+- Implemented: Power Platform Icon Library (`#power-platform-icon-library`) imports the supplied Consulting Icon Library 1.2.0 with 301 icons across 26 categories.
+- Preserves the source HTML's search, category/collection filters, preview sizes, light/dark canvases, inspector, colour, dimensions, stroke width, opacity, rotation, reset controls, SVG copying, individual downloads and complete ZIP export.
+- Runs offline with bundled geometry, original-byte integrity checks, pure logic tests and browser coverage. See [usage and provenance](POWER-PLATFORM-ICONS.md).
+- Possible extensions for review: saved style presets, favourites and selected-icon ZIPs, Canvas Apps Power Fx output, and additional Power Platform concepts. These are proposals, not scheduled tools.
+
 ## References
 
 - [Use OData to query data with the Dataverse Web API](https://learn.microsoft.com/en-us/power-apps/developer/data-platform/webapi/query-data-web-api)

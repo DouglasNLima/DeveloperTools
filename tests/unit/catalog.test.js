@@ -73,9 +73,10 @@ test('validates the real catalogue and keeps the current visible tool count', ()
 
   assert.equal(result.valid, true);
   assert.deepEqual(result.errors, []);
-  assert.equal(TOOL_CATALOGUE.length, 63);
-  assert.equal(getVisibleTools().length, 25);
-  assert.equal(getAvailableTools().length, 25);
+  assert.equal(TOOL_CATALOGUE.length, 64);
+  assert.equal(getVisibleTools().length, 26);
+  assert.equal(getAvailableTools().length, 26);
+  assert.equal(getToolById('power-platform-icon-library').status, 'available');
   assert.equal(getToolById('base64-to-file').hidden, true);
   assert.equal(getToolById('file-to-base64').hidden, true);
   assert.equal(getToolById('image-converter').hidden, true);

@@ -81,6 +81,7 @@ import { renderUuidGenerator } from './tools/uuid-generator.ui.js';
 import { renderWebApiWorkbench } from './tools/web-api-workbench.ui.js';
 import { renderWordDocumentOptimiser } from './tools/word-document-optimiser.ui.js';
 import { renderWordImageExtractor } from './tools/word-image-extractor.ui.js';
+import { renderPowerPlatformIconLibrary } from './tools/power-platform-icons.ui.js';
 
 const renderers = {
   'base64-file-converter': renderBase64FileConverter,
@@ -120,6 +121,7 @@ const renderers = {
   'mermaid-template-builder': renderMermaidTemplateBuilder,
   'pdf-template-field-explorer': renderPdfTemplateFieldExplorer,
   'power-platform-script-hub': renderPowerPlatformScriptHub,
+  'power-platform-icon-library': renderPowerPlatformIconLibrary,
   'power-automate-email-template-builder': renderPowerAutomateEmailTemplateBuilder,
   'power-automate-expression-formatter': renderPowerAutomateExpressionFormatter,
   'power-platform-solution-import-preflight': renderPowerPlatformSolutionImportPreflight,

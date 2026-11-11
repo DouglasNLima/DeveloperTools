@@ -1,4 +1,4 @@
-const CACHE_NAME = 'developer-tools-static-v53';
+const CACHE_NAME = 'developer-tools-static-v54';
 const OFFLINE_FALLBACK_URL = './index.html';
 
 const PRECACHE_URLS = [
@@ -19,6 +19,9 @@ const PRECACHE_URLS = [
   './src/tools/case-converter.js',
   './src/tools/case-converter.ui.js',
   './src/tools/catalog.js',
+  './src/tools/power-platform-icons.data.js',
+  './src/tools/power-platform-icons.js',
+  './src/tools/power-platform-icons.ui.js',
   './src/tools/script-hub-assets.js',
   './src/tools/script-hub.js',
   './src/tools/power-platform-script-hub.ui.js',

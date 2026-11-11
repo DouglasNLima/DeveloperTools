@@ -10,6 +10,7 @@ The catalogue currently exposes these available tools in the app menu:
 - Image Converter & Optimiser
 - Image OCR
 - Mermaid Studio
+- Power Platform Icon Library
 - Power Platform Script Hub
 - Power Pages Workbench
 - Dataverse OData Query Builder
@@ -56,6 +57,8 @@ Image OCR loads its vendored Tesseract.js worker, WASM core and English language
 
 Word Document Optimiser accepts unencrypted `.docx` files and keeps all processing in the browser. Its Documentation preset (approximately 180 PPI) uses the largest reliable DrawingML display size for each embedded asset, never upscales, keeps PNG screenshots as PNG, preserves vectors and unsupported formats, protects any image using Word source cropping, and validates the rebuilt package before offering a download. It skips negligible near-target resizes, preserves an individual raster if browser processing fails, and retains the original package unless the validated output is strictly smaller. Document contribution figures use ZIP-compressed archive bytes, with raw image bytes retained separately where useful. The Lossless clean-up preset does not resize or re-encode pixels. Page rendering, `.doc` files, cropped-pixel removal, embedded-font removal and batch processing remain outside the initial scope.
 
+Power Platform Icon Library (`#power-platform-icon-library`) includes the 301 SVGs from the supplied Consulting Icon Library 1.2.0. Search or filter the catalogue, adjust colour, SVG size, stroke width, opacity and rotation, then copy an SVG or download individual icons or the complete ZIP. Preview size and light/dark canvases do not alter exported dimensions or colours. Default downloads preserve the original bytes; customisation keeps a transparent background. All assets are bundled and precached for offline use. See [icon library usage and provenance](docs/POWER-PLATFORM-ICONS.md).
+
 For the test runner and local development tooling:
 
 ```sh
@@ -87,7 +90,7 @@ Handover history is kept in `sessionStorage`, so breadcrumbs can return to earli
 
 The canonical Script Hub route is `#power-platform-script-hub`, with `development`, `investigation` and `power-pages` modes. Existing `#pcf-development-hub` links, including the `/create`, `/develop`, `/build`, `/deploy` and `/quality` paths, remain compatibility routes and resolve to the modernised Hub.
 
-The catalogue currently has 25 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
+The catalogue currently has 26 visible tools and 38 hidden legacy alias entries. Legacy hash links resolve to the current workbench and mode, but those aliases are compatibility routes rather than separate menu items.
 
 The browser title includes the committed app version and build stamp from `src/app-metadata.js`. Keep `APP_VERSION` aligned with `package.json`, and increment `APP_BUILD` alongside the service worker cache suffix in `sw.js` before each deploy so the running build is visible in the tab title.
 
@@ -130,6 +133,9 @@ src/
     base64-workbench.ui.js
     base64.ui.js
     catalog.js
+    power-platform-icons.data.js
+    power-platform-icons.js
+    power-platform-icons.ui.js
     cron-rrule-builder.js
     cron-rrule-builder.ui.js
     csv-tsv-helper.js

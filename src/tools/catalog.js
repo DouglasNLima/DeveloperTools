@@ -195,6 +195,15 @@ export const TOOL_CATALOGUE = [
     hidden: true
   },
   {
+    id: 'power-platform-icon-library',
+    title: 'Power Platform Icon Library',
+    category: 'Power Platform',
+    status: 'available',
+    summary: 'Browse and customise 301 SVG icons, then copy or download individual icons or the complete collection locally.',
+    renderer: 'power-platform-icon-library',
+    searchTerms: ['SVG', 'icons', 'icon repository', 'Dataverse', 'web resources', 'Power Apps', 'colour', 'rotation']
+  },
+  {
     id: 'power-platform-script-hub',
     title: 'Power Platform Script Hub',
     category: 'Power Platform',

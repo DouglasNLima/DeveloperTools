@@ -4,7 +4,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Current Catalogue Snapshot
 
-- The app menu currently exposes 25 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
+- The app menu currently exposes 26 available tools across Encoding & files, Charts & diagrams, Power Platform, JSON & data, Documents, Web/API and Text utilities.
 - There are currently no visible planned tools; planned roadmap previews remain supported for future entries.
 - The catalogue preserves 38 hidden legacy alias entries so older hash links continue to resolve to the current workbench and mode.
 - Renderer mappings, catalogue aliases and handover contracts are covered by unit tests, and user-visible navigation and handover flows are covered by Playwright tests.
@@ -67,6 +67,7 @@ This roadmap keeps the suite focused on practical, local developer utilities. Ev
 
 ## Phase 7: Power Platform
 
+- Power Platform Icon Library with 301 bundled SVGs in 26 categories, search and collection filters, shared customisation, light/dark previews, individual copy/download actions and complete local ZIP export. Implemented with original-byte integrity, validation, navigation, mobile and offline tests.
 - Power Platform Script Hub, evolved from the former PCF Development Hub, with Development, Investigation and Power Pages modes.
 - Catalogue and launcher generation for 25 authoritative or retained PCF/Power Platform PowerShell workflows and all 15 supplied Dynamics / Dataverse forensic JavaScript scripts.
 - Script metadata for purpose, applicability, runtime, version, maturity, safety, inputs, outputs and limitations, with safe PowerShell and JavaScript interpolation.
